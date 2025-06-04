@@ -12,3 +12,6 @@ SixWheelBot/
 ├── IMU : 9축 자이로 센서 모듈  
 ├── LiDAR : LiDAR 센서 장애물 감지 및 회피 모듈  
 └── AI : OpenCV 기반 이미지 처리 모듈 및 신호등/횡단보도 감지 AI 모델  
+
+
+test

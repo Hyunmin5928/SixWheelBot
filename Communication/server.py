@@ -12,15 +12,17 @@ with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
     config = json.load(f)
 
 srv_conf = config["SERVER"]
+cli_conf = config["CLIENT"]
+net_conf = config["NETWORK"]
 log_conf = config["LOG"]
 db_conf  = config["DB"]
 
-SERVER_IP   = srv_conf["SERVER_IP"]
-SERVER_PORT = int(srv_conf["SERVER_PORT"])
-CLIENT_IP   = srv_conf["CLIENT_IP"]
-CLIENT_PORT = int(srv_conf["CLIENT_PORT"])
-ACK_TIMEOUT = float(srv_conf["ACK_TIMEOUT"])
-RETRY_LIMIT = int(srv_conf["RETRY_LIMIT"])
+SERVER_IP   = srv_conf["IP"]
+SERVER_PORT = int(srv_conf["PORT"])
+CLIENT_IP   = srv_conf["IP"]
+CLIENT_PORT = int(srv_conf["PORT"])
+ACK_TIMEOUT = float(net_conf["ACK_TIMEOUT"])
+RETRY_LIMIT = int(net_conf["RETRY_LIMIT"])
 LOG_MODE    = log_conf["LOG_MODE"].upper()
 LOG_FILE    = log_conf["SERVER_LOG_FILE"]
 DB_FILE     = config["DB"]["ROBOT_DB_FILE"]

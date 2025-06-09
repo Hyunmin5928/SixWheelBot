@@ -6,20 +6,22 @@ from daemon_base import Daemon
 #     config = json.load(f)
 # 설정 로드
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-CONFIG_PATH = os.path.join(BASE_DIR,'config','comm_config.json')
+CONFIG_PATH = os.path.join(BASE_DIR,'config','config.json')
 with open(CONFIG_PATH,'r',encoding='utf-8') as f:
     config=json.load(f)
 
+srv_conf = config["SERVER"]
 cli_conf = config["CLIENT"]
+net_conf = config["NETWORK"]
 log_conf = config["LOG"]
 # db_conf  = config["DB"]
 
-SERVER_IP   = cli_conf["SERVER_IP"]
-SERVER_PORT = int(cli_conf["SERVER_PORT"])
-CLIENT_IP   = cli_conf["CLIENT_IP"]
-CLIENT_PORT = int(cli_conf["CLIENT_PORT"])
-ACK_TIMEOUT = float(cli_conf["ACK_TIMEOUT"])
-RETRY_LIMIT = int(cli_conf["RETRY_LIMIT"])
+SERVER_IP   = cli_conf["IP"]
+SERVER_PORT = int(cli_conf["PORT"])
+CLIENT_IP   = cli_conf["IP"]
+CLIENT_PORT = int(cli_conf["PORT"])
+ACK_TIMEOUT = float(net_conf["ACK_TIMEOUT"])
+RETRY_LIMIT = int(net_conf["RETRY_LIMIT"])
 LOG_MODE    = log_conf["LOG_MODE"].upper()
 LOG_FILE    = log_conf["CLIENT_LOG_FILE"]
 

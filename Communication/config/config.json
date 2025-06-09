@@ -17,13 +17,24 @@
   },
   "LOG":{
     "LOG_MODE": "debug",
+    "SERVER_LOG_FILE": "log/srv_comm_log.txt",
+    "CLIENT_LOG_FILE": "log/cli_comm_log.txt"
+  },
+  "DB":{
+    "ROBOT_DB_FILE" : "log/robot_log.db"
+  },
+  "MAP":{
+    "MAP_FILE" : "../GPS/map_data.txt"
+  },
+  "WIN_LOG":{
+    "LOG_MODE": "debug",
     "SERVER_LOG_FILE": "log\\srv_comm_log.txt",
     "CLIENT_LOG_FILE": "log\\cli_comm_log.txt"
   },
-  "DB":{
+  "WIN_DB":{
     "ROBOT_DB_FILE" : "log\\robot_log.db"
   },
-  "MAP":{
+  "WIN_MAP":{
     "MAP_FILE" : "..\\GPS\\map_data.txt"
   }
 }

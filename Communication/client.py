@@ -6,15 +6,18 @@ from collections import deque
 # 설정 파일 로드 (Raspberry Pi 경로)
 with open("/home/hyunmin/SixWheelBot/Communication/config/comm_config.json", "r", encoding="utf-8") as f:
     config = json.load(f)
+cli_conf = config["CLIENT"]
+log_conf = config["LOG"]
+# db_conf  = config["DB"]
 
-SERVER_IP   = config["SERVER_IP"]
-SERVER_PORT = int(config["SERVER_PORT"])
-CLIENT_IP   = config["CLIENT_IP"]
-CLIENT_PORT = int(config["CLIENT_PORT"])
-ACK_TIMEOUT = float(config["ACK_TIMEOUT"])
-RETRY_LIMIT = int(config["RETRY_LIMIT"])
-LOG_MODE    = config["LOG_MODE"].upper()
-LOG_FILE    = config.get("LOG_FILE", "comm_log.txt")
+SERVER_IP   = cli_conf["SERVER_IP"]
+SERVER_PORT = int(cli_conf["SERVER_PORT"])
+CLIENT_IP   = cli_conf["CLIENT_IP"]
+CLIENT_PORT = int(cli_conf["CLIENT_PORT"])
+ACK_TIMEOUT = float(cli_conf["ACK_TIMEOUT"])
+RETRY_LIMIT = int(cli_conf["RETRY_LIMIT"])
+LOG_MODE    = log_conf["LOG_MODE"].upper()
+LOG_FILE    = log_conf.get("CLIENT_LOG_FILE", "comm_log.txt")
 
 import logging
 logger = logging.getLogger("ClientDaemon")

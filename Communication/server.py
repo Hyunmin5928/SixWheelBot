@@ -4,17 +4,22 @@ from daemon_base import Daemon
 from collections import deque
 
 # 설정 파일 로드 (Windows 테스트 시 사용)
-with open("C:\\vscode\\SixWheelBot\\Communication\\config\\server_comm_config.json", "r", encoding="utf-8") as f:
+# with open("/home/hyunmin/SixWheelBot/Communication/config/comm_config.json", "r", encoding="utf-8") as f:
+with open("C:\\vscode\\SixWheelBot\\Communication\\config\\config.json", "r", encoding="utf-8") as f:
     config = json.load(f)
 
-SERVER_IP   = config["SERVER_IP"]
-SERVER_PORT = int(config["SERVER_PORT"])
-CLIENT_IP   = config["CLIENT_IP"]
-CLIENT_PORT = int(config["CLIENT_PORT"])
-ACK_TIMEOUT = float(config["ACK_TIMEOUT"])
-LOG_MODE    = config["LOG_MODE"].upper()
-LOG_FILE    = config.get("LOG_FILE", "log\\comm_log.txt")
-DB_FILE     = config.get("DB_FILE", "log\\robot_log.db")
+srv_conf = config["SERVER"]
+log_conf = config["LOG"]
+db_conf  = config["DB"]
+
+SERVER_IP   = srv_conf["SERVER_IP"]
+SERVER_PORT = int(srv_conf["SERVER_PORT"])
+CLIENT_IP   = srv_conf["CLIENT_IP"]
+CLIENT_PORT = int(srv_conf["CLIENT_PORT"])
+ACK_TIMEOUT = float(srv_conf["ACK_TIMEOUT"])
+LOG_MODE    = log_conf["LOG_MODE"].upper()
+LOG_FILE    = log_conf.get("SERVER_LOG_FILE", "log\\comm_log.txt")
+DB_FILE     = db_conf.get("ROBOT_DB_FILE", "log\\robot_log.db")
 
 import logging
 logger = logging.getLogger("ServerDaemon")

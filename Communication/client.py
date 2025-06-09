@@ -1,76 +1,148 @@
-import socket, json, time, threading
+import socket, json, time
+import threading, os, sys
+from daemon_base import Daemon
+from collections import deque
 
-with open("comm_config.json", "r") as f:
+# 설정 파일 로드 (Raspberry Pi 경로)
+with open("/home/hyunmin/SixWheelBot/Communication/config/comm_config.json", "r", encoding="utf-8") as f:
     config = json.load(f)
 
-SERVER_IP = config["SERVER_IP"]
+SERVER_IP   = config["SERVER_IP"]
 SERVER_PORT = int(config["SERVER_PORT"])
-CLIENT_IP = config["CLIENT_IP"]
+CLIENT_IP   = config["CLIENT_IP"]
 CLIENT_PORT = int(config["CLIENT_PORT"])
 ACK_TIMEOUT = float(config["ACK_TIMEOUT"])
 RETRY_LIMIT = int(config["RETRY_LIMIT"])
+LOG_MODE    = config["LOG_MODE"].upper()
+LOG_FILE    = config.get("LOG_FILE", "comm_log.txt")
 
+import logging
+logger = logging.getLogger("ClientDaemon")
+logger.setLevel(getattr(logging, LOG_MODE))
+fh = logging.FileHandler(LOG_FILE, mode="a+")
+fh.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
+logger.addHandler(fh)
 
-def log(level, msg):
-    if level.lower() in ["info", "warn", "debug", "error"]:
-        print(f"[{level.upper()}] {msg}")
+# 전역 상태
+robot_state = "idle"
+route = []
+packet_num = 0
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 sock.bind((CLIENT_IP, CLIENT_PORT))
 sock.settimeout(ACK_TIMEOUT)
-packet_num = 0
-packet_cache = {}
 
-robot_state = "idle"
-destination = None
-
-def receive_loop():
-    global robot_state, destination
+def recv_loop():
+    global robot_state, route
     while True:
         try:
             data, addr = sock.recvfrom(4096)
-            data_dict = json.loads(data.decode())
-            recv_num = data_dict.get("packet_number", -1)
-            log("info", f"서버 명령 수신: {data_dict}")
-            sock.sendto(f"ACK:{recv_num}".encode(), addr)
+            msg = data.decode().strip()
 
-            if "destination" in data_dict:
-                destination = data_dict["destination"]
-                log("info", f"[목적지 명령] 이동 좌표: {destination}")
+            # ACK 메시지는 여기서 처리하지 않고 패스
+            if msg.startswith("ACK:"):
+                logger.debug(f"recv_loop에서 ACK 무시: {msg}")
+                continue
+            # JSON 메시지만 파싱
+            if not msg.startswith("{"):
+                logger.warning(f"수신 알 수 없는 메시지 무시: {msg}")
+                continue
+
+            pkt = json.loads(msg)
+            if pkt.get("type") == "command":
+                route = pkt.get("route", [])
+                logger.info(f"경로 수신: {len(route)} 지점")
                 robot_state = "moving"
 
+        except socket.timeout:
+            logger.debug("명령 대기 중 (timeout)")
         except Exception as e:
-            log("error", f"클라이언트 수신 오류: {e}")
+            logger.error(f"수신 오류: {e}")
 
+def client_loop():
+    global packet_num, robot_state, route
+    while True:
+        try:
+            # R1: 1초마다 상태+GPS 로그 전송
+            pkt = {
+                "packet_number": packet_num,
+                "type": "log",
+                "robot_state": robot_state,
+                # 이동 중(route이 있으면 그 지점, 아니면 현재값 그대로)
+                "gps": route[0] if route else {"lat": 0.0, "lon": 0.0},
+                "timestamp": time.time()
+            }
+            data = json.dumps(pkt).encode()
 
-recv_thread = threading.Thread(target=receive_loop, daemon=True)
-recv_thread.start()
+            # R3,R6,R7: ACK 미수신 시 재전송
+            for retry in range(RETRY_LIMIT):
+                sock.sendto(data, (SERVER_IP, SERVER_PORT))
+                try:
+                    ack, _ = sock.recvfrom(1024)
+                    if ack.decode() == f"ACK:{packet_num}":
+                        logger.info(f"ACK-{packet_num} 수신")
+                        break
+                except socket.timeout:
+                    logger.warning(f"ACK 재시도 {retry+1}/{RETRY_LIMIT}")
+            packet_num += 1
 
-while True:
-    try:
-        packet = {
-            "packet_number": packet_num,
-            "robot_state": robot_state,
-            "gps": {"lat": 37.123, "lon": 127.123},
-            "timestamp": time.time()
-        }
-        encoded = json.dumps(packet).encode()
-        packet_cache[packet_num] = encoded
-        retry = 0
+            # 이동 경로 수행 후 완료 메시지
+            if robot_state == "moving" and route:
+                for pt in route[1:]:
+                    # 이미 첫 지점은 위에서 보냈으므로 순회
+                    pkt = {
+                        "packet_number": packet_num,
+                        "type": "log",
+                        "robot_state": robot_state,
+                        "gps": pt,
+                        "timestamp": time.time()
+                    }
+                    data = json.dumps(pkt).encode()
+                    for retry in range(RETRY_LIMIT):
+                        sock.sendto(data, (SERVER_IP, SERVER_PORT))
+                        try:
+                            ack, _ = sock.recvfrom(1024)
+                            if ack.decode() == f"ACK:{packet_num}":
+                                logger.info(f"ACK-{packet_num} 수신")
+                                break
+                        except socket.timeout:
+                            logger.warning(f"ACK 재시도 {retry+1}/{RETRY_LIMIT}")
+                    packet_num += 1
+                    time.sleep(1)
 
-        while retry < RETRY_LIMIT:
-            sock.sendto(encoded, (SERVER_IP, SERVER_PORT))
-            try:
-                ack, _ = sock.recvfrom(1024)
-                if ack.decode() == f"ACK:{packet_num}":
-                    log("info", f"ACK 수신 성공 (패킷 {packet_num})")
-                    break
-            except socket.timeout:
-                retry += 1
-                log("warn", f"ACK 재시도 {retry}/{RETRY_LIMIT}")
+                # 완료 메시지 전송
+                done = {
+                    "packet_number": packet_num,
+                    "type": "done",
+                    "timestamp": time.time()
+                }
+                sock.sendto(json.dumps(done).encode(), (SERVER_IP, SERVER_PORT))
+                logger.info("배달 완료 메시지 전송")
+                robot_state = "idle"
+                packet_num += 1
 
-        packet_num += 1
+        except Exception as e:
+            logger.error(f"송신 오류: {e}")
         time.sleep(1)
 
-    except Exception as e:
-        log("error", f"클라이언트 송신 오류: {e}")
+class ClientDaemon(Daemon):
+    def run(self):
+        threading.Thread(target=recv_loop, daemon=True).start()
+        client_loop()
+
+if __name__ == "__main__":
+    pidf = "/var/run/client.pid"
+    daemon = ClientDaemon(pidf, stdout=LOG_FILE, stderr=LOG_FILE)
+    if len(sys.argv) == 2:
+        cmd = sys.argv[1]
+        if cmd == "start":   daemon.start()
+        elif cmd == "stop":    daemon.stop()
+        elif cmd == "status":  daemon.status()
+        elif cmd == "restart": daemon.restart()
+        else: print("Usage: client.py [start|stop|status|restart]")
+    else:
+        # Raspberry Pi에서 직접 테스트 모드로 실행하려면 아래 주석 해제
+        # print("== Foreground 모드로 클라이언트 실행 ==")
+        # recv_loop(); client_loop()
+        print("Usage: client.py [start|stop|status|restart]")

@@ -1,9 +1,10 @@
 {
-  "SERVER_IP": "192.168.111.1",
+  "SERVER_IP": "192.168.0.191",
   "SERVER_PORT": 5000,
-  "CLIENT_IP": "1.1.1.1",
+  "CLIENT_IP": "0.0.0.0",
   "CLIENT_PORT": 5001,
   "ACK_TIMEOUT": 1.0,
   "RETRY_LIMIT": 5,
-  "LOG_MODE": "info"
+  "LOG_MODE": "debug",
+  "LOG_FILE": "log/comm_log.txt"
 }

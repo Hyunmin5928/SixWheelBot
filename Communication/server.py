@@ -20,9 +20,11 @@ SERVER_PORT = int(srv_conf["SERVER_PORT"])
 CLIENT_IP   = srv_conf["CLIENT_IP"]
 CLIENT_PORT = int(srv_conf["CLIENT_PORT"])
 ACK_TIMEOUT = float(srv_conf["ACK_TIMEOUT"])
+RETRY_LIMIT = int(srv_conf["RETRY_LIMIT"])
 LOG_MODE    = log_conf["LOG_MODE"].upper()
 LOG_FILE    = log_conf["SERVER_LOG_FILE"]
 DB_FILE     = config["DB"]["ROBOT_DB_FILE"]
+MAP_FILE   = config["MAP"]["MAP_FILE"]
 
 logger = logging.getLogger("ServerDaemon")
 logger.setLevel(getattr(logging, LOG_MODE))
@@ -49,86 +51,111 @@ def save_to_db(data):
     conn.commit()
     conn.close()
 
+# mapdata.txt 로드 함수
+def load_map_data(path):
+    route = []
+    with open(path, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith('#'):
+                continue
+            lat_str, lon_str = line.split(',', 1)
+            try:
+                lat = float(lat_str)
+                lon = float(lon_str)
+            except ValueError:
+                continue
+            route.append({'lat': lat, 'lon': lon})
+    return route
+
 def server_loop():
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    # sock.bind((SERVER_IP, SERVER_PORT))
-    # logger.info(f"서버 바인드 완료: {SERVER_IP}:{SERVER_PORT}")
+    sock.bind((SERVER_IP, SERVER_PORT))
+    logger.info(f"서버 바인드 완료: {SERVER_IP}:{SERVER_PORT}")
     sock.settimeout(ACK_TIMEOUT)
 
     # 캐시 구조
-    cmd_cache = {}
+    map_cache = {}
+    done_cache = {}
     log_cache = {}
     received_logs = set()
 
-    # 1) 명령 생성 및 캐싱
-    cmd_num = 0
-    cmd = {
-        'packet_number': cmd_num,
-        'type': 'command',
-        'route': [
-            {'lat': 37.123, 'lon': 127.123},
-            {'lat': 37.124, 'lon': 127.124},
-            {'lat': 37.125, 'lon': 127.125}
-        ],
-        'timestamp': time.time()
-    }
-    data_cmd = json.dumps(cmd).encode()
-    cmd_cache[cmd_num] = data_cmd
+    # 1) map 전송 & ACK_MAP
+    route = load_map_data(MAP_FILE)
+    map_pkt = {'packet_number': 0, 'type': 'map', 'route': route, 'timestamp': time.time()}
+    data_map = json.dumps(map_pkt).encode()
+    map_cache[0] = data_map
 
-    # 2) 명령 전송 및 ACK_CMD 대기
-    while True:
-        sock.sendto(data_cmd, (CLIENT_IP, CLIENT_PORT))
-        logger.info(f'Command {cmd_num} sent')
-        data, addr = sock.recvfrom(1024)
-        msg = data.decode()
-        if msg == f'ACK_CMD:{cmd_num}':
-            logger.info(f'Command {cmd_num} ack received')
-            del cmd_cache[cmd_num]
-            break
-        time.sleep(1)
+    for attempt in range(RETRY_LIMIT):
+        sock.sendto(data_map, (CLIENT_IP, CLIENT_PORT))
+        logger.info(f'Map sent attempt {attempt+1}')
+        try:
+            data, addr = sock.recvfrom(1024)
+            if data.decode() == 'ACK_MAP:0':
+                logger.info('ACK_MAP received')
+                del map_cache[0]
+                break
+        except socket.timeout:
+            continue
+    else:
+        logger.error('Map ACK not received after retries')
 
-    # 3) 로그 수신 및 ACK_LOG 처리
+    # 2) 로그 수신
     while True:
-        data, addr = sock.recvfrom(65536)
+        try:
+            data, addr = sock.recvfrom(65536)
+        except socket.timeout:
+            continue
         msg = data.decode(errors='ignore').strip()
 
         # 재전송 요청 처리
-        if msg.startswith('RETRANS_CMD:'):
-            req = int(msg.split(':')[1])
-            if req in cmd_cache:
-                sock.sendto(cmd_cache[req], (CLIENT_IP, CLIENT_PORT))
-                logger.info(f'Retransmitted command {req}')
+        if msg.startswith('RETRANS_MAP:'):
+            sock.sendto(map_cache.get(0, b''), (CLIENT_IP, CLIENT_PORT))
+            logger.info('Retransmitted map')
             continue
         if msg.startswith('RETRANS_LOG:'):
-            req = int(msg.split(':')[1])
-            if req in log_cache:
-                sock.sendto(log_cache[req], (CLIENT_IP, CLIENT_PORT))
-                logger.info(f'Retransmitted log {req}')
+            num = int(msg.split(':')[1])
+            sock.sendto(log_cache.get(num, b''), addr)
+            logger.info(f'Retransmitted log {num}')
+            continue
+        if msg.startswith('RETRANS_DONE:'):
+            num = int(msg.split(':')[1])
+            sock.sendto(done_cache.get(num, b''), addr)
+            logger.info(f'Retransmitted done {num}')
             continue
 
         if not msg.startswith('{'):
             continue
-        pkt = json.loads(msg)
-        ptype = pkt.get('type')
-        num = pkt.get('packet_number')
+        pkt = json.loads(msg); ptype = pkt.get('type'); num = pkt.get('packet_number')
 
-        # 중복 로그 재전송 ACK
-        if num in received_logs:
-            sock.sendto(f'ACK_LOG:{num}'.encode(), addr)
-            continue
-
+        # log 처리
         if ptype == 'log':
+            if num in received_logs:
+                sock.sendto(f'ACK_LOG:{num}'.encode(), addr)
+                continue
             save_to_db(pkt)
-            log_cache[num] = msg.encode()
+            data_log = json.dumps(pkt).encode()
+            log_cache[num] = data_log
             sock.sendto(f'ACK_LOG:{num}'.encode(), addr)
             received_logs.add(num)
-            logger.info(f'Log {num} processed and ACK_LOG sent')
+            logger.info(f'Log {num} saved & ACK_LOG')
+        # done 처리
         elif ptype == 'done':
-            sock.sendto(f'ACK_DONE:{num}'.encode(), addr)
-            logger.info(f'Done {num} received and ACK_DONE sent')
+            data_done = json.dumps(pkt).encode()
+            done_cache[num] = data_done
+            for attempt in range(RETRY_LIMIT):
+                sock.sendto(data_done, addr)
+                logger.info(f'Done {num} sent attempt {attempt+1}')
+                try:
+                    ack, _ = sock.recvfrom(1024)
+                    if ack.decode() == f'ACK_DONE:{num}':
+                        del done_cache[num]
+                        logger.info('ACK_DONE received')
+                        break
+                except socket.timeout:
+                    continue
             break
-        else:
-            logger.warning(f'Unexpected packet type: {ptype}')
+
 
 class ServerDaemon(Daemon):
     def run(self):

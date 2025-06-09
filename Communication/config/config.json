@@ -22,5 +22,8 @@
   },
   "DB":{
     "ROBOT_DB_FILE" : "log\\robot_log.db"
+  },
+  "MAP":{
+    "MAP_FILE" : "..\\GPS\\map_data.txt"
   }
 }

@@ -1,9 +1,15 @@
-import socket, json, time, threading, os, sys, logging
+import socket, json, time, os, sys, logging
 from daemon_base import Daemon
 
 # 설정 파일 로드 (Raspberry Pi 경로)
-with open("/home/hyunmin/SixWheelBot/Communication/config/comm_config.json", "r", encoding="utf-8") as f:
-    config = json.load(f)
+# with open("/home/hyunmin/SixWheelBot/Communication/config/comm_config.json", "r", encoding="utf-8") as f:
+#     config = json.load(f)
+# 설정 로드
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+CONFIG_PATH = os.path.join(BASE_DIR,'config','comm_config.json')
+with open(CONFIG_PATH,'r',encoding='utf-8') as f:
+    config=json.load(f)
+
 cli_conf = config["CLIENT"]
 log_conf = config["LOG"]
 # db_conf  = config["DB"]
@@ -23,30 +29,38 @@ fh = logging.FileHandler(LOG_FILE, mode="a+")
 fh.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
 logger.addHandler(fh)
 
-# 캐시 구조
-packet_cache = {}
-received_cmds = set()
-received_done = set()
-
-# 소켓 바인딩
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-if CLIENT_IP != '0.0.0.0':
-    sock.bind((CLIENT_IP, CLIENT_PORT))
-sock.settimeout(None)
-logger.info(f'Client ready on {CLIENT_IP}:{CLIENT_PORT}')
+# 바인딩
+sock=socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
+if CLIENT_IP!='0.0.0.0': sock.bind((CLIENT_IP,CLIENT_PORT))
+sock.settimeout(ACK_TIMEOUT)
+logger.info(f'Client listening on {CLIENT_IP}:{CLIENT_PORT}')
 
 # 클라이언트 실행: 서버로부터 command 수신 및 처리
 def client_loop():
+    packet_cache = {}
+    received_map = False
+
     while True:
-        data, addr = sock.recvfrom(65536)
+        try:
+            data,addr = sock.recvfrom(65536)
+        except socket.timeout:
+            continue
         msg = data.decode(errors='ignore').strip()
 
         # 재전송 요청 처리
-        if msg.startswith('RETRANS_CMD:'):
-            req = int(msg.split(':')[1])
-            if req in packet_cache:
-                sock.sendto(packet_cache[req], (SERVER_IP, SERVER_PORT))
-                logger.info(f'Retransmitted packet {req}')
+        if msg.startswith('RETRANS_MAP:'):
+            sock.sendto(packet_cache.get(0, b''), addr)
+            logger.info('Retransmitted map')
+            continue
+        if msg.startswith('RETRANS_LOG:'):
+            num=int(msg.split(':')[1])
+            sock.sendto(packet_cache.get(num,b''),(SERVER_IP,SERVER_PORT))
+            logger.info(f'Retransmitted log {num}')
+            continue
+        if msg.startswith('RETRANS_DONE:'):
+            num=int(msg.split(':')[1])
+            sock.sendto(packet_cache.get(num,b''),(SERVER_IP,SERVER_PORT))
+            logger.info(f'Retransmitted done {num}')
             continue
 
         if not msg.startswith('{'):
@@ -55,58 +69,46 @@ def client_loop():
         ptype = pkt.get('type')
         num = pkt.get('packet_number')
 
-        # 중복 명령 ACK
-        if ptype == 'command' and num in received_cmds:
-            sock.sendto(f'ACK_CMD:{num}'.encode(), addr)
-            continue
+        if ptype=='map' and not received_map:
+            packet_cache[0] = data
+            sock.sendto(b'ACK_MAP:0', addr)
+            route=pkt.get('route', [])
+            logger.info(f'Map received: {len(route)} points')
+            received_map=True
 
-        if ptype == 'command':
-            received_cmds.add(num)
-            sock.sendto(f'ACK_CMD:{num}'.encode(), addr)
-            logger.info(f'Received command {num} and ACK_CMD sent')
-            # execute route
-            for i, point in enumerate(pkt.get('route', [])):
-                log_num = i
-                log_pkt = {
-                    'packet_number': log_num,
-                    'type': 'log',
-                    'robot_state': 'moving',
-                    'gps': point,
-                    'timestamp': time.time()
-                }
-                data_log = json.dumps(log_pkt).encode()
-                packet_cache[log_num] = data_log
-                # send with retry
-                for retry in range(RETRY_LIMIT):
-                    sock.sendto(data_log, (SERVER_IP, SERVER_PORT))
-                    data_ack, _ = sock.recvfrom(1024)
-                    if data_ack.decode() == f'ACK_LOG:{log_num}':
-                        logger.info(f'ACK_LOG {log_num} received')
-                        del packet_cache[log_num]
-                        break
-                    else:
-                        logger.warning(f'ACK_LOG retry {retry+1}')
-                time.sleep(1)
-
+            # send logs
+            for i,pt in enumerate(route):
+                log_pkt={'packet_number':i,'type':'log','robot_state':'moving','gps':pt,'timestamp':time.time()}
+                data_log=json.dumps(log_pkt).encode()
+                packet_cache[i]=data_log
+                # retry
+                for attempt in range(RETRY_LIMIT):
+                    sock.sendto(data_log,(SERVER_IP,SERVER_PORT))
+                    try:
+                        ack,_=sock.recvfrom(1024)
+                        if ack.decode()==f'ACK_LOG:{i}':
+                            del packet_cache[i]
+                            break
+                    except socket.timeout:
+                        continue
+                time.sleep(2)
+                
             # done packet
-            done_num = len(pkt.get('route', []))
-            done_pkt = {
-                'packet_number': done_num,
-                'type': 'done',
-                'timestamp': time.time()
-            }
-            data_done = json.dumps(done_pkt).encode()
-            packet_cache[done_num] = data_done
-            for retry in range(RETRY_LIMIT):
-                sock.sendto(data_done, (SERVER_IP, SERVER_PORT))
-                data_ack, _ = sock.recvfrom(1024)
-                if data_ack.decode() == f'ACK_DONE:{done_num}':
-                    logger.info(f'ACK_DONE {done_num} received')
-                    del packet_cache[done_num]
-                    break
-                else:
-                    logger.warning(f'ACK_DONE retry {retry+1}')
-            logger.info('Delivery done')
+            done_num=len(route)
+            done_pkt={'packet_number':done_num,'type':'done','timestamp':time.time()}
+            data_done=json.dumps(done_pkt).encode()
+            packet_cache[done_num]=data_done
+            for attempt in range(RETRY_LIMIT):
+                sock.sendto(data_done,(SERVER_IP,SERVER_PORT))
+                try:
+                    ack,_=sock.recvfrom(1024)
+                    if ack.decode()==f'ACK_DONE:{done_num}':
+                        del packet_cache[done_num]
+                        break
+                except socket.timeout:
+                    continue
+            logger.info('Delivery completed')
+            break
 
 class ClientDaemon(Daemon):
     def run(self):

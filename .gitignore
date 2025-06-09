@@ -364,6 +364,6 @@ FodyWeavers.xsd
 # Ignore object files
 *.o
 
-Communication/build/
-
+# Communication/build/
+*/build
 Communication/gpt.py

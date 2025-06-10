@@ -14,6 +14,9 @@
 #define R_LEN 10
 
 #define maxPulse 100
+#define maxSpeed 150.0f
+
+#define avoidDistance 300.0f //cm
 
 //@brief pwm값 유효성 확인
 #define validate_pwm(pwm)                         \
@@ -49,6 +52,47 @@ void Motor::rmotor_direction_front(bool front=true)
     }
 }
 
+float Motor::calculate_dgrspeed(int pwm)
+{
+    return maxSpeed / 100.0f * pwm * 6.0f;
+}
+
+float Motor::average_pwm(int l_pwm, int r_pwm)
+{
+    return l_pwm + r_pwm / 2.0f;
+}
+
+void Motor::lmotor_run(int pwm, bool front=true)
+{
+    std::cout<<"Lmotor_run\n";
+    validate_pwm(pwm);
+    lmotor_direction_front(front);
+    if (front) {
+        softPwmWrite(L_RpwmPin, pwm); //positive forward
+        softPwmWrite(L_LpwmPin, 0); // must turn off this pin when using L_pwmPin
+    }
+    else {
+        softPwmWrite(L_RpwmPin, 0); //negative backward
+        softPwmWrite(L_LpwmPin, pwm);
+    }
+
+}
+
+void Motor::rmotor_run(int pwm, bool front=true)
+{
+    std::cout << "Rmotor_run\n";
+    validate_pwm(pwm);
+    rmotor_direction_front(front);
+    if (front) {
+        softPwmWrite(R_RpwmPin, pwm); //positive forward
+        softPwmWrite(R_LpwmPin, 0); // must turn off this pin when using L_pwmPin
+    }
+    else {
+        softPwmWrite(R_RpwmPin, 0); //negative backward
+        softPwmWrite(R_LpwmPin, pwm);
+    }
+}
+
 void Motor::motor_setup(int lr_pwmPin, int ll_pwmPin, int rr_pwmPin, int rl_pwmPin, int rrenPin, int rlenPin, int lrenPin, int llenPin) {
     wiringPiSetup();
     std::cout<<"setup\n";
@@ -73,8 +117,8 @@ void Motor::motor_setup(int lr_pwmPin, int ll_pwmPin, int rr_pwmPin, int rl_pwmP
     lmotor_direction_front();
     rmotor_direction_front();
 
-    //R_Motor, L_Motor 0으로 초기화, 최대 펄스 255
-    //R_Motor, L_Motor initialize 0, max purse 255
+    //R_Motor, L_Motor 0으로 초기화, 최대 펄스 100
+    //R_Motor, L_Motor initialize 0, max purse 100
     softPwmCreate(L_RpwmPin, 0, maxPulse);
     softPwmCreate(L_LpwmPin, 0, maxPulse);
     softPwmCreate(R_RpwmPin, 0, maxPulse);
@@ -121,16 +165,13 @@ Motor::~Motor(){
 void Motor::straight(int pwm)
 {
     validate_pwm(pwm);
-    std::cout<<"pwm valid...\n";
     rmotor_direction_front();
     lmotor_direction_front();
-    std::cout<<"direction setting...\n";
     softPwmWrite(R_RpwmPin, pwm); //positive forward
     softPwmWrite(R_LpwmPin, 0); // must turn off this pin when using R_pwmPin
     softPwmWrite(L_RpwmPin, pwm); //positive forward
     softPwmWrite(L_LpwmPin, 0); //must turn off this pin when using R_pwmPin
     delay(1000);
-    std::cout<<"done\n";
 }
 
 void Motor::backoff(int pwm)
@@ -159,7 +200,7 @@ void Motor::rotate(int pwm, float degree)
 {
     validate_pwm(pwm);
 
-    float dgrspeed = 150.0f / 255.0f * pwm * 6.0f;
+    float dgrspeed = calculate_dgrspeed(pwm);
     float abs_dgr = degree;
     if(abs_dgr <0){
         abs_dgr *= -1.0f;
@@ -182,10 +223,8 @@ void Motor::rotate(int pwm, float degree)
         softPwmWrite(L_LpwmPin, pwm);
         softPwmWrite(L_RpwmPin, 0);
     }
-    // 모터 최대 150rpm, 설정 최대 pwm 255, 6.0f는 초당 각속도 계산을 위한 상수
-
+    // 모터 최대 150rpm, 설정 최대 pwm 100, 6.0f는 초당 각속도 계산을 위한 상수
     delay(delaytime);
-
 }
 
 // 커브 함수 동작 지침
@@ -195,11 +234,13 @@ void Motor::rotate(int pwm, float degree)
 
 // l_pwm, r_pwm 말고, 원하는 pwm값 (오,왼 평균pwm), 각도를 설정해서 커브를 구현하는건 어떨까?
 
-
-
-void Motor::curve(int pwm, float degree, bool recover=false)
+void Motor::curve_avoid(float distance, int pwm, float degree, bool recover=false)
 {
     
+}
+
+void Motor::curve_coner(int pwm, float degree)
+{
 }
 
 #pragma endregion

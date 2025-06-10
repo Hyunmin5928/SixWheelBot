@@ -23,6 +23,13 @@ class Motor{
         //@breif prevent hardware damage from pwm collison
         void rmotor_direction_front(bool front);
 
+        float calculate_dgrspeed(int pwm);
+
+        float average_pwm(int l_pwm, int r_pwm);
+
+        void only_lmotor_run(int pwm, bool front=true) ;
+        void only_rmotor_run(int pwm, bool front=true) ;
+
     public:
         Motor();
         Motor(int lr_pwmPin, int ll_pwmPin,int rr_pwmPin, int rl_pwmPin, int rr_enPin, int rl_enPin, int lr_enPin, int ll_enPin);
@@ -30,32 +37,24 @@ class Motor{
 
         void straight(int pwm);
 
-       // @brief ����
        // @brief back off
         void backoff(int pwm);
 
         void stop();
 
-        // ���ڸ� ȸ�� : ������ + ���� -
-        // @brief �ش� ������ ������ ������ ��ü������ ������ ������
         // @brief rotate by degree : R positive, L negative
         void rotate(int pwm, float degree);
         
-        // @brief �⺻ Ŀ�� default curve (30 degree)
+        // @brief default curve (30 degree)
         void left_curve(bool recover, int pwm);
-        // @brief �⺻ Ŀ�� default curve (30 degree)
+        // @brief default curve (30 degree)
         void right_curve(bool recover, int pwm);
 
-        // @brief ����� ����Ŀ�� ( ����ڰ� ������ pwm ���� ���̴� ����� ������ �� )
         // @brief user setting curve ( user setting pwm diffrence provokes curvature )
         void left_curve(bool recover,  int l_pwm, int r_pwm);
-        // @brief ����� ����Ŀ�� ( ����ڰ� ������ pwm ���� ���̴� ����� ������ �� )
         // @brief user setting curve ( user setting pwm diffrence provokes curvature )
         void right_curve(bool recover, int l_pwm, int r_pwm);
 
-        // Ŀ���� ���ο� �Լ�.. ���ϴ� pwm(��,�� ���), degree ������ 
-        // �Լ� ������ �ڵ����� l, r pwm�� �������ְ� �̵��� �������� �� �ֵ���..!
-        //@brief recover�� true�� �����ؾ� ���� ������ �ǵ��ƿ�
-        void curve(int pwm, float degree, bool recover);
-        
+        void curve_avoid(float distance, int pwm, float degree, bool recover);
+        void curve_coner(int pwm, float degree);
 };

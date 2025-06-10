@@ -32,8 +32,8 @@ void Motor::lmotor_direction_front(bool front=true)
         digitalWrite(L_LENPin, LOW);
     }
     else {
-        digitalWrite(L_RENPin, HIGH);
-        digitalWrite(L_LENPin, LOW);
+        digitalWrite(L_RENPin, LOW);
+        digitalWrite(L_LENPin, HIGH);
     }
 }
 
@@ -44,14 +44,22 @@ void Motor::rmotor_direction_front(bool front=true)
         digitalWrite(R_LENPin, LOW);
     }
     else {
-        digitalWrite(R_RENPin, HIGH);
-        digitalWrite(R_LENPin, LOW);
+        digitalWrite(R_RENPin, LOW);
+        digitalWrite(R_LENPin, HIGH);
     }
 }
 
 void Motor::motor_setup(int lr_pwmPin, int ll_pwmPin, int rr_pwmPin, int rl_pwmPin, int rrenPin, int rlenPin, int lrenPin, int llenPin) {
     wiringPiSetup();
-    L_RpwmPin, L_LpwmPin, R_RpwmPin, R_LpwmPin, R_RENPin, R_LENPin, L_RENPin, L_LENPin = lr_pwmPin, ll_pwmPin, rr_pwmPin, rl_pwmPin, rrenPin, rlenPin, lrenPin, llenPin;
+    L_RpwmPin = lr_pwmPin;
+    L_LpwmPin = ll_pwmPin;
+    R_RpwmPin = rr_pwmPin;
+    R_LpwmPin = rl_pwmPin;
+    R_RENPin = rrenPin;
+    R_LENPin = rlenPin;
+    L_RENPin = lrenPin;
+    L_LENPin = llenPin;;
+
     pinMode(L_RpwmPin, OUTPUT);
     pinMode(L_LpwmPin, OUTPUT);
     pinMode(R_RpwmPin, OUTPUT);

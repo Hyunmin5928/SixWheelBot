@@ -1,4 +1,8 @@
 #include "motorCtrl.h"
+#include <wiringPi.h>
+#include <softPwm.h>
+#include <iostream>
+
 #define RPWM 1
 #define LPWM 23
 #define LR_EN 4
@@ -45,22 +49,24 @@ void Motor::rmotor_direction_front(bool front=true)
     }
 }
 
-void Motor::motor_setup(int r_pwmPin, int l_pwmPin, int rr_enPin, int rl_enPin, int lr_enPin, int ll_enPin) {
+void Motor::motor_setup(int rpwmPin, int lpwmPin, int rrenPin, int rlenPin, int lrenPin, int llenPin) {
     wiringPiSetup();
-    pinMode(r_pwmPin, OUTPUT);
-    pinMode(l_pwmPin, OUTPUT);
-    pinMode(rr_enPin, OUTPUT);
-    pinMode(rl_enPin, OUTPUT);
-    pinMode(lr_enPin, OUTPUT);
-    pinMode(ll_enPin, OUTPUT);
+
+    R_pwmPin, L_pwmPin, RR_ENPin, RL_ENPin, LR_ENPin, LL_ENPin = rpwmPin, lpwmPin, rrenPin, rlenPin, lrenPin, llenPin;
+    pinMode(R_pwmPin, OUTPUT);
+    pinMode(L_pwmPin, OUTPUT);
+    pinMode(RR_ENPin, OUTPUT);
+    pinMode(RL_ENPin, OUTPUT);
+    pinMode(LR_ENPin, OUTPUT);
+    pinMode(LL_ENPin, OUTPUT);
 
     lmotor_direction_front();
     rmotor_direction_front();
 
     //R_Motor, L_Motor 0으로 초기화, 최대 펄스 255
     //R_Motor, L_Motor initialize 0, max purse 255
-    softPwmCreate(r_pwmPin, 0, maxPulse);
-    softPwmCreate(l_pwmPin, 0, maxPulse);
+    softPwmCreate(R_pwmPin, 0, maxPulse);
+    softPwmCreate(L_pwmPin, 0, maxPulse);
 }
 
 void Motor::motor_setup()

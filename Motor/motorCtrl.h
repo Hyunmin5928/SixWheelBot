@@ -27,6 +27,10 @@ class Motor{
 
         float average_pwm(int l_pwm, int r_pwm);
 
+        float calculate_tan(float degree) ;
+
+        void calculate_twin_pwm(int pwm, float degree, int* pwm1, int* pwm2);
+
         void only_lmotor_run(int pwm, bool front=true) ;
         void only_rmotor_run(int pwm, bool front=true) ;
 

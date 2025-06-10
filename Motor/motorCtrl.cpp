@@ -2,6 +2,10 @@
 #include <wiringPi.h>
 #include <softPwm.h>
 #include <iostream>
+#include <cmath>
+#include <vector>
+
+#define PI 3.1415926 
 
 #define L_RPWM 1
 #define L_LPWM 23
@@ -17,6 +21,8 @@
 #define maxSpeed 150.0f
 
 #define avoidDistance 300.0f //cm
+
+//degree 값을 180 ~ -180 으로 설정함. 0~360으로 나올 경우 변수 변경 필요 (실제 받아오는 값은 전방 부채꼴 각도이므로, 유의)
 
 //@brief pwm값 유효성 확인
 #define validate_pwm(pwm)                         \
@@ -60,6 +66,21 @@ float Motor::calculate_dgrspeed(int pwm)
 float Motor::average_pwm(int l_pwm, int r_pwm)
 {
     return l_pwm + r_pwm / 2.0f;
+}
+
+float Motor::calculate_tan(float degree)
+{
+    return tan(degree * PI /180);
+}
+
+void Motor::calculate_twin_pwm(int pwm, float degree, int* pwm1, int* pwm2)
+{
+    float ratio = calculate_tan(degree);
+    //*pwm1 = 2 * pwm / (1 / ratio + 1);
+    //*pwm2 = 2 * pwm - pwm1;
+    *pwm1 = pwm * (1.0f - ratio);
+    *pwm2 = pwm * (1.0f + ratio);
+    // PWM 값이 너무 급격하게 변하지 않도록 해야함
 }
 
 void Motor::lmotor_run(int pwm, bool front=true)
@@ -226,9 +247,40 @@ void Motor::rotate(int pwm, float degree)
 
 // l_pwm, r_pwm 말고, 원하는 pwm값 (오,왼 평균pwm), 각도를 설정해서 커브를 구현하는건 어떨까?
 
-void Motor::curve_avoid(float distance, int pwm, float degree, bool recover=false)
+void curve_avoid(float distance, int pwm, float degree, bool recover = false)
 {
-    
+    float currentdgr = 0.01f;
+    int current_rpwm = pwm;
+    int current_lpwm = pwm;
+    std::vector<std::pair<int, int>> pwmList;
+    if (distance > avoidDistance / 2.0f) {
+        float addWeight = 0.02f;
+        while (currentdgr < degree) {
+            currentdgr += addWeight;
+            addWeight += 0.3f;
+
+            // 각도 범위 변경 시 이 부분도 유의
+            if (degree > 0) {
+                calculate_twin_pwm(pwm, currentdgr, &current_lpwm, &current_rpwm);
+            }
+            else {
+                calculate_twin_pwm(pwm, currentdgr, &current_rpwm, &current_lpwm);
+            }
+            std::cout << "currentdgr : " << currentdgr << ", current_lpwm : " << current_lpwm << ", current_rpwm : " << current_rpwm << "\n";
+            pwmList.push_back({ current_lpwm, current_rpwm });
+        }
+        std::cout << "reached target degree : " << currentdgr << "\n";
+        int index = pwmList.size() - 1;
+
+        //아래는 회피 후 복귀용 코드..
+        while (index >= 0) {
+            std::cout << " current_lpwm : " << pwmList[index].first << ", current_rpwm : " << pwmList[index].second << "\n";
+            index--;
+        }
+    }
+    else if (distance < avoidDistance / 1.3f) {
+
+    }
 }
 
 void Motor::curve_coner(int pwm, float degree)

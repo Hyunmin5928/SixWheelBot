@@ -37,6 +37,7 @@ class Motor{
         void backoff(int pwm);
 
         // 제자리 회전 : 오른쪽 + 왼쪽 -
+        // @brief 해당 각도에 도달할 때까지 자체적으로 딜레이 유지함
         // @brief rotate by degree : R positive, L negative
         void rotate(int pwm, float degree);
         

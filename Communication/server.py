@@ -7,26 +7,31 @@ from daemon_base import Daemon
 #     config = json.load(f)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-CONFIG_PATH = os.path.join(BASE_DIR, 'config', 'comm_config.json')
+CONFIG_PATH = os.path.join(BASE_DIR, 'config', 'config.json')
 with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
     config = json.load(f)
 
+# window 환경에서는 그대로, linux 환경에서는 주석 부분을 사용
 srv_conf = config["SERVER"]
 cli_conf = config["CLIENT"]
 net_conf = config["NETWORK"]
-log_conf = config["LOG"]
-db_conf  = config["DB"]
+log_conf = config["WIN_LOG"]
+db_conf  = config["WIN_DB"]
+# log_conf = config["LOG"]
+# db_conf  = config["DB"]
 
 SERVER_IP   = srv_conf["IP"]
 SERVER_PORT = int(srv_conf["PORT"])
-CLIENT_IP   = srv_conf["IP"]
-CLIENT_PORT = int(srv_conf["PORT"])
+CLIENT_IP   = cli_conf["IP"]
+CLIENT_PORT = int(cli_conf["PORT"])
+ALLOW_IP    = net_conf["ALLOW_IP"]
 ACK_TIMEOUT = float(net_conf["ACK_TIMEOUT"])
 RETRY_LIMIT = int(net_conf["RETRY_LIMIT"])
 LOG_MODE    = log_conf["LOG_MODE"].upper()
 LOG_FILE    = log_conf["SERVER_LOG_FILE"]
 DB_FILE     = config["DB"]["ROBOT_DB_FILE"]
-MAP_FILE   = config["MAP"]["MAP_FILE"]
+MAP_FILE    = config["WIN_MAP"]["MAP_FILE"]
+# MAP_FILE    = config["MAP"]["MAP_FILE"]
 
 logger = logging.getLogger("ServerDaemon")
 logger.setLevel(getattr(logging, LOG_MODE))
@@ -65,6 +70,7 @@ def load_map_data(path):
             try:
                 lat = float(lat_str)
                 lon = float(lon_str)
+                logger.info(f"lat : {lat}, lon : {lon}")
             except ValueError:
                 continue
             route.append({'lat': lat, 'lon': lon})
@@ -168,6 +174,7 @@ if __name__ == "__main__":
     # Windows 에서 테스트용 실행
     if platform.system().lower().startswith("win"):
         print("== Windows Foreground 모드로 서버 실행 ==")
+        logger.info(f'Server Start')
         server_loop()
     else:
         # Linux/Unix 데몬 제어
@@ -175,10 +182,17 @@ if __name__ == "__main__":
         daemon = ServerDaemon(pidf, stdout=LOG_FILE, stderr=LOG_FILE)
         if len(sys.argv) == 2:
             cmd = sys.argv[1]
-            if cmd == "start":   daemon.start()
-            elif cmd == "stop":    daemon.stop()
-            elif cmd == "status":  daemon.status()
-            elif cmd == "restart": daemon.restart()
+            if cmd == "start":   
+                logger.info(f'Server Daemon {cmd}')
+                daemon.start()
+            elif cmd == "stop":    
+                logger.info(f'Server Daemon {cmd}')
+                daemon.stop()
+            elif cmd == "status":  
+                daemon.status()
+            elif cmd == "restart": 
+                logger.info(f'Server Daemon {cmd}')
+                daemon.restart()
             else: print("Usage: server.py [start|stop|status|restart]")
         else:
             print("Usage: server.py [start|stop|status|restart]")

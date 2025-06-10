@@ -168,3 +168,13 @@ void Motor::curve(bool recover=false, int pwm, float degree)
 
 #pragma endregion
 
+int main() {
+    Motor motor;
+    motor.straight(100);
+    delay(500);
+    motor.backoff(50);
+    delay(300);
+    motor.rotate(50, 30);
+
+    return 0;
+}

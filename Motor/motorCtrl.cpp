@@ -20,6 +20,31 @@
 
 // private
 #pragma region Private functions
+
+void Motor::lmotor_direction_front(bool front=true)
+{
+    if (front == true) {
+        digitalWrite(LR_ENPin, HIGH);
+        digitalWrite(LL_ENPin, LOW);
+    }
+    else {
+        digitalWrite(LR_ENPin, HIGH);
+        digitalWrite(LL_ENPin, LOW);
+    }
+}
+
+void Motor::rmotor_direction_front(bool front=true)
+{
+    if (front == true) {
+        digitalWrite(RR_ENPin, HIGH);
+        digitalWrite(RL_ENPin, LOW);
+    }
+    else {
+        digitalWrite(RR_ENPin, HIGH);
+        digitalWrite(RL_ENPin, LOW);
+    }
+}
+
 void Motor::motor_setup(int r_pwmPin, int l_pwmPin, int rr_enPin, int rl_enPin, int lr_enPin, int ll_enPin) {
     wiringPiSetup();
     pinMode(r_pwmPin, OUTPUT);
@@ -52,29 +77,7 @@ bool Motor::pwm_isvalid(int pwm)
     }
 }
 
-void Motor::lmotor_direction_front(bool front=true)
-{
-    if (front == true) {
-        digitalWrite(LR_ENPin, HIGH);
-        digitalWrite(LL_ENPin, LOW);
-    }
-    else {
-        digitalWrite(LR_ENPin, HIGH);
-        digitalWrite(LL_ENPin, LOW);
-    }
-}
 
-void Motor::rmotor_direction_front(bool front=true)
-{
-    if (front == true) {
-        digitalWrite(RR_ENPin, HIGH);
-        digitalWrite(RL_ENPin, LOW);
-    }
-    else {
-        digitalWrite(RR_ENPin, HIGH);
-        digitalWrite(RL_ENPin, LOW);
-    }
-}
 #pragma endregion
 
 // public
@@ -85,9 +88,9 @@ Motor::Motor()
     std::cout << "motor set up : default\n";
 }
 
-Motor::Motor(int r_pwmPin, int l_pwmPin, int rr_enPin, int rl_enPin, int lr_enPin, int ll_enPin){
+Motor::Motor(int rpwmPin, int lpwmPin, int rrenPin, int rlenPin, int lrenPin, int llenPin){
     
-    motor_setup(int r_pwmPin, int l_pwmPin, int rr_enPin, int rl_enPin, int lr_enPin, int ll_enPin);
+    motor_setup(rpwmPin, lpwmPin, rrenPin, rlenPin, lrenPin, llenPin);
     std::cout << "motor set up : user setting\n";
 }
 
@@ -144,24 +147,8 @@ void Motor::rotate(int pwm, float degree)
 // l_pwm, r_pwm 말고, 원하는 pwm값 (오,왼 평균pwm), 각도를 설정해서 커브를 구현하는건 어떨까?
 
 
-void Motor::left_curve(int pwm)
-{
 
-}
-
-void Motor::right_curve(int pwm)
-{
-}
-
-void Motor::left_curve(int l_pwm, int r_pwm)
-{
-}
-
-void Motor::right_curve(int l_pwm, int r_pwm)
-{
-}
-
-void Motor::curve(bool recover=false, int pwm, float degree)
+void Motor::curve(int pwm, float degree, bool recover=false)
 {
     
 }
@@ -171,9 +158,9 @@ void Motor::curve(bool recover=false, int pwm, float degree)
 int main() {
     Motor motor;
     motor.straight(100);
-    delay(500);
-    motor.backoff(50);
     delay(300);
+    motor.backoff(50);
+    delay(200);
     motor.rotate(50, 30);
 
     return 0;

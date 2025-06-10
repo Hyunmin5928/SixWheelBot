@@ -13,7 +13,7 @@
 #define R_REN 6
 #define R_LEN 10
 
-#define maxPulse 255
+#define maxPulse 100
 
 //@brief pwm값 유효성 확인
 #define validate_pwm(pwm)                         \
@@ -29,10 +29,10 @@ void Motor::lmotor_direction_front(bool front=true)
 {
     if (front == true) {
         digitalWrite(L_RENPin, HIGH);
-        digitalWrite(L_LENPin, LOW);
+        digitalWrite(L_LENPin, HIGH);
     }
     else {
-        digitalWrite(L_RENPin, LOW);
+        digitalWrite(L_RENPin, HIGH);
         digitalWrite(L_LENPin, HIGH);
     }
 }
@@ -41,16 +41,17 @@ void Motor::rmotor_direction_front(bool front=true)
 {
     if (front == true) {
         digitalWrite(R_RENPin, HIGH);
-        digitalWrite(R_LENPin, LOW);
+        digitalWrite(R_LENPin, HIGH);
     }
     else {
-        digitalWrite(R_RENPin, LOW);
+        digitalWrite(R_RENPin, HIGH);
         digitalWrite(R_LENPin, HIGH);
     }
 }
 
 void Motor::motor_setup(int lr_pwmPin, int ll_pwmPin, int rr_pwmPin, int rl_pwmPin, int rrenPin, int rlenPin, int lrenPin, int llenPin) {
     wiringPiSetup();
+    std::cout<<"setup\n";
     L_RpwmPin = lr_pwmPin;
     L_LpwmPin = ll_pwmPin;
     R_RpwmPin = rr_pwmPin;
@@ -120,12 +121,16 @@ Motor::~Motor(){
 void Motor::straight(int pwm)
 {
     validate_pwm(pwm);
+    std::cout<<"pwm valid...\n";
     rmotor_direction_front();
     lmotor_direction_front();
+    std::cout<<"direction setting...\n";
     softPwmWrite(R_RpwmPin, pwm); //positive forward
     softPwmWrite(R_LpwmPin, 0); // must turn off this pin when using R_pwmPin
     softPwmWrite(L_RpwmPin, pwm); //positive forward
     softPwmWrite(L_LpwmPin, 0); //must turn off this pin when using R_pwmPin
+    delay(1000);
+    std::cout<<"done\n";
 }
 
 void Motor::backoff(int pwm)
@@ -140,10 +145,14 @@ void Motor::backoff(int pwm)
 }
 
 void Motor::stop(){
-    softPwmWrite(L_RPWM, 0);
-    softPwmWrite(R_RPWM, 0);
-    softPwmWrite(L_LPWM, 0);
-    softPwmWrite(R_LPWM, 0);
+    softPwmWrite(R_LpwmPin, 0);
+    softPwmWrite(R_RpwmPin, 0);
+    softPwmWrite(L_LpwmPin, 0);
+    softPwmWrite(L_RpwmPin, 0);
+    digitalWrite(R_LENPin, LOW);
+    digitalWrite(L_LENPin, LOW);
+    digitalWrite(R_RENPin, LOW);
+    digitalWrite(R_LENPin, LOW);
 }
 
 void Motor::rotate(int pwm, float degree)
@@ -197,11 +206,17 @@ void Motor::curve(int pwm, float degree, bool recover=false)
 
 int main() {
     Motor motor;
-    motor.straight(100);
-    delay(300);
-    motor.backoff(50);
-    delay(200);
-    motor.rotate(50, 30);
+    int i=3;
+    while(i>0){
+        i--;
+        motor.straight(70);
+        delay(300);
+        motor.backoff(50);
+        delay(200);
+        motor.rotate(50, 30);
+    }
 
+    motor.stop();
+    
     return 0;
 }

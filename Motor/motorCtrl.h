@@ -3,7 +3,6 @@
 #include <wiringPi.h>
 #include <softPwm.h>
 #include <iostream>
-#include <motorCtrl.h>
 #include <chrono>
 #include <functional>
 
@@ -17,7 +16,7 @@ class Motor{
         int LL_ENPin;
 
         void motor_setup();
-        void motor_setup(int r_pwmPin, int l_pwmPin, int rr_enPin, int rl_enPin, int lr_enPin, int ll_enPin)
+        void motor_setup(int r_pwmPin, int l_pwmPin, int rr_enPin, int rl_enPin, int lr_enPin, int ll_enPin);
         bool pwm_isvalid(int pwm);
 
         //@brief tip : if want to direction backward, input false
@@ -32,30 +31,30 @@ class Motor{
 
         void straight(int pwm);
 
-       // @brief ÈÄÁø
+       // @brief ï¿½ï¿½ï¿½ï¿½
        // @brief back off
         void backoff(int pwm);
 
-        // Á¦ÀÚ¸® È¸Àü : ¿À¸¥ÂÊ + ¿ÞÂÊ -
-        // @brief ÇØ´ç °¢µµ¿¡ µµ´ÞÇÒ ¶§±îÁö ÀÚÃ¼ÀûÀ¸·Î µô·¹ÀÌ À¯ÁöÇÔ
+        // ï¿½ï¿½ï¿½Ú¸ï¿½ È¸ï¿½ï¿½ : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ + ï¿½ï¿½ï¿½ï¿½ -
+        // @brief ï¿½Ø´ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Ã¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         // @brief rotate by degree : R positive, L negative
         void rotate(int pwm, float degree);
         
-        // @brief ±âº» Ä¿ºê default curve (30 degree)
+        // @brief ï¿½âº» Ä¿ï¿½ï¿½ default curve (30 degree)
         void left_curve(bool recover, int pwm);
-        // @brief ±âº» Ä¿ºê default curve (30 degree)
+        // @brief ï¿½âº» Ä¿ï¿½ï¿½ default curve (30 degree)
         void right_curve(bool recover, int pwm);
 
-        // @brief »ç¿ëÀÚ ÁöÁ¤Ä¿ºê ( »ç¿ëÀÚ°¡ ¼¼ÆÃÇÑ pwm °ªÀÇ Â÷ÀÌ´Â °î·ü¿¡ ¿µÇâÀ» ÁÜ )
+        // @brief ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ä¿ï¿½ï¿½ ( ï¿½ï¿½ï¿½ï¿½Ú°ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ pwm ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Ì´ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ )
         // @brief user setting curve ( user setting pwm diffrence provokes curvature )
         void left_curve(bool recover,  int l_pwm, int r_pwm);
-        // @brief »ç¿ëÀÚ ÁöÁ¤Ä¿ºê ( »ç¿ëÀÚ°¡ ¼¼ÆÃÇÑ pwm °ªÀÇ Â÷ÀÌ´Â °î·ü¿¡ ¿µÇâÀ» ÁÜ )
+        // @brief ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ä¿ï¿½ï¿½ ( ï¿½ï¿½ï¿½ï¿½Ú°ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ pwm ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Ì´ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ )
         // @brief user setting curve ( user setting pwm diffrence provokes curvature )
         void right_curve(bool recover, int l_pwm, int r_pwm);
 
-        // Ä¿ºêÀÇ »õ·Î¿î ÇÔ¼ö.. ¿øÇÏ´Â pwm(¿À,¿Þ Æò±Õ), degree °ªÀ¸·Î 
-        // ÇÔ¼ö ³»¿¡¼­ ÀÚµ¿À¸·Î l, r pwmÀ» ¼³Á¤ÇØÁÖ°í ÀÌµ¿À» ¼öÇàÇØÁÙ ¼ö ÀÖµµ·Ï..!
-        //@brief recover¸¦ true·Î ÁöÁ¤ÇØ¾ß º»·¡ °¢µµ·Î µÇµ¹¾Æ¿È
-        void curve(bool recover, int pwm, float degree);
+        // Ä¿ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Î¿ï¿½ ï¿½Ô¼ï¿½.. ï¿½ï¿½ï¿½Ï´ï¿½ pwm(ï¿½ï¿½,ï¿½ï¿½ ï¿½ï¿½ï¿½), degree ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ 
+        // ï¿½Ô¼ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Úµï¿½ï¿½ï¿½ï¿½ï¿½ l, r pwmï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö°ï¿½ ï¿½Ìµï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½Öµï¿½ï¿½ï¿½..!
+        //@brief recoverï¿½ï¿½ trueï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ø¾ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Çµï¿½ï¿½Æ¿ï¿½
+        void curve(int pwm, float degree, bool recover);
         
 };

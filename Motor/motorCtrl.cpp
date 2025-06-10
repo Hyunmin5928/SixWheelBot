@@ -208,20 +208,12 @@ void Motor::rotate(int pwm, float degree)
     float delaytime = abs_dgr / dgrspeed;
     if (degree > 0) 
     {
-        rmotor_direction_front(false);
-        lmotor_direction_front();
-        softPwmWrite(R_LpwmPin, pwm);
-        softPwmWrite(R_RpwmPin,0);
-        softPwmWrite(L_RpwmPin, pwm);
-        softPwmWrite(L_LpwmPin, 0);
+        rmotor_run(pwm, false); // 오른쪽 바퀴는 뒤로 회전
+        lmotor_run(pwm); // 왼쪽 바퀴는 앞으로 회전
     }
     else {
-        rmotor_direction_front();
-        lmotor_direction_front(false);
-        softPwmWrite(R_RpwmPin, pwm);
-        softPwmWrite(R_LpwmPin,0);
-        softPwmWrite(L_LpwmPin, pwm);
-        softPwmWrite(L_RpwmPin, 0);
+        rmotor_run(pwm); // 오른쪽 바퀴는 앞으로 회전
+        lmotor_run(pwm, false); // 왼쪽 바퀴는 뒤로 회전
     }
     // 모터 최대 150rpm, 설정 최대 pwm 100, 6.0f는 초당 각속도 계산을 위한 상수
     delay(delaytime);

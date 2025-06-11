@@ -53,5 +53,5 @@ class Motor{
         void right_curve(bool recover, int l_pwm, int r_pwm);
 
         void curve_avoid(float distance, int pwm, float degree, bool recover);
-        void curve_coner(int pwm, float degree);
+        void curve_coner(float connerdistance, int pwm, float degree);
 };

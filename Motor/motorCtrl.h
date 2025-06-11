@@ -2,11 +2,12 @@
 
 class Motor{
     private:
-        int L_RpwmPin;
-        int L_LpwmPin;
-        int R_RpwmPin;
-        int R_LpwmPin;
+        int L_RpwmPin; //LEFT WHEEL. direction: FRONT
+        int L_LpwmPin; //LEFT WHEEL. direction: BACK
+        int R_RpwmPin; //RIGHT WHEEL. direction: FRONT
+        int R_LpwmPin; //RIGHT WHEEL. direction: BACK
 
+        // NEED ALWAYS ON : WHEEL MOVE CONTROL INPUT PIN 
         int R_RENPin;
         int R_LENPin;
         int L_RENPin;
@@ -22,10 +23,10 @@ class Motor{
 
         float calculate_tan(float degree) ;
 
-        void calculate_twin_pwm(int pwm, float degree, int* pwm1, int* pwm2);
+        void calculate_twin_pwm(float coredistance, int pwm, float degree, int* pwm1, int* pwm2);
 
-        void only_lmotor_run(int pwm, bool front=true) ;
-        void only_rmotor_run(int pwm, bool front=true) ;
+        void lmotor_run(int pwm, bool front) ;
+        void rmotor_run(int pwm, bool front) ;
 
     public:
         Motor();

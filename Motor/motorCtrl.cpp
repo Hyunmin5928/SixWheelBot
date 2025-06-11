@@ -34,30 +34,6 @@
 // private
 #pragma region Private functions
 
-void Motor::lmotor_direction_front(bool front=true)
-{
-    if (front == true) {
-        digitalWrite(L_RENPin, HIGH);
-        digitalWrite(L_LENPin, HIGH);
-    }
-    else {
-        digitalWrite(L_RENPin, HIGH);
-        digitalWrite(L_LENPin, HIGH);
-    }
-}
-
-void Motor::rmotor_direction_front(bool front=true) 
-{
-    if (front == true) {
-        digitalWrite(R_RENPin, HIGH);
-        digitalWrite(R_LENPin, HIGH);
-    }
-    else {
-        digitalWrite(R_RENPin, HIGH);
-        digitalWrite(R_LENPin, HIGH);
-    }
-}
-
 float Motor::calculate_dgrspeed(int pwm)
 {
     return maxSpeed / 100.0f * pwm * 6.0f;
@@ -87,7 +63,6 @@ void Motor::lmotor_run(int pwm, bool front=true)
 {
     std::cout<<"Lmotor_run\n";
     validate_pwm(pwm);
-    lmotor_direction_front(front);
     if (front) {
         softPwmWrite(L_RpwmPin, pwm); //positive forward
         softPwmWrite(L_LpwmPin, 0); // must turn off this pin when using L_pwmPin
@@ -103,7 +78,6 @@ void Motor::rmotor_run(int pwm, bool front=true)
 {
     std::cout << "Rmotor_run\n";
     validate_pwm(pwm);
-    rmotor_direction_front(front);
     if (front) {
         softPwmWrite(R_RpwmPin, pwm); //positive forward
         softPwmWrite(R_LpwmPin, 0); // must turn off this pin when using L_pwmPin
@@ -135,15 +109,15 @@ void Motor::motor_setup(int lr_pwmPin, int ll_pwmPin, int rr_pwmPin, int rl_pwmP
     pinMode(L_RENPin, OUTPUT);
     pinMode(L_LENPin, OUTPUT);
 
-    lmotor_direction_front();
-    rmotor_direction_front();
-
     //R_Motor, L_Motor 0으로 초기화, 최대 펄스 100
     //R_Motor, L_Motor initialize 0, max purse 100
     softPwmCreate(L_RpwmPin, 0, maxPulse);
     softPwmCreate(L_LpwmPin, 0, maxPulse);
     softPwmCreate(R_RpwmPin, 0, maxPulse);
     softPwmCreate(R_LpwmPin, 0, maxPulse);
+    
+    digitalWrite(L_RENPin, HIGH);
+    digitalWrite(L_LENPin, HIGH);
 }
 
 void Motor::motor_setup()
@@ -186,8 +160,6 @@ Motor::~Motor(){
 void Motor::straight(int pwm)
 {
     validate_pwm(pwm);
-    rmotor_direction_front();
-    lmotor_direction_front();
     softPwmWrite(R_RpwmPin, pwm); //positive forward
     softPwmWrite(R_LpwmPin, 0); // must turn off this pin when using R_pwmPin
     softPwmWrite(L_RpwmPin, pwm); //positive forward
@@ -198,8 +170,6 @@ void Motor::straight(int pwm)
 void Motor::backoff(int pwm)
 {
     validate_pwm(pwm);
-    rmotor_direction_front(false);
-    lmotor_direction_front(false);
     softPwmWrite(R_LpwmPin, pwm);
     softPwmWrite(R_RpwmPin, 0);
     softPwmWrite(L_LpwmPin, pwm);

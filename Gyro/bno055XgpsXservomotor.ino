@@ -10,17 +10,21 @@
 ==============================================================================*/
 
 // IMU 샘플링 주기 (ms 단위, 20ms → 50Hz)
-static const uint16_t IMU_INTERVAL_MS = 20;
+static const uint16_t IMU_INTERVAL_MS      = 20;
 
-// BNO055 I²C 주소 (0x28 또는 0x29)
-Adafruit_BNO055 bno = Adafruit_BNO055(55, 0x29);
+// 작은 흔들림(±°) 범위: 이내에서는 서보 동작 억제 (Dead-band)
+static const float      THRESHOLD_ROLL_DEG  = 2.0;
+static const float      THRESHOLD_PITCH_DEG = 2.0;
+
+// BNO055 I²C 주소
+Adafruit_BNO055 bno(55, 0x29);
 
 // GPS (SoftwareSerial) 핀
 SoftwareSerial gpsSerial(11 /*RX*/, 12 /*TX*/);
 
 // 서보 핀 & 가동 범위 (±75°)
-static const uint8_t PIN_SERVO_ROLL  =  9;
-static const uint8_t PIN_SERVO_PITCH = 10;
+static const uint8_t PIN_SERVO_ROLL   =  9;
+static const uint8_t PIN_SERVO_PITCH  = 10;
 static const int     SERVO_LIMIT_DEG  = 75;
 
 // PID 파라미터 (Roll/Pitch 공통)
@@ -67,7 +71,7 @@ void setup() {
 }
 
 void loop() {
-  // GPS NMEA 데이터 실시간 출력
+  // ─ GPS NMEA 데이터 실시간 출력 ─
   while (gpsSerial.available()) {
     String nmea = gpsSerial.readStringUntil('\n');
     nmea.trim();
@@ -77,33 +81,37 @@ void loop() {
     }
   }
 
-  // IMU 샘플링 주기 체크
+  // ─ IMU 샘플링 주기 체크 ─
   unsigned long now = millis();
   if (now - lastIMU < IMU_INTERVAL_MS) return;
   lastIMU = now;
 
-  // Euler 읽기 & PID → 서보 제어
+  // ─ Euler 읽기 & 영점 보정 ─
   imu::Vector<3> e = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
-  float roll  = e.y() - offRoll;   // 영점 보정된 Roll
-  float pitch = e.z() - offPitch;  // 영점 보정된 Pitch
+  float roll  = e.y() - offRoll;
+  float pitch = e.z() - offPitch;
 
-  // PID 제어 계산 (목표 = 0°)
+  // ─ 데드밴드 적용 ─
+  if (fabs(roll)  < THRESHOLD_ROLL_DEG)  roll  = 0;
+  if (fabs(pitch) < THRESHOLD_PITCH_DEG) pitch = 0;
+
+  // ─ PID 제어 계산 (목표 = 0°) ─
   float uRoll  = pidControl(roll,  prevErrRoll,  iAccRoll);
   float uPitch = pidControl(pitch, prevErrPitch, iAccPitch);
 
-  // 서보 구동
+  // ─ 서보 구동 (Roll은 반대 방향으로) ─
   updateServo(servoRoll,  -uRoll);
   updateServo(servoPitch, uPitch);
 
   // =================================================================
 
-  // EKF용 센서 값 읽기
+  // ─ EKF용 센서 값 읽기 ─
   imu::Vector<3> gyro   = bno.getVector(Adafruit_BNO055::VECTOR_GYROSCOPE);
   imu::Vector<3> linacc = bno.getVector(Adafruit_BNO055::VECTOR_LINEARACCEL);
   imu::Vector<3> mag    = bno.getVector(Adafruit_BNO055::VECTOR_MAGNETOMETER);
   float          temp   = bno.getTemp();
 
-  // EKF용 시리얼 출력
+  // ─ EKF용 시리얼 출력 ─
   Serial.print("GYRO [dps]: ");
     Serial.print(gyro.x(), 2); Serial.print(", ");
     Serial.print(gyro.y(), 2); Serial.print(", ");
@@ -122,8 +130,9 @@ void loop() {
   Serial.print("TEMP [°C]: ");
     Serial.println(temp, 1);
 
-  Serial.println("-----------------------------------------------");  // 데이터 블록 구분 빈 줄
+  Serial.println("-----------------------------------------------");
 
+  delay(1000);
 }
 
 //==============================================================================
@@ -140,7 +149,7 @@ void calibrateZero() {
     sumP += e.z();
     delay(IMU_INTERVAL_MS);
   }
-  offRoll  = sumR  / N;
+  offRoll  = sumR / N;
   offPitch = sumP / N;
   Serial.print("offRoll=");  Serial.print(offRoll, 2);
   Serial.print("  offPitch="); Serial.println(offPitch, 2);

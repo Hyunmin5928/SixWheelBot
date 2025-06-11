@@ -21,6 +21,7 @@
 #define maxSpeed 150.0f
 
 #define avoidDistance 300.0f //cm
+#define wheelInterval 31.0f //cm
 
 //degree 값을 180 ~ -180 으로 설정함. 0~360으로 나올 경우 변수 변경 필요 (실제 받아오는 값은 전방 부채꼴 각도이므로, 유의)
 
@@ -46,16 +47,23 @@ float Motor::average_pwm(int l_pwm, int r_pwm)
 
 float Motor::calculate_tan(float degree)
 {
-    return tan(degree * PI /180);
+    return atan(degree * PI /180);
 }
 
-void Motor::calculate_twin_pwm(int pwm, float degree, int* pwm1, int* pwm2)
+void Motor::calculate_twin_pwm(float coredistance, int pwm, float degree, int* pwm1, int* pwm2)
 {
-    float ratio = calculate_tan(degree);
-    //*pwm1 = 2 * pwm / (1 / ratio + 1);
-    //*pwm2 = 2 * pwm - pwm1;
-    *pwm1 = pwm * (1.0f - ratio);
-    *pwm2 = pwm * (1.0f + ratio);
+    float pwm1_r = coredistance + wheelInterval/2.0f;
+    float pwm2_r = coredistance - wheelInterval/2.0f;
+    if(degree ==0){
+        *pwm1 = pwm;
+        *pwm2 = pwm;
+        return;
+    }
+    *pwm1 = pwm * pwm1_r/coredistance;
+    *pwm2 = pwm * pwm2_r/coredistance;
+    if(pwm_isvalid(*pwm1)==false){
+        std::cout<<"watch out : pwm1 is over maxPwm value\n";
+    }
     // PWM 값이 너무 급격하게 변하지 않도록 해야함
 }
 
@@ -74,7 +82,7 @@ void Motor::lmotor_run(int pwm, bool front=true)
 
 }
 
-void Motor::rmotor_run(int pwm, bool front=true)
+void Motor::rmotor_run(int pwm, bool front = true)
 {
     std::cout << "Rmotor_run\n";
     validate_pwm(pwm);
@@ -192,6 +200,7 @@ void Motor::rotate(int pwm, float degree)
     validate_pwm(pwm);
 
     float dgrspeed = calculate_dgrspeed(pwm);
+    //abs_dgr : 절대값 각도
     float abs_dgr = degree;
     if(abs_dgr <0){
         abs_dgr *= -1.0f;
@@ -217,7 +226,7 @@ void Motor::rotate(int pwm, float degree)
 
 // l_pwm, r_pwm 말고, 원하는 pwm값 (오,왼 평균pwm), 각도를 설정해서 커브를 구현하는건 어떨까?
 
-void curve_avoid(float distance, int pwm, float degree, bool recover = false)
+void Motor::curve_avoid(float distance, int pwm, float degree, bool recover = false)
 {
     float currentdgr = 0.01f;
     int current_rpwm = pwm;
@@ -231,10 +240,10 @@ void curve_avoid(float distance, int pwm, float degree, bool recover = false)
 
             // 각도 범위 변경 시 이 부분도 유의
             if (degree > 0) {
-                calculate_twin_pwm(pwm, currentdgr, &current_lpwm, &current_rpwm);
+                calculate_twin_pwm(distance, pwm, currentdgr, &current_lpwm, &current_rpwm);
             }
             else {
-                calculate_twin_pwm(pwm, currentdgr, &current_rpwm, &current_lpwm);
+                calculate_twin_pwm(distance, pwm, currentdgr, &current_rpwm, &current_lpwm);
             }
             std::cout << "currentdgr : " << currentdgr << ", current_lpwm : " << current_lpwm << ", current_rpwm : " << current_rpwm << "\n";
             pwmList.push_back({ current_lpwm, current_rpwm });
@@ -253,8 +262,28 @@ void curve_avoid(float distance, int pwm, float degree, bool recover = false)
     }
 }
 
-void Motor::curve_coner(int pwm, float degree)
+void Motor::curve_coner(float connerdistance, int pwm, float degree)
 {
+    //analogWrite()
+    validate_pwm(pwm);
+    float dgrspeed = calculate_dgrspeed(pwm);
+    float abs_dgr = degree;
+    if(degree < 0){
+        abs_dgr *= -1.0f;
+    }
+    float delaytime = abs_dgr / dgrspeed;
+
+    int pwm_1, pwm_2;
+    calculate_twin_pwm(connerdistance, pwm, degree, &pwm_1, &pwm_2);
+
+    if(degree>0){
+        analogWrite(L_RpwmPin, pwm_1);
+        analogWrite(R_RpwmPin, pwm_2);
+    }else{
+        analogWrite(L_RpwmPin, pwm_2);
+        analogWrite(R_RpwmPin, pwm_1);
+    }
+    
 }
 
 #pragma endregion

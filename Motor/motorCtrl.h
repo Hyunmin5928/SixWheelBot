@@ -16,13 +16,6 @@ class Motor{
         void motor_setup(int lr_pwmPin, int ll_pwmPin,int rr_pwmPin, int rl_pwmPIn, int rr_enPin, int rl_enPin, int lr_enPin, int ll_enPin);
         bool pwm_isvalid(int pwm);
 
-        //@brief tip : if want to direction backward, input false
-        //@breif prevent hardware damage from pwm collison
-        void lmotor_direction_front(bool front);
-        //@brief tip : if want to direction backward, input false
-        //@breif prevent hardware damage from pwm collison
-        void rmotor_direction_front(bool front);
-
         float calculate_dgrspeed(int pwm);
 
         float average_pwm(int l_pwm, int r_pwm);

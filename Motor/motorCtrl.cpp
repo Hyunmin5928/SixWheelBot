@@ -121,15 +121,9 @@ void Motor::motor_setup(int lr_pwmPin, int ll_pwmPin, int rr_pwmPin, int rl_pwmP
     pinMode(L_LENPin, OUTPUT);
 
     pwmSetMode(PWM_MODE_MS);
+    //pwm max pulse
     pwmSetRange(1024);
     pwmSetClock(32);
-
-    //R_Motor, L_Motor 0으로 초기화, 최대 펄스 100
-    //R_Motor, L_Motor initialize 0, max purse 100
-    // softPwmCreate(L_RpwmPin, 0, maxPulse);
-    // softPwmCreate(L_LpwmPin, 0, maxPulse);
-    // softPwmCreate(R_RpwmPin, 0, maxPulse);
-    // softPwmCreate(R_LpwmPin, 0, maxPulse);
     
     digitalWrite(L_RENPin, HIGH);
     digitalWrite(L_LENPin, HIGH);
@@ -234,7 +228,7 @@ void Motor::curve_avoid(float distance, int pwm, float degree, bool recover = fa
     float currentDegree=0;
     if(distance<=avoidDistance_trigger){
         //if(degree>)
-        //curve_coner(distance, pwm, 20);
+        //curve_corner(distance, pwm, 20);
         //if(distance<=avoidDistance_step1){}
     }
 
@@ -274,7 +268,7 @@ void Motor::curve_avoid(float distance, int pwm, float degree, bool recover = fa
     */
 }
 
-void Motor::curve_coner(float connerdistance, int pwm, float degree)
+void Motor::curve_corner(float connerdistance, int pwm, float degree)
 {
     validate_pwm(pwm);
     float dgrspeed = calculate_dgrspeed(pwm);
@@ -314,7 +308,7 @@ int main() {
     }
     time=millis();
     while(millis()-time <3000){
-        motor.curve_coner(100.0f, 500, 90);
+        motor.curve_corner(100.0f, 500, 90);
     }
 
     motor.stop();

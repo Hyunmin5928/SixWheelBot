@@ -41,6 +41,7 @@ class Motor{
         void stop();
 
         // @brief rotate by degree : R positive, L negative
+        //@brief this function is not depend on time, only whether is degree reach
         void rotate(int pwm, float degree);
         
         // @brief default curve (30 degree)
@@ -54,5 +55,6 @@ class Motor{
         void right_curve(bool recover, int l_pwm, int r_pwm);
 
         void curve_avoid(float distance, int pwm, float degree, bool recover);
-        void curve_coner(float connerdistance, int pwm, float degree);
+        //@brief this function is not depend on time, only whether is degree reach
+        void curve_corner(float connerdistance, int pwm, float degree);
 };

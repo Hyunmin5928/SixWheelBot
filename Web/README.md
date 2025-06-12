@@ -1,3 +1,7 @@
+### 요구사항 정의서
+![image](https://github.com/user-attachments/assets/46528ea5-ba34-4a81-af53-4c7e4677ccbc)
+
+
 - 로그인 상태 메인페이지
   
   ![image](https://github.com/user-attachments/assets/638e9560-e322-43dd-8ab4-8049fdbf6106)

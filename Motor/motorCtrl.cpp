@@ -7,20 +7,22 @@
 
 #define PI 3.1415926 
 
-#define L_RPWM 1
-#define L_LPWM 23
-#define R_RPWM 24
-#define R_LPWM 26
+#define L_RPWM 23//1
+#define L_LPWM 24//23
+#define R_RPWM 1//24
+#define R_LPWM 2//26
 
-#define L_REN 4
-#define L_LEN 5
+#define L_REN 21
+#define L_LEN 22
 #define R_REN 6
 #define R_LEN 10
 
-#define maxPulse 100
+#define maxPulse 1024
 #define maxSpeed 150.0f
 
-#define avoidDistance 300.0f //cm
+#define avoidDistance_trigger 300.0f //cm
+#define avoidDistance_step1 250.0f
+#define avoidDistance_step2 180.0f
 #define wheelInterval 31.0f //cm
 
 //degree 값을 180 ~ -180 으로 설정함. 0~360으로 나올 경우 변수 변경 필요 (실제 받아오는 값은 전방 부채꼴 각도이므로, 유의)
@@ -64,7 +66,7 @@ void Motor::calculate_twin_pwm(float coredistance, int pwm, float degree, int* p
     if(pwm_isvalid(*pwm1)==false){
         std::cout<<"watch out : pwm1 is over maxPwm value\n";
     }
-    // PWM 값이 너무 급격하게 변하지 않도록 해야함
+    
 }
 
 void Motor::lmotor_run(int pwm, bool front=true)
@@ -72,12 +74,13 @@ void Motor::lmotor_run(int pwm, bool front=true)
     std::cout<<"Lmotor_run\n";
     validate_pwm(pwm);
     if (front) {
-        softPwmWrite(L_RpwmPin, pwm); //positive forward
-        softPwmWrite(L_LpwmPin, 0); // must turn off this pin when using L_pwmPin
+
+        pwmWrite(L_RpwmPin, pwm); //positive forward
+        pwmWrite(L_LpwmPin, 0); // must turn off this pin when using L_pwmPin
     }
     else {
-        softPwmWrite(L_RpwmPin, 0); //negative backward
-        softPwmWrite(L_LpwmPin, pwm);
+        pwmWrite(L_RpwmPin, 0); //negative backward
+        pwmWrite(L_LpwmPin, pwm);
     }
 
 }
@@ -87,12 +90,12 @@ void Motor::rmotor_run(int pwm, bool front = true)
     std::cout << "Rmotor_run\n";
     validate_pwm(pwm);
     if (front) {
-        softPwmWrite(R_RpwmPin, pwm); //positive forward
-        softPwmWrite(R_LpwmPin, 0); // must turn off this pin when using L_pwmPin
+        pwmWrite(R_RpwmPin, pwm); //positive forward
+        pwmWrite(R_LpwmPin, 0); // must turn off this pin when using L_pwmPin
     }
     else {
-        softPwmWrite(R_RpwmPin, 0); //negative backward
-        softPwmWrite(R_LpwmPin, pwm);
+        pwmWrite(R_RpwmPin, 0); //negative backward
+        pwmWrite(R_LpwmPin, pwm);
     }
 }
 
@@ -108,21 +111,25 @@ void Motor::motor_setup(int lr_pwmPin, int ll_pwmPin, int rr_pwmPin, int rl_pwmP
     L_RENPin = lrenPin;
     L_LENPin = llenPin;;
 
-    pinMode(L_RpwmPin, OUTPUT);
-    pinMode(L_LpwmPin, OUTPUT);
-    pinMode(R_RpwmPin, OUTPUT);
-    pinMode(R_LpwmPin, OUTPUT);
+    pinMode(L_RpwmPin, PWM_OUTPUT);
+    pinMode(L_LpwmPin, PWM_OUTPUT);
+    pinMode(R_RpwmPin, PWM_OUTPUT);
+    pinMode(R_LpwmPin, PWM_OUTPUT);
     pinMode(R_RENPin, OUTPUT);
     pinMode(R_LENPin, OUTPUT);
     pinMode(L_RENPin, OUTPUT);
     pinMode(L_LENPin, OUTPUT);
 
+    pwmSetMode(PWM_MODE_MS);
+    pwmSetRange(1024);
+    pwmSetClock(32);
+
     //R_Motor, L_Motor 0으로 초기화, 최대 펄스 100
     //R_Motor, L_Motor initialize 0, max purse 100
-    softPwmCreate(L_RpwmPin, 0, maxPulse);
-    softPwmCreate(L_LpwmPin, 0, maxPulse);
-    softPwmCreate(R_RpwmPin, 0, maxPulse);
-    softPwmCreate(R_LpwmPin, 0, maxPulse);
+    // softPwmCreate(L_RpwmPin, 0, maxPulse);
+    // softPwmCreate(L_LpwmPin, 0, maxPulse);
+    // softPwmCreate(R_RpwmPin, 0, maxPulse);
+    // softPwmCreate(R_LpwmPin, 0, maxPulse);
     
     digitalWrite(L_RENPin, HIGH);
     digitalWrite(L_LENPin, HIGH);
@@ -168,27 +175,26 @@ Motor::~Motor(){
 void Motor::straight(int pwm)
 {
     validate_pwm(pwm);
-    softPwmWrite(R_RpwmPin, pwm); //positive forward
-    softPwmWrite(R_LpwmPin, 0); // must turn off this pin when using R_pwmPin
-    softPwmWrite(L_RpwmPin, pwm); //positive forward
-    softPwmWrite(L_LpwmPin, 0); //must turn off this pin when using R_pwmPin
-    delay(1000);
+    pwmWrite(R_RpwmPin, pwm);   //positive forward
+    pwmWrite(R_LpwmPin, 0);     // must turn off this pin when using R_pwmPin
+    pwmWrite(L_RpwmPin, pwm);   //positive forward
+    pwmWrite(L_LpwmPin, 0);     //must turn off this pin when using R_pwmPin
 }
 
 void Motor::backoff(int pwm)
 {
     validate_pwm(pwm);
-    softPwmWrite(R_LpwmPin, pwm);
-    softPwmWrite(R_RpwmPin, 0);
-    softPwmWrite(L_LpwmPin, pwm);
-    softPwmWrite(L_RpwmPin, 0);
+    pwmWrite(R_LpwmPin, pwm);
+    pwmWrite(R_RpwmPin, 0);
+    pwmWrite(L_LpwmPin, pwm);
+    pwmWrite(L_RpwmPin, 0);
 }
 
 void Motor::stop(){
-    softPwmWrite(R_LpwmPin, 0);
-    softPwmWrite(R_RpwmPin, 0);
-    softPwmWrite(L_LpwmPin, 0);
-    softPwmWrite(L_RpwmPin, 0);
+    pwmWrite(R_RpwmPin,0);
+    pwmWrite(R_LpwmPin, 0);
+    pwmWrite(L_RpwmPin,0);
+    pwmWrite(L_LpwmPin, 0);
     digitalWrite(R_LENPin, LOW);
     digitalWrite(L_LENPin, LOW);
     digitalWrite(R_RENPin, LOW);
@@ -206,28 +212,33 @@ void Motor::rotate(int pwm, float degree)
         abs_dgr *= -1.0f;
     }
     float delaytime = abs_dgr / dgrspeed;
-    if (degree > 0) 
-    {
-        rmotor_run(pwm, false); // 오른쪽 바퀴는 뒤로 회전
-        lmotor_run(pwm); // 왼쪽 바퀴는 앞으로 회전
+
+    unsigned int currentTime = millis();
+    while(millis()-currentTime < delaytime){
+        if (degree > 0) 
+        {
+            rmotor_run(pwm, false); // 오른쪽 바퀴는 뒤로 회전
+            lmotor_run(pwm); // 왼쪽 바퀴는 앞으로 회전
+        }
+        else {
+            rmotor_run(pwm); // 오른쪽 바퀴는 앞으로 회전
+            lmotor_run(pwm, false); // 왼쪽 바퀴는 뒤로 회전
+        }
+            // 모터 최대 150rpm, 설정 최대 pwm 100, 6.0f는 초당 각속도 계산을 위한 상수
     }
-    else {
-        rmotor_run(pwm); // 오른쪽 바퀴는 앞으로 회전
-        lmotor_run(pwm, false); // 왼쪽 바퀴는 뒤로 회전
-    }
-    // 모터 최대 150rpm, 설정 최대 pwm 100, 6.0f는 초당 각속도 계산을 위한 상수
-    delay(delaytime);
 }
 
-// 커브 함수 동작 지침
-// 1. degree값만큼 회전
-// 2. 각 바퀴가 pwm값만큼 회전 (딜레이 시간 계산 필요)
-// 3. -degree값만큼 회전
-
-// l_pwm, r_pwm 말고, 원하는 pwm값 (오,왼 평균pwm), 각도를 설정해서 커브를 구현하는건 어떨까?
-
+//동작 중에 추가로 피해야할 대상이 나타나면 유연하게 회피하도록 해야함
 void Motor::curve_avoid(float distance, int pwm, float degree, bool recover = false)
 {
+    float currentDegree=0;
+    if(distance<=avoidDistance_trigger){
+        //if(degree>)
+        //curve_coner(distance, pwm, 20);
+        //if(distance<=avoidDistance_step1){}
+    }
+
+    /*
     float currentdgr = 0.01f;
     int current_rpwm = pwm;
     int current_lpwm = pwm;
@@ -260,11 +271,11 @@ void Motor::curve_avoid(float distance, int pwm, float degree, bool recover = fa
     else if (distance < avoidDistance / 1.3f) {
 
     }
+    */
 }
 
 void Motor::curve_coner(float connerdistance, int pwm, float degree)
 {
-    //analogWrite()
     validate_pwm(pwm);
     float dgrspeed = calculate_dgrspeed(pwm);
     float abs_dgr = degree;
@@ -277,11 +288,11 @@ void Motor::curve_coner(float connerdistance, int pwm, float degree)
     calculate_twin_pwm(connerdistance, pwm, degree, &pwm_1, &pwm_2);
 
     if(degree>0){
-        analogWrite(L_RpwmPin, pwm_1);
-        analogWrite(R_RpwmPin, pwm_2);
+        pwmWrite(L_RpwmPin, pwm_1);
+        pwmWrite(R_RpwmPin, pwm_2);
     }else{
-        analogWrite(L_RpwmPin, pwm_2);
-        analogWrite(R_RpwmPin, pwm_1);
+        pwmWrite(L_RpwmPin, pwm_2);
+        pwmWrite(R_RpwmPin, pwm_1);
     }
     
 }
@@ -290,14 +301,20 @@ void Motor::curve_coner(float connerdistance, int pwm, float degree)
 
 int main() {
     Motor motor;
-    int i=3;
-    while(i>0){
-        i--;
-        motor.straight(70);
-        delay(300);
-        motor.backoff(50);
-        delay(200);
-        motor.rotate(50, 30);
+    
+    unsigned int time = millis();
+    while(millis()-time <3000){
+        
+        motor.straight(1024);
+    }
+    time=millis();
+    while(millis()-time <3000){
+
+        motor.backoff(1024);
+    }
+    time=millis();
+    while(millis()-time <3000){
+        motor.curve_coner(100.0f, 500, 90);
     }
 
     motor.stop();

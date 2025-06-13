@@ -176,9 +176,11 @@ int main() {
             std::cout << "보정된 TM 좌표: X = " << imu_gps._tm_x
                       << ", Y = " << imu_gps._tm_y << std::endl;
             std::cout << "-----------------------------" << std::endl;
-            log_msg("INFO", "위도 : " + std::to_string(gps.latitude));
-            log_msg("INFO", "경도 : " + std::to_string(gps.longitude));
-            log_msg("INFO", "고도 : " + std::to_string(gps.altitude));
+            std::ostringstream oss;
+            oss << "위도: "    << gps.latitude
+                << ", 경도: " << gps.longitude
+                << ", 고도: " << gps.altitude;
+            log_msg("INFO", oss.str());
         }
 
         usleep(500000); // 0.5초 대기

@@ -2,6 +2,13 @@
 ![image](https://github.com/user-attachments/assets/46528ea5-ba34-4a81-af53-4c7e4677ccbc)
 
 
+### 유스케이스 다이어그램
+![비회원 유스케이스 다이어그램](https://github.com/user-attachments/assets/412dee2a-f18c-487d-aac9-8855975f3584)
+![회원 유스케이스 다이어그램](https://github.com/user-attachments/assets/c08e18d3-c9ef-4505-ad9c-4ab4d7e7ab58)
+![관리자 유스케이스 다이어그램](https://github.com/user-attachments/assets/16cc10d5-db2d-4cfb-9b84-b8e1c8cf8614)
+
+
+### 웹 페이지 UI 설계
 - 로그인 상태 메인페이지
   
   ![image](https://github.com/user-attachments/assets/638e9560-e322-43dd-8ab4-8049fdbf6106)

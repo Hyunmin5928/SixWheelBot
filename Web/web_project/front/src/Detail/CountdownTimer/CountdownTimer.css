@@ -1,0 +1,15 @@
+
+.remaining-time {
+    font-size: 1.5rem;
+    font-weight: 500;
+    margin-top: 0px;
+    margin-bottom: 0px;
+    padding-left: 15px;
+    vertical-align: middle;
+}
+
+.remaining-time  .remaining-time-hour, .remaining-time-minute, .remaining-time-second {
+    background-color: rgb(69, 69, 221);
+    padding: 0px 5px 0px 5px;
+    border-radius: 5px;
+}

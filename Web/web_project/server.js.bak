@@ -1,0 +1,974 @@
+const express = require("express");
+const requestIp = require('request-ip');
+const app = express();
+const cors = require("cors");
+const path = require("path");
+const crypto = require('crypto');
+const bcrypt = require("bcrypt");
+const moment = require('moment-timezone');
+const connectDB = require("./database.js");
+require("dotenv").config();
+app.use(cors());
+
+const { createServer } = require('http');
+const { Server } = require('socket.io');
+const server = createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "http://localhost:3000",
+    methods: ["GET", "POST"]
+  }
+});
+
+const { ObjectId } = require("mongodb");
+
+const session = require("express-session");
+const passport = require("passport");
+const LocalStrategy = require("passport-local");
+const mongoStore = require("connect-mongo");
+const schedule = require('node-schedule');
+const nodemailer = require('nodemailer');
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(passport.initialize());
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    store: mongoStore.create({
+      mongoUrl: process.env.DB_URL,
+      dbName: process.env.DB_NAME,
+    }),
+  })
+);
+app.use(passport.session());
+
+
+
+const { S3Client, DeleteObjectCommand } = require('@aws-sdk/client-s3')
+const multer = require('multer')
+const multerS3 = require('multer-s3');
+const s3 = new S3Client({
+  region : 'ap-northeast-2',
+  credentials : {
+      accessKeyId : process.env.S3_ACCESS_KEY,
+      secretAccessKey : process.env.S3_SECRET_ACCCESS_KEY
+  }
+})
+
+const upload = multer({
+  storage: multerS3({
+    s3: s3,
+    bucket: process.env.S3_BUCKET,
+    key: function (req, file, cb) {
+      //여러 파일을 매우 빠르게 처리할 때 같은 밀리세컨드 값이 할당될 수 있어 파일 이름이 중복될 가능성이 있음. 
+      //이를 해결하기 위해 더 고유한 식별자를 추가.
+      const uniqueSuffix = Date.now().toString() + '-' + crypto.randomBytes(8).toString('hex');
+      //path.extname -> 확장자 추출 함수
+      cb(null, uniqueSuffix + path.extname(file.originalname))
+    }
+  })
+});
+
+// let db;
+// connectDB
+//   .then((client) => {
+//     console.log("데이터베이스 연결 성공");
+//     db = client.db(process.env.DB_NAME);
+//     server.listen(process.env.PORT, function () {
+//       console.log("듣는 중..");
+//     });
+//   })
+//   .catch((err) => {
+//     console.log(err);
+//   });
+
+const db = require('./database');
+
+server.listen(process.env.PORT || 4000, () => {
+  console.log("서버 실행 중");
+});
+
+passport.use(
+  new LocalStrategy(async (enteredUsername, enteredPassword, cb) => {
+    let result = await db
+      .collection("user")
+      .findOne({ username: enteredUsername });
+    if (!result) {
+      return cb(null, false, { message: "존재하지 않는 아이디 입니다." });
+    }
+
+    if (await bcrypt.compare(enteredPassword, result.password)) {
+      return cb(null, result);
+    } else {
+      return cb(null, false, { message: "비밀번호가 일치하지 않습니다." });
+    }
+  })
+);
+
+//req.logIn 이 실행될 때 마다 같이 자동으로 실행되는 부분
+// 로그인시 세션 document를 발행해주고 document에 있는 _id를 쿠키에 적어서 보내줌
+passport.serializeUser((user, done) => {
+  process.nextTick(() => {
+    //nextTick은 비동기적으로 실행됨
+    done(null, { id: user._id, username: user.username });
+  });
+});
+
+//유저가 보낸 쿠키를 분석해줌
+//쿠키는 유저가 서버로 요청을 보낼 때 마다 자동으로 날라감
+//세션정보가 적힌 쿠키를 가지고 있는 유저가 요청을 보낼 때 마다 실행됨(불필요한 DB 조회 발생)
+//특정 API 안에서만 실행되도록 설정하는 것이 필요
+passport.deserializeUser(async (user, done) => {
+  let result = await db
+    .collection("user")
+    .findOne({ _id: new ObjectId(user.id) });
+  delete result.password;
+  process.nextTick(() => {
+    return done(null, result);
+  });
+});
+
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+      user: process.env.EMAIL_USERNAME,
+      pass: process.env.EMAIL_PASSWORD
+  }
+});
+
+function generateRandomCode(n) {
+  let str = '';
+  for (let i = 0; i < n; i++) {
+      str += Math.floor(Math.random() * 10);
+  }
+  return str;
+}
+
+//---------------------------------이 밑에다가 API 구현하기--------------------------------------//
+
+app.get("/storeCheckLoggedIn", (req, res) => {
+  if (req.user) {
+    res.json({ loggedIn: true, username: req.user.username, _id: req.user._id });
+  } else {
+    res.json({ loggedIn: false });
+  }
+});
+
+app.post("/login", async (req, res, next) => {
+  const { username, password } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).send("아이디와 비밀번호를 모두 입력하세요." );
+  }
+
+  passport.authenticate("local", (error, user, info) => {
+    if (error) return res.status(500).json(error);
+    if (!user) return res.status(401).json(info.message);
+
+    //성공하면 세션만들기 시작
+    req.logIn(user, (err) => {
+      if (err) return next(err);
+      res.redirect("/");
+    });
+  })(req, res, next);
+});
+
+app.get("/logout", async (req, res) => {
+  const session = req.session;
+  try {
+    if (session) {
+      await session.destroy((err) => {
+        if (err) {
+          console.log(err);
+        } else {
+          res.redirect("/");
+        }
+      });
+    }
+  } catch (err) {
+    console.log("에러: ", err);
+  }
+});
+
+app.post("/register", async (req, res) => {
+  try {
+    const username = req.body.username;
+    // 데이터베이스에서 입력된 사용자명을 검색
+    const existingUser = await db
+      .collection("user")
+      .findOne({ username: username });
+
+    if (existingUser) {
+      // 사용자명이 이미 존재하는 경우
+      res.status(400).send("이미 존재하는 아이디입니다.");
+    } else {
+      // 사용자명이 존재하지 않는 경우, 비밀번호를 해싱하여 저장
+      const hashPassword = await bcrypt.hash(req.body.password, 10);
+
+      // 데이터베이스에 사용자 정보 저장
+      await db.collection("user").insertOne({
+        username: username,
+        password: hashPassword,
+      });
+      res.json({ registerSuccess: true });
+    }
+  } catch (error) {
+    console.error("회원가입 에러:", error);
+    res.status(500).send("회원가입 중 오류가 발생했습니다.");
+  }
+});
+
+app.get("/checkLoggedIn", async (req, res) => {
+  if (req.user) {
+    res.json({ isLoggedIn: true });
+  } else {
+    res.json({ isLoggedIn: false });
+  }
+});
+
+app.get("/checkLogin", async (req, res) => {
+  if (req.user) {
+    res.json({ isLoggedIn: true, userId: req.user._id, username: req.user.username });
+  } else {
+    res.json({ isLoggedIn: false });
+  }
+});
+
+//-------------------------- 판매글 작성하기 ----------------------------------------------------//
+app.post("/add", upload.array('postImg', 10), async (req, res) => {
+  const { productName, productPrice, productContent, productType, selectedCategory } = req.body;
+
+  try {
+    const imageLocations = req.files.map(file => file.location);
+
+    const kstDate = moment().tz("Asia/Seoul").toDate();
+    const usernameRes = await db.collection('user').findOne({_id: req.user._id});
+    const publisherName = usernameRes.username;
+    await db.collection('salesPost').insertOne({
+      title: productName,
+      price: productPrice,
+      content: productContent,
+      type: productType,
+      category: selectedCategory,
+      img: imageLocations,
+      date: kstDate,
+      viewer: 0,
+      authorId: req.user._id,
+      publisherName: publisherName
+    });
+   
+    res.redirect('/');
+  } catch (error) {
+    console.error('업로드 에러:', error);
+    res.status(500).send('파일을 업로드하는 동안 에러가 발생했습니다.');
+  }
+});
+//-------------------------------------------------------------------------------------------//
+
+//----------------- 현재까지 올라온 판매글 가져오기 ---------------------------------//
+app.get("/posts", async (req, res) => {
+  try {
+    const posts = await db.collection('salesPost').find({}).toArray();
+    res.status(200).json(posts);
+  } catch (error) {
+    console.error("데이터를 가져오는데 실패했습니다.:", error);
+    res.status(500).send("데이터를 가져오는데 실패했습니다.");
+  }
+});
+//---------------------------------------------------------------------------------//
+
+//---------------------------------- 판매글 상세정보 불러오기 ----------------------------------------//
+app.get('/detail/:id', async(req, res) => {
+  try {
+    const id = req.params.id;
+    const detailData = await db.collection('salesPost').findOne({_id: new ObjectId(id)});
+    if (detailData) {
+        await viewsRecord(req);
+        res.send(detailData);
+    } else {
+        res.status(404).send('데이터를 찾을 수 없습니다.');
+    }
+  } catch (error) {
+    console.error('에러', error);
+    res.status(500).send('서버 에러');
+  }
+})
+
+
+let viewRecords = {};
+async function viewsRecord(req) {
+  let userIp = requestIp.getClientIp(req); 
+  const postId = req.params.id;
+
+  const currentTime = new Date().getTime();
+  if (!viewRecords[postId]) {
+    viewRecords[postId] = {};
+  }
+  console.log(viewRecords);
+  console.log('-------------------------------------');
+  
+  try {
+    if (!viewRecords[postId][userIp] || currentTime - viewRecords[postId][userIp] > 86400000) {
+      viewRecords[postId][userIp] = currentTime;  // IP와 현재 시간 기록
+      await db.collection('salesPost').updateOne(
+        { _id: new ObjectId(postId) },
+        { $inc: { viewer: 1 }}
+      );
+    } else {
+      console.log(`해당 아이피로 이미 조회하셨습니다.`);
+    }
+  } catch (error) {
+      console.error(`해당 게시물에 대한 조회수 업데이트 실패`);
+  }
+  
+}
+//------------------------------------------------------------------------------------------//
+
+//--------------------------------- 게시물 수정 및 삭제 --------------------------------------------------//
+app.get('/salesPostsEdit/:id', async(req, res) => {
+  try {
+    const id = req.params.id;
+    const editData = await db.collection('salesPost').findOne({_id: new ObjectId(id)});
+    if (editData) {
+        res.send(editData);
+    } else {
+        res.status(404).send('데이터를 찾을 수 없습니다.');
+    }
+  } catch (error) {
+    console.error('에러', error);
+    res.status(500).send('서버 에러');
+  }
+})
+
+app.post('/salesPostsEdit/:id', upload.array('postImg', 10), async(req, res) => {
+  try {
+    const { productName, productPrice, productContent, productType, selectedCategory } = req.body;
+
+    const newImageLocations = req.files.map(file => file.location);
+    const existingImages = req.body.existingImg ? req.body.existingImg.split(',') : [];
+    const id = req.params.id;
+
+    await db.collection('salesPost').updateOne({_id: new ObjectId(id)}, {$set : { 
+    title : productName, 
+    price : productPrice, 
+    content: productContent,
+    type: productType,
+    category: selectedCategory,
+    img: [...existingImages, ...newImageLocations]
+   }});
+   res.redirect('/');
+  } catch (error) {
+    console.error('에러', error);
+    res.status(500).send('서버 에러');
+  }
+})
+
+app.delete('/salesPost/:id', async(req, res) => {
+  const id = req.params.id;
+  try {
+    const post = await db.collection('salesPost').findOne({_id: new ObjectId(id)});
+    const imageUrls = post.img;
+
+    // 모든 사용자의 관심 목록에서 해당 게시물 ID 제거
+    await db.collection('user').updateMany(
+      { interestedProducts: id },
+      { $pull: { interestedProducts: id } }
+    );
+
+    for (let imageUrl of imageUrls) {
+      const urlParts = imageUrl.split('/');
+      const key = urlParts[urlParts.length - 1];
+
+      const deleteParams = {
+          Bucket: 'easysiteimgs',
+          Key: key
+      };
+      const deleteCommand = new DeleteObjectCommand(deleteParams);
+      await s3.send(deleteCommand);
+    }
+
+    await db.collection('salesPost').deleteOne({_id: new ObjectId(id)});
+    res.send('삭제가 완료되었습니다!');
+  } catch (error) {
+    console.error('에러', error);
+    res.status(500).send('서버 에러');
+  }
+})
+
+//------------------------------------------------------------------------------------------------------//
+
+//---------------------------------- 마이페이지 관련 코드 ------------------------------------------------//
+app.get('/userAuthorID', async (req, res) => {
+  try {
+    const { username } = req.query;
+    const myId = await db.collection('user').findOne({username: username});
+    res.status(200).send(myId._id.toString());
+  } catch (error) {
+    console.error('에러', error);
+    res.status(500).send('서버 에러');
+  }
+})
+
+app.get('/userSalesPosts', async (req, res) => {
+  try {
+    const { myObjectID } = req.query;
+    const mySalesPosts = await db.collection('salesPost').find({authorId: new ObjectId(myObjectID)}).toArray();
+    res.status(200).json(mySalesPosts);
+  } catch (error) {
+    console.error('에러', error);
+    res.status(500).send('서버 에러');
+  }
+})
+
+//------------------------------------------------------------------------------------------------------//
+
+//--------------------------------------- 추천 상품 --------------------------------------------------//
+
+app.get('/recPosts', async (req, res) => {
+  try {
+    const { postCategory } = req.query;
+    const recPosts = await db.collection('salesPost').find({category: postCategory}).toArray(); 
+    res.status(200).json(recPosts);
+  } catch (error) {
+    console.error('에러', error);
+    res.status(500).send('서버 에러');
+  }
+})
+
+
+//------------------------------------------------------------------------------------------------------//
+
+
+//------------------------------------------------관심 상품----------------------------------------------------//
+
+app.post('/interestedProducts', async (req, res) => {
+  try {
+    const userObjId = req.body.userObjId;
+    const postId = req.body.postId;
+    await db.collection('user').updateOne(
+      {_id: new ObjectId(userObjId)},
+      { $push: { interestedProducts: postId } }
+    );
+    res.status(200).send('');
+  } catch (error) {
+    console.error('에러', error);
+    res.status(500).send('서버 에러');
+  }
+})
+
+app.delete('/interestedProducts', async (req, res) => {
+  const { userObjId, postId } = req.query;
+  try {
+    await db.collection('user').updateOne(
+      { _id: new ObjectId(userObjId) },
+      { $pull: { interestedProducts: postId } } 
+    );
+    res.status(200).send('');
+    } catch (error) {
+    console.error('에러', error);
+    res.status(500).send('서버 에러');
+  }
+})
+
+app.get('/userInterestedProducts', async (req, res) => {
+  try {
+    if(req.user) {
+      const userObjId = req.user._id;
+      
+      // 사용자의 관심 상품 목록을 불러옴
+      const user = await db.collection('user').findOne({ _id: new ObjectId(userObjId) }, { projection: { interestedProducts: 1 } });
+
+      // 관심 상품이 없을 경우 빈 배열 반환
+      if (!user || !user.interestedProducts) {
+        return res.status(200).json([]);
+      }
+
+      // 관심 있는 상품에 대한 정보를 모두 불러옴
+      const interestedProducts = user.interestedProducts;
+      const results = await Promise.all(interestedProducts.map(data => 
+        db.collection('salesPost').findOne({ _id: new ObjectId(data) })
+      ));
+
+      // 결과 반환
+      res.status(200).json(results);
+    }
+  } catch (error) {
+    console.error('에러', error);
+    res.status(500).send('서버 에러');
+  }
+})
+
+//------------------------------------------------------------------------------------------------------------//
+
+//-------------------------------------------------검색--------------------------------------------------------//
+
+app.get('/search', async (req, res) => {
+  const { searchValue } = req.query;
+  const searchCondition = [
+    {$search : {
+      index : 'title_index',
+      text : { query : searchValue, path : 'title' }
+    }}
+  ]
+  
+  try {
+    const result = await db.collection('salesPost').aggregate(searchCondition).toArray();
+    res.status(200).json(result);
+  } catch (error) {
+    console.error('에러', error);
+    res.status(500).send('서버 에러');
+  }
+})
+
+//------------------------------------------------------------------------------------------------------------//
+
+//------------------------------------------역경매 게시물 등록------------------------------------------------------------//
+//upload.single('postImgFile')
+app.post("/revAuctionAdd", upload.single('postImgFile'), async (req, res) => {
+  const { postTitle, desiredPrice, postContent, time } = req.body;
+  const imageLocations = req.file.location;  // 업로드된 파일 정보
+  
+  try {
+    const kstDate = moment().tz("Asia/Seoul").toDate();
+    const durationInMinutes = parseInt(time); // select 태그에서 선택된 시간(분)
+    const endTime = moment(kstDate).add(durationInMinutes, 'minutes').toDate(); // 종료 시간 계산
+
+    const usernameRes = await db.collection('user').findOne({_id: req.user._id});
+    const publisherName = usernameRes.username;
+    const revAuctionAddResult = await db.collection('revAuctionPost').insertOne({
+      postTitle: postTitle,
+      desiredPrice: desiredPrice,
+      postContent: postContent,
+      time: durationInMinutes,
+      img: imageLocations,
+      date: kstDate,
+      endTime: endTime,
+      viewer: 0,
+      authorId: req.user._id,
+      publisherName: publisherName,
+      status: 'active',  
+      awardedTo: null,    
+      finalPrice: null,
+      bidders: []    
+    });
+
+    const revAuctionId = revAuctionAddResult.insertedId;
+
+    schedule.scheduleJob(endTime, async () => {
+      await db.collection('revAuctionPost').updateOne(
+        { _id: revAuctionId },
+        { $set: { status: 'close' } }
+      );
+    });
+   
+    res.redirect('/');
+  } catch (error) {
+    console.error('업로드 에러:', error);
+    res.status(500).send('파일을 업로드하는 동안 에러가 발생했습니다.');
+  }
+});
+
+//--------------------------------------------------------------------------------------------------------------------------------//
+
+//------------------------------------------역경매 게시물 삭제--------------------------------------------------------------------//
+app.delete('/revAuctionPost/:id', async (req, res) => {
+  const id = req.params.id;
+  try {
+    const post = await db.collection('revAuctionPost').findOne({_id: new ObjectId(id)});
+    const imageUrl = post.img;
+
+    await db.collection('user').updateMany(
+      { bidProducts: id },
+      { $pull: { bidProducts: id } }
+    );
+
+
+    const urlParts = imageUrl.split('/');
+    const key = urlParts[urlParts.length - 1];
+
+    const deleteParams = {
+        Bucket: 'easysiteimgs',
+        Key: key
+    };
+    const deleteCommand = new DeleteObjectCommand(deleteParams);
+    await s3.send(deleteCommand);
+    
+
+    await db.collection('revAuctionPost').deleteOne({_id: new ObjectId(id)});
+    res.send('삭제가 완료되었습니다!');
+  } catch (error) {
+    console.error('에러', error);
+    res.status(500).send('서버 에러');
+  }
+})
+//--------------------------------------------------------------------------------------------------------------------------------//
+
+
+//--------------------------------------------------역경매 게시물 불러오기--------------------------------------------------------//
+app.get('/revAuctionPosts', async (req, res) => {
+  try {
+    const revAuctionPost = await db.collection('revAuctionPost').find({}).toArray();
+    res.status(200).json(revAuctionPost);
+  } catch (error) {
+    console.error("데이터를 가져오는데 실패했습니다.:", error);
+    res.status(500).send("데이터를 가져오는데 실패했습니다.");
+  }
+})
+
+app.get('/revAuctionDetail/:id', async(req, res) => {
+  try {
+    const id = req.params.id;
+    const detailData = await db.collection('revAuctionPost').findOne({_id: new ObjectId(id)});
+    if (detailData) {
+        await viewsRecord(req);
+        res.send(detailData);
+    } else {
+        res.status(404).send('데이터를 찾을 수 없습니다.');
+    }
+  } catch (error) {
+    console.error('에러', error);
+    res.status(500).send('서버 에러');
+  }
+})
+//---------------------------------------------------------------------------------------------------------------------------------//
+
+//--------------------------------------------역경매 게시물 입찰하기---------------------------------------------------------------//
+
+app.post('/revAuction/:id/bids', async (req, res) => {
+  const { bidder_id, bid_price } = req.body;
+  const revAuctionPostId = req.params.id;
+  const userObjId = req.user._id;
+
+  try {
+    await db.collection('revAuctionPost').updateOne(
+      { _id: new ObjectId(revAuctionPostId) },
+      { $push: { bidders: { bidder_id, bid_price } } }
+    );
+
+    await db.collection('user').updateOne(
+      {_id: new ObjectId(userObjId)},
+      { $push: { bidProducts: revAuctionPostId } }
+    );
+    
+    res.send('입찰이 완료되었습니다!');
+  } catch (error) {
+      res.status(500).send({ message: '입찰 진행 중 에러가 발생했습니다.' });
+  }
+});
+
+//------------------------------------------------------------------------------------------------------------------------------------//
+
+//--------------------------------------------------------중복 입찰 방지--------------------------------------------------------------//
+
+app.get('/checkDuplicateBid', async (req, res) => {
+  try {
+    const { bidderId, revAuctionPostId } = req.query;
+    const isDuplicate = await db.collection('revAuctionPost').findOne({
+      _id: new ObjectId(revAuctionPostId),
+      'bidders.bidder_id': bidderId 
+    });
+
+    if(isDuplicate) {
+      res.send(true);
+    } else {
+      res.send(false);
+    }
+
+  } catch (error) {
+      res.status(500).send({ message: '데이터를 찾는 중 에러가 발생했습니다.' });
+  }
+})
+
+
+//------------------------------------------------------------------------------------------------------------------------------------//
+
+//----------------------------------------------------------낙찰----------------------------------------------------------------------//
+
+app.post('/revAuction/:id/award', async (req, res) => {
+  const revAuctionPostId = req.params.id;  
+  const { bidder_id, bid_price } = req.body; 
+  const myObjId = req.session.passport.user.id;
+  const myName = req.session.passport.user.username;
+  let bidderObjId;
+  const bidderName = bidder_id;
+
+  try {
+    const findbidderRes = await db.collection('user').findOne({username: bidderName});
+    bidderObjId = findbidderRes._id.toString();
+   
+    const getPost = await db.collection('revAuctionPost').findOne({_id: new ObjectId(revAuctionPostId)});
+
+    // 게시물의 상태와 낙찰자 정보 업데이트
+    const updateResult = await db.collection('revAuctionPost').updateOne(
+      { _id: new ObjectId(revAuctionPostId) },
+      {
+        $set: {
+          'status': 'awarded', 
+          'awardedTo': bidder_id, 
+          'finalPrice': bid_price 
+        }
+      }
+    );
+
+    // 낙찰 결과를 검사
+    if (updateResult.modifiedCount === 1) {
+      const newMessage = {
+        content: `축하합니다! 낙찰자로 선정되셨습니다. 
+                  거래 희망합니다.\n
+                  게시물 제목 : ${getPost.postTitle} \n
+                  낙찰가 : ${bid_price}`,
+        userId: myObjId,
+        username: myName,
+        date: new Date()
+      };
+
+      const chatroom = await db.collection('chatroom').findOne({
+        memberId: { $all: [myObjId, bidderObjId] }
+      });
+
+      if (chatroom) {
+        await db.collection('chatroom').updateOne(
+          { _id: chatroom._id },
+          { $push: { messages: newMessage } }
+        );
+        io.to(chatroom._id.toString()).emit('message_broadcast', newMessage);
+      } else {
+        const newRoom = await db.collection('chatroom').insertOne({
+          memberId: [myObjId, bidderObjId],
+          memberName: [myName, bidderName],
+          date: new Date(),
+          messages: [newMessage]
+        });
+        io.to(newRoom.insertedId.toString()).emit('message_broadcast', newMessage);
+      }
+
+      res.send('낙찰이 완료되었습니다!');
+    } else {
+      res.status(404).send('낙찰을 완료할 수 없습니다.');
+    }
+  } catch (error) {
+    console.error('낙찰 처리 중 에러 발생:', error);
+    res.status(500).send('낙찰 진행 중 에러가 발생했습니다.');
+  }
+});
+
+//------------------------------------------------------------------------------------------------------------------------------------//
+
+//-------------------------------------유저의 역경매 진행 중인 게시물 존재 여부 확인---------------------------------------------------//
+app.get('/userRevAuctionPosts', async (req, res) => {
+  try {
+    const { myObjectID } = req.query;
+    const myRevAuctionPosts = await db.collection('revAuctionPost').find({authorId: new ObjectId(myObjectID)}).toArray();
+    res.status(200).json(myRevAuctionPosts);
+  } catch (error) {
+    console.error('에러', error);
+    res.status(500).send('서버 에러');
+  }
+})
+//------------------------------------------------------------------------------------------------------------------------------------//
+
+//------------------------------------------------유저가 입찰 중이 게시물 조회하기-----------------------------------------------------//
+app.get('/userBidProducts', async (req, res) => {
+  try {
+    if(req.user) {
+      const userObjId = req.user._id;
+      
+      // 사용자의 입찰 목록을 불러옴
+      const user = await db.collection('user').findOne({ _id: new ObjectId(userObjId) }, { projection: { bidProducts: 1 } });
+
+      // 입찰 상품이 없을 경우 빈 배열 반환
+      if (!user || !user.bidProducts) {
+        return res.status(200).json([]);
+      }
+
+      // 입찰 중인 정보를 모두 불러옴
+      const bidProducts = user.bidProducts;
+      const results = await Promise.all(bidProducts.map(data => 
+        db.collection('revAuctionPost').findOne({ _id: new ObjectId(data) })
+      ));
+
+      // 결과 반환
+      res.status(200).json(results);
+    }
+  } catch (error) {
+    console.error('에러', error);
+    res.status(500).send('서버 에러');
+  }
+})
+//------------------------------------------------------------------------------------------------------------------------------------//
+
+//------------------------------------------------------------경매 종료 확인----------------------------------------------------------//
+app.get('/checkRevAuctionStatus/:id', async (req, res) => {
+  const revAuctionPostId = req.params.id;
+  try {
+    const statusRes = await db.collection('revAuctionPost').findOne({
+      _id: new ObjectId(revAuctionPostId),
+      status: { $in: ['close', 'awarded'] }
+    });
+
+    if (statusRes) {
+      res.status(200).json({ isClosedOrAwarded: true });
+    } else {
+      res.status(200).json({ isClosedOrAwarded: false });
+    }
+  } catch (error) {
+      console.error('경매 종료 처리 중 실패: ', error);
+      res.status(500).send('경매 종료 처리 중 실패');
+  }
+})
+//------------------------------------------------------------------------------------------------------------------------------------//
+
+//-----------------------------------------------------인증메일 전송 -----------------------------------------------------------------//
+app.post('/verify-email', async (req, res) => {
+  const { email } = req.body;
+  const emailCode = generateRandomCode(6);
+
+  req.session.emailCode = emailCode;
+  req.session.email = email;
+
+  const mailOptions = {
+    from: `[E A S Y] <${process.env.EMAIL_USERNAME}>`,
+    to: email,
+    subject: '[E A S Y] 인증번호를 확인해주세요.',
+    html: `<h1>이메일 인증</h1>
+           <div>
+            <span>인증번호 [${emailCode}]를 입력해주세요.</span>
+           </div>`
+  };
+
+  transporter.sendMail(mailOptions, function(error, info) {
+    if (error) {
+        console.log(error);
+        res.status(500).json({ success: false, message: '이메일 전송 중 오류가 발생했습니다.' });
+    } else {
+        console.log('Email sent: ' + info.response);
+        res.json({ success: true, message: '이메일로 인증번호를 전송했습니다.' });
+    }
+  });
+  
+  // let user = await User.findOne({ email });
+  // if (user) {
+  //     return res.status(400).send('User already exists with that email.');
+  // }
+  // user = new User({ email, username, password, isVerified: false });
+  // await user.save();
+
+  // const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
+
+});
+//------------------------------------------------------------------------------------------------------------------------------------//
+
+//--------------------------------------------------------인증코드 일치 여부 확인------------------------------------------------------//
+app.post('/verify-email-code', async (req, res) => {
+  const { email, emailCode } = req.body;
+  console.log(req.session.emailCode, req.session.email, req.session.emailVerified)
+  if (req.session.emailCode === emailCode && req.session.email === email) {
+      res.json({ success: true, message: '인증 성공!' });
+  } else {
+      res.json({ success: false, message: '잘못된 인증번호이거나 인증번호가 만료되었습니다.' });
+  }
+});
+//------------------------------------------------------------------------------------------------------------------------------------//
+
+//--------------------------------------------------------이메일 중복 체크------------------------------------------------------------//
+app.post('/check-email', async (req, res) => {
+  const { email } = req.body;
+  try {
+    const user = await db.collection('user').findOne({ email });
+    if (user) {
+      return res.json({ available: false });
+    } else {
+      return res.json({ available: true });
+    }
+  } catch (error) {
+    console.error("이메일 확인 중 오류 발생:", error);
+    return res.status(500).json({ message: '서버 에러' });
+  }
+});
+//------------------------------------------------------------------------------------------------------------------------------------//
+
+//------------------------------------------------------------채팅--------------------------------------------------------------------//
+app.get('/chat/request', async (req, res) => {
+  const { myId, myName, writerId, writerName } = req.query;
+  try {
+    const isExistChatRoom = await db.collection('chatroom').findOne({
+      memberId: { $all: [myId, writerId] }
+    })
+    if (isExistChatRoom) {
+      res.send({isExistChatRoom: true, roomId: isExistChatRoom._id})
+    } else {
+      const newRoom = await db.collection('chatroom').insertOne({
+        memberId : [myId, writerId],
+        memberName: [myName, writerName],
+        date: new Date(),
+        messages: []
+      })
+      res.send({isExistChatRoom: false, roomId: newRoom.insertedId})
+    }
+  } catch (error) {
+    console.error('서버 에러:', error);
+    res.status(500).send('서버 에러');
+  }
+})
+
+io.on('connection', (socket) => {
+  console.log('어떤 놈이 웹소켓 연결함');
+
+  socket.on('req_join', async (data) => {
+    socket.join(data.roomId)
+
+    const room = await db.collection('chatroom').findOne({ _id: new ObjectId(data.roomId) });
+    const messages = room ? room.messages : [];
+
+    socket.emit('load_messages', messages);
+  })
+
+  socket.on('send_message', async (data) => {
+    const newMessage = { //메세지 형태 지정
+      content: data.msg,
+      userId: data.userId,
+      username: data.username,
+      date: new Date()
+    };
+    
+    const chatUpdateResult = await db.collection('chatroom').updateOne(
+      { _id: new ObjectId(data.roomId) },
+      { $push: { messages: newMessage } }
+    )
+
+    io.to(data.roomId).emit('message_broadcast', newMessage);
+  })
+})
+
+app.get('/chat/rooms', async (req, res) => {
+  const { userId } = req.query;
+  try {
+    const chatRooms = await db.collection('chatroom').find({
+      memberId: userId
+    }).toArray();
+    res.send({ rooms: chatRooms });
+  } catch (error) {
+    console.error('서버 에러:', error);
+    res.status(500).send('서버 에러');
+  }
+});
+
+app.get('/user/:userId', async (req, res) => {
+  const userId = req.params.userId;
+  try {
+    const user = await db.collection('user').findOne({ _id: new ObjectId(userId) });
+    if (user) {
+      res.send({ username: user.username });
+    } else {
+      res.status(404).send('유저를 찾을 수 없습니다.');
+    }
+  } catch (error) {
+    console.error('서버 에러:', error);
+    res.status(500).send('서버 에러');
+  }
+});
+
+//------------------------------------------------------------------------------------------------------------------------------------//

@@ -1,9 +1,4 @@
 #include "motorCtrl.h"
-#include <wiringPi.h>
-#include <softPwm.h>
-#include <iostream>
-#include <cmath>
-#include <vector>
 
 #define PI 3.1415926 
 
@@ -36,6 +31,11 @@
 
 // private
 #pragma region Private functions
+
+LaserScan::points Motor::set_scanpoints(LaserScan& scan){
+    scanData=scan.points;
+    return scan.points;
+}
 
 float Motor::calculate_dgrspeed(int pwm)
 {
@@ -281,12 +281,18 @@ void Motor::curve_corner(float connerdistance, int pwm, float degree)
     int pwm_1, pwm_2;
     calculate_twin_pwm(connerdistance, pwm, degree, &pwm_1, &pwm_2);
 
+    unsigned int currentTime = millis();
     if(degree>0){
-        pwmWrite(L_RpwmPin, pwm_1);
-        pwmWrite(R_RpwmPin, pwm_2);
+        while(millis()-currentTime <= delaytime){
+            pwmWrite(L_RpwmPin, pwm_1);
+            pwmWrite(R_RpwmPin, pwm_2);
+        }
+        
     }else{
-        pwmWrite(L_RpwmPin, pwm_2);
-        pwmWrite(R_RpwmPin, pwm_1);
+        while(millis()-currentTime <= delayTime){
+            pwmWrite(L_RpwmPin, pwm_2);
+            pwmWrite(R_RpwmPin, pwm_1);
+        }
     }
     
 }
@@ -295,7 +301,11 @@ void Motor::curve_corner(float connerdistance, int pwm, float degree)
 
 int main() {
     Motor motor;
-    
+    Lidar lidar(&motor);
+    lidar.start();
+    //scanpoint 자동 업데이트
+    //너무 빠른 업데이트를 막기위해 delay넣어야하는지는 실제 테스트해봐야함
+
     unsigned int time = millis();
     while(millis()-time <3000){
         
@@ -307,6 +317,7 @@ int main() {
         motor.backoff(1024);
     }
     time=millis();
+    motor.get_scanpoints()
     while(millis()-time <3000){
         motor.curve_corner(100.0f, 500, 90);
     }

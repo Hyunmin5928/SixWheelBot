@@ -34,6 +34,9 @@
 #include "CYdLidar.h"
 #include "lidar_class.h"
 
+// 라이다 클래스 - 단일 스레드 + 호출시 메인 스레드 블로킹 방식으로 돌아가는 것으로 확인
+// 멀티 스레드 방식으로 운영될 수 있도록 수정 필요
+
 /**
  * @brief ydlidar test
  * @param argc

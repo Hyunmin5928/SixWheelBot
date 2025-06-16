@@ -1,2 +1,25 @@
+/* ① 한 번만 로드되는 공통 스타일 */
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@100..900&display=swap');
-* { font-family: "Noto Sans KR", sans-serif; }
+
+/* reset */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --bg:       #262626;
+  --card:     #202124;
+  --primary:  #3255BE;
+  --error:    #F43F5E;
+  --border:   #bfb9b9;
+  --text:     #ffffff;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Noto Sans KR', sans-serif;
+  line-height: 1.4;
+}

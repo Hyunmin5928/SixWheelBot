@@ -363,3 +363,8 @@ MigrationBackup/
 FodyWeavers.xsd
 # Ignore object files
 *.o
+
+# Communication/build/
+*/build
+Communication/gpt.py
+*.bak

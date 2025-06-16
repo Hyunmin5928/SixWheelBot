@@ -16,7 +16,9 @@ int main() {
         if (G_flag) {
             std::cout << "[✅] GPS 데이터 수신 성공!" << std::endl;
         } else {
+
             std::cout << "[❌] GPS 데이터 수신 대기 중..." << std::endl;
+
         }
     }
 

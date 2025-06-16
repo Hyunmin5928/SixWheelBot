@@ -1,9 +1,7 @@
 // src/App.js
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import './App.css';
 
-import Navbar            from './Components/Navbar/Navbar';
 import MainPage          from './Pages/MainPage/MainPage';
 import LoginPage         from './Pages/LoginPage/LoginPage';
 import RegisterPage      from './Pages/RegisterPage/RegisterPage';
@@ -19,8 +17,6 @@ import AdminDashboard    from './Pages/AdminDashboard/AdminDashboard';
 export default function App() {
   return (
     <BrowserRouter>
-      <Navbar />
-
       <Routes>
         <Route path="/"               element={<MainPage />} />
         <Route path="/login"          element={<LoginPage />} />
@@ -28,13 +24,10 @@ export default function App() {
         <Route path="/find-id"        element={<FindId />} />
         <Route path="/find-pw"        element={<FindPw />} />
         <Route path="/mypage"         element={<MyPage />} />
-
         <Route path="/order/new"      element={<OrderRequestPage />} />
         <Route path="/order/:id"      element={<OrderDetailPage />} />
-
         <Route path="/return/new"     element={<ReturnRequestPage />} />
         <Route path="/return/:id"     element={<ReturnDetailPage />} />
-
         <Route path="/admin/*"        element={<AdminDashboard />} />
       </Routes>
     </BrowserRouter>

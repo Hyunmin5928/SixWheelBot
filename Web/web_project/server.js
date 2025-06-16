@@ -59,7 +59,7 @@ const io     = new Server(server, {
 });
 
 server.listen(process.env.PORT || 4000, () => {
-  console.log("🚀 Node 서버 실행 중: http://localhost:4000");
+  console.log("🚀 Node 서버 실행 중: http://localhost:4000 or http://192.168.0.208:4000");
 });
 
 

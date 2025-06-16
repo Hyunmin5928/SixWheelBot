@@ -1,0 +1,17 @@
+.container {
+  padding: 2rem;
+  text-align: center;
+}
+
+.title {
+  margin-bottom: 1.5rem;
+  font-size: 1.75rem;
+  color: #333;
+}
+
+.cards {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}

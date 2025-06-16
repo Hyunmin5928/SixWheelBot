@@ -36,8 +36,8 @@ class Motor{
 
         void calculate_twin_pwm(float coredistance, int pwm, float degree, int* pwm1, int* pwm2);
 
-        void lmotor_run(int pwm, bool front) ;
-        void rmotor_run(int pwm, bool front) ;
+        void lmotor_run(int pwm, bool front=true) ;
+        void rmotor_run(int pwm, bool front=true) ;
 
     public:
         Motor();

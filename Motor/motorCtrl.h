@@ -1,13 +1,13 @@
 #pragma once
-#include "../../../YDLidar-SDK/src/CYdLidar.h"
-#include "../../YDLidar-SDK/examples/lidar_class.h"
+//#include "../../../YDLidar-SDK/src/CYdLidar.h"
+//#include "../../YDLidar-SDK/examples/lidar_class.h"
 #include <wiringPi.h>
 #include <softPwm.h>
 #include <iostream>
 #include <cmath>
 #include <vector>
-
 #include <functional>
+
 class Motor{
     private:
         int L_RpwmPin; //LEFT WHEEL. direction: FRONT
@@ -21,12 +21,12 @@ class Motor{
         int L_RENPin;
         int L_LENPin;
 
-        LaserScan::points scanData;
+        //LaserScan::points scanData;
         void motor_setup();
         void motor_setup(int lr_pwmPin, int ll_pwmPin,int rr_pwmPin, int rl_pwmPIn, int rr_enPin, int rl_enPin, int lr_enPin, int ll_enPin);
         bool pwm_isvalid(int pwm);
 
-        LaserScan::points get_scanpoints(LaserScan& scan);
+        //LaserScan::points get_scanpoints(LaserScan& scan);
 
         float calculate_dgrspeed(int pwm);
 

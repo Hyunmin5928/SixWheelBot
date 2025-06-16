@@ -12,13 +12,14 @@
 #define R_REN 6 //GPIO 25/
 #define R_LEN 10 //GPIO 8/
 
-#define maxPulse 1024
+#define maxPulse 100
 #define maxSpeed 150.0f
 
 #define avoidDistance_trigger 300.0f //cm
 #define avoidDistance_step1 250.0f
 #define avoidDistance_step2 180.0f
 #define wheelInterval 31.0f //cm
+#define ROTATION_CORRECTION 1.2f //회전 시 작동 시간 보정값
 
 
 //degree 값을 180 ~ -180 으로 설정함. 0~360으로 나올 경우 변수 변경 필요 (실제 받아오는 값은 전방 부채꼴 각도이므로, 유의)
@@ -42,7 +43,9 @@ LaserScan::points Motor::set_scanpoints(LaserScan& scan){
 
 float Motor::calculate_dgrspeed(int pwm)
 {
-    return maxSpeed / 100.0f * pwm;
+    std::cout<<"maxSpeed : "<<maxSpeed<<"\n";
+    std::cout<<"maxPulse : "<<maxPulse<<"\n";
+    return 900.0f *(static_cast<float>(pwm)/maxPulse); 
 
     //초당 150rpm 최대 이동 >> 82 cm/sec
 }
@@ -93,12 +96,12 @@ void Motor::rmotor_run(int pwm, bool front)
     // std::cout << "Rmotor_run\n";
     validate_pwm(pwm);
     if (front) {
-        softPwmWrite(R_RpwmPin, pwm); //positive forward
-        softPwmWrite(R_LpwmPin, 0); // must turn off this pin when using L_pwmPin
+        softPwmWrite(R_RpwmPin, 0); //positive forward
+        softPwmWrite(R_LpwmPin, pwm); // must turn off this pin when using L_pwmPin
     }
     else {
-        softPwmWrite(R_RpwmPin, 0); //negative backward
-        softPwmWrite(R_LpwmPin, pwm);
+        softPwmWrite(R_RpwmPin, pwm); //negative backward
+        softPwmWrite(R_LpwmPin, 0);
     }
 }
 
@@ -174,8 +177,8 @@ void Motor::straight(int pwm)
     digitalWrite(R_RENPin, HIGH);
     digitalWrite(L_RENPin, HIGH);
     std::cout << "rpwm go\n";
-    softPwmWrite(R_RpwmPin, pwm);   //positive forward
-    softPwmWrite(R_LpwmPin, 0);     // must turn off this pin when using R_pwmPin
+    softPwmWrite(R_RpwmPin, 0);   //positive forward
+    softPwmWrite(R_LpwmPin, pwm);     // must turn off this pin when using R_pwmPin
     std::cout << "lpwm go\n";
     softPwmWrite(L_RpwmPin, pwm);   //positive forward
     softPwmWrite(L_LpwmPin, 0);     //must turn off this pin when using R_pwmPin
@@ -189,8 +192,8 @@ void Motor::backoff(int pwm)
     digitalWrite(L_LENPin, HIGH);
     digitalWrite(L_RENPin, HIGH);
     std::cout << "rpwm back\n";
-    softPwmWrite(R_RpwmPin, 0);
-    softPwmWrite(R_LpwmPin, pwm);
+    softPwmWrite(R_RpwmPin, pwm);
+    softPwmWrite(R_LpwmPin, 0);
     std::cout << "lpwm back\n";
     softPwmWrite(L_RpwmPin, 0);
     softPwmWrite(L_LpwmPin, pwm);
@@ -220,9 +223,15 @@ void Motor::rotate(int pwm, float degree)
     float dgrspeed = calculate_dgrspeed(pwm);
     //abs_dgr : 절대값 각도
     float abs_dgr = (degree<0)? -degree : degree;
-    float delaytime = abs_dgr / dgrspeed;
+    if(degree == 0){
+        std::cout << "degree is zero, no rotation\n";
+        return;
+    }
+    float delaytime = abs_dgr / dgrspeed * ROTATION_CORRECTION;
 
     unsigned int currentTime = millis();
+    std::cout<<"delaytime : "<<delaytime<<"\n";
+    /*
     while(millis()-currentTime < delaytime){
         if (degree > 0) 
         {
@@ -235,6 +244,7 @@ void Motor::rotate(int pwm, float degree)
         }
             // 모터 최대 150rpm, 설정 최대 pwm 100, 6.0f는 초당 각속도 계산을 위한 상수
     }
+    */
     stop();
 }
 
@@ -329,32 +339,24 @@ int main() {
     delay(3000);
     //직진 후진 회전 코너링 순서로 테스트
     unsigned int time = millis();
-    motor.straight(1024);
-    while(millis()-time <5000){
+    motor.rotate(50, 90); // 90도 회전
+    while(millis()-time <2000){
     }
     motor.stop();
 
-    
-    time=millis();
-    motor.backoff(1024);
-    while(millis()-time <3000){
-        
-    }
-    motor.stop();
-
-    time=millis();
-    motor.rotate(1000, 90);
-    while(millis()-time<5000){
-        // 5초 이후에도 멈추지 않으면
-    }
-    motor.stop();
-    //motor.get_scanpoints()
-
-    // motor.curve_corner(80.0f, 1000, 90);
     // time=millis();
-    // while(millis()-time < 5000){
+    // motor.rotate(50, 90);
+    // while(millis()-time<5000){
     //     // 5초 이후에도 멈추지 않으면
     // }
+    // motor.stop();
+    // //motor.get_scanpoints()
+
+    // // motor.curve_corner(80.0f, 1000, 90);
+    // // time=millis();
+    // // while(millis()-time < 5000){
+    // //     // 5초 이후에도 멈추지 않으면
+    // // }
     // motor.stop();
     
     return 0;

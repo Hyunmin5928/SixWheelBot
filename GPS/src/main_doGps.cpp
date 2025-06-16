@@ -1,15 +1,18 @@
 #include <iostream>
-#include "IMU_GPS.h"
+#include "GPS_parse.h"
 #include <unistd.h>
+#include "logger.h"
 
 int main() {
-    IMU_GPS imu_gps;
+    GPS gps_device;
     sGPS gps;
+    init_logger("gps.log");
+
     std::cout << "main started\n";
     bool G_flag = false;
 
     while (true) {
-        G_flag = imu_gps.GetGPSdata(&gps);
+        G_flag = gps_device.GetGPSdata(&gps);
         if (G_flag) {
             std::cout << "[✅] GPS 데이터 수신 성공!" << std::endl;
         } else {
@@ -17,5 +20,6 @@ int main() {
         }
     }
 
+    close_logger();
     return 0;
 }

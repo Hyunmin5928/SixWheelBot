@@ -1,0 +1,91 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@100..900&display=swap');
+
+* {
+    font-family: "Noto Sans KR", sans-serif;
+}
+
+.card {
+    width: 250px;
+    border-radius: 5px;
+    overflow: hidden;
+    background-color: #202124;
+    color: hsl(0, 0%, 93%);
+    margin-right: 79px;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+.card:hover {
+    transform: translateY(-10px);
+    transition: 0.5s ease;
+}
+
+.card-img {@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@100..900&display=swap');
+
+.card {                         /* 컨테이너 */
+  width: 250px;
+  border-radius: 5px;
+  overflow: hidden;
+  background-color: #202124;
+  color: hsl(0, 0%, 93%);
+  margin-right: 79px;
+  font-size: 20px;
+  cursor: pointer;
+  transition: transform 0.5s ease, box-shadow 0.2s;
+}
+.card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+}
+
+/* 이미지 래퍼를 .image 로 명명 */
+.image {
+  width: 100%;
+  height: 168px;
+}
+.image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 내용 영역 */
+.info {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 텍스트들 */
+.title  { margin: 0 0 6px; font-weight: 600; font-size: 18px; }
+.price  { font-weight: bold;  font-size: 16px; margin-bottom: 16px; }
+.date   { font-size: 14px; color: #bbb; }
+    width: 100%;
+    height: 168px;
+}
+
+.card-img img{
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.card-content {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+
+.card-price {
+    font-weight: bold;
+    font-size: 18px;
+    margin-bottom: 24px;
+}
+
+.card-time {
+    font-size: 14px;
+}
+
+.iconWrap { text-align:center; margin-bottom:16px; }
+.icon     { width:80px; height:80px; object-fit:contain; }

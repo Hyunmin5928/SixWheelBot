@@ -1,9 +1,10 @@
 // src/Pages/LoginPage/LoginPage.js
 import React, { useState, useRef, useEffect } from 'react';
-import { ReactComponent as MyLogo } from '../../SixWheelBotLogo.svg';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import './LoginPage.module.css';
+
+import EasyLogo from '../../assets/logo.png';   // ⬅️ PNG 로고
+import styles   from './LoginPage.module.css';             // CSS 모듈
 
 export default function LoginPage({ onLogin, isLoggedIn }) {
   const [username, setUsername] = useState('');
@@ -11,12 +12,12 @@ export default function LoginPage({ onLogin, isLoggedIn }) {
   const usernameInputRef = useRef(null);
   const navigate = useNavigate();
 
+  /* 로그인 성공 시 홈으로 리디렉션 */
   useEffect(() => {
-    if (isLoggedIn) {
-      navigate('/');
-    }
+    if (isLoggedIn) navigate('/');
   }, [isLoggedIn, navigate]);
 
+  /* 로그인 버튼 클릭 */
   const handleLoginSubmit = async () => {
     try {
       await axios.post('/login', { username, password });
@@ -27,67 +28,55 @@ export default function LoginPage({ onLogin, isLoggedIn }) {
     }
   };
 
-  const loginKeyPress = (event) => {
-    if (event.key === 'Enter') {
-      handleLoginSubmit();
-    }
+  /* 엔터 키 로그인 */
+  const loginKeyPress = (e) => {
+    if (e.key === 'Enter') handleLoginSubmit();
   };
 
   return (
-    <div className="login_page_background">
-      <div className="login_form_screen">
-        <div className="login_form_screen_inside_top">
-          <div className="top_logo">
-            <MyLogo width={80} height={80} />
-          </div>
-          <div>
-            <span>E A S Y</span>
-          </div>
+    <div className={styles.loginBackground}>
+      <div className={styles.formWrapper}>
+        {/* ─── 로고 / 상단 ─────────────────────────── */}
+        <div className={styles.topSection}>
+          <img src={EasyLogo} alt="로고" width={80} height={80} />
+          <span className={styles.brand}>E A S Y</span>
         </div>
 
-        <div className="login_form_input">
-          <div><span>아이디</span></div>
-          <div>
-            <input
-              ref={usernameInputRef}
-              placeholder="아이디를 입력해주세요"
-              name="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-            />
-          </div>
+        {/* ─── 아이디 입력 ─────────────────────────── */}
+        <div className={styles.inputGroup}>
+          <label>아이디</label>
+          <input
+            ref={usernameInputRef}
+            name="username"
+            placeholder="아이디를 입력해주세요"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+          />
         </div>
 
-        <div className="login_form_input">
-          <div><span>비밀번호</span></div>
-          <div>
-            <input
-              type="password"
-              placeholder="비밀번호를 입력해주세요"
-              name="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onKeyDown={loginKeyPress}
-            />
-          </div>
+        {/* ─── 비밀번호 입력 ───────────────────────── */}
+        <div className={styles.inputGroup}>
+          <label>비밀번호</label>
+          <input
+            type="password"
+            name="password"
+            placeholder="비밀번호를 입력해주세요"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            onKeyDown={loginKeyPress}
+          />
         </div>
 
-        <div className="login_form_screen_inside">
-          <button
-            onClick={handleLoginSubmit}
-            type="button"
-            className="login_btn"
-          >
-            로그인
-          </button>
-          <button
-            onClick={() => navigate('/register')}
-            type="button"
-            className="to_register_btn"
-          >
-            회원가입 하러가기
-          </button>
-        </div>
+        {/* ─── 버튼 영역 ───────────────────────────── */}
+        <button className={styles.loginBtn} onClick={handleLoginSubmit}>
+          로그인
+        </button>
+        <button
+          className={styles.registerBtn}
+          onClick={() => navigate('/register')}
+        >
+          회원가입 하러가기
+        </button>
       </div>
     </div>
   );

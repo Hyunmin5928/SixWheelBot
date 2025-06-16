@@ -1,17 +1,59 @@
-.container {
-  padding: 2rem;
-  text-align: center;
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@100..900&display=swap');
+
+:root {
+  --bg:#262626;
+  --panel:#333;
+  --text:#e0e0e0;
+  --accent:#f5eddc;
 }
 
-.title {
-  margin-bottom: 1.5rem;
-  font-size: 1.75rem;
-  color: #333;
+* { font-family:"Noto Sans KR",sans-serif; }
+
+.wrapper { background:var(--bg); color:var(--text); min-height:100vh; }
+
+/* ─── 헤더 ─── */
+.header {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:16px 32px; background:#3b3b3b;
+}
+.logoArea { display:flex; align-items:center; gap:8px; font-size:32px; }
+.logoArea img { width:40px; }
+.menu a { margin-left:24px; color:#fff; font-size:14px; }
+
+/* ─── 히어로 & 카피 ─── */
+.hero { padding:48px 32px; background:#424242; }
+.copy { line-height:1.6; font-size:28px; margin-top:12px; }
+
+/* ─── 운송장 검색 박스 ─── */
+.trackingBox { margin:-24px auto 48px; width:640px; display:flex; }
+.trackingBox input {
+  flex:1; padding:16px; border:1px solid #666; background:#1a1a1a;
+  color:var(--text); border-radius:4px 0 0 4px;
+}
+.trackingBox button {
+  width:64px; background:#555; border:none; color:#fff;
+  border-radius:0 4px 4px 0; cursor:pointer;
 }
 
-.cards {
-  display: flex;
-  justify-content: center;
-  gap: 1.5rem;
-  flex-wrap: wrap;
+/* ─── 서비스 원형 카드 ─── */
+.service { text-align:center; }
+.circleWrap {
+  display:flex; gap:56px; justify-content:center; margin-top:40px;
 }
+.circleWrap button {
+  background:var(--accent); width:160px; height:160px; border-radius:50%;
+  border:6px solid #d8d0c2; cursor:pointer; display:flex;
+  flex-direction:column; align-items:center; justify-content:center;
+  transition:transform .2s;
+}
+.circleWrap button:hover { transform:translateY(-8px); }
+.circleWrap img { width:64px; height:64px; margin-bottom:8px; }
+.circleWrap span { color:#000; font-weight:600; }
+
+/* ─── 푸터 ─── */
+.footer { background:#fff; color:#000; margin-top:64px; padding:32px 16px; }
+.footerInner { max-width:960px; margin:0 auto; display:flex; justify-content:space-between; }
+.sns i { font-size:24px; margin-right:12px; }
+.footerLinks { display:flex; gap:48px; font-size:14px; }
+.footerLinks ul { list-style:none; padding:0; margin:0; line-height:1.8; }
+.footerLinks strong { display:block; margin-bottom:12px; }

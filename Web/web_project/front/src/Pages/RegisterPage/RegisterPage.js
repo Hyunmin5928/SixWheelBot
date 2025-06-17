@@ -13,9 +13,9 @@ export default function RegisterPage() {
     userId:        '',
     password:      '',
     name:          '',
-    postalCode:    '',
-    address:       '',
-    addressDetail: '',
+    zip:    '',
+    add1:       '',
+    add2: '',
     phone:         '',
     email:         '',
   });
@@ -103,8 +103,8 @@ export default function RegisterPage() {
           <label className={styles.field}>
             <span>우편번호</span>
             <input
-              name="postalCode"
-              value={form.postalCode}
+              name="zip"
+              value={form.zip}
               onChange={onChange}
               placeholder="우편번호를 입력하세요."
             />
@@ -114,8 +114,8 @@ export default function RegisterPage() {
           <label className={styles.field}>
             <span>주소</span>
             <input
-              name="address"
-              value={form.address}
+              name="add1"
+              value={form.add1}
               onChange={onChange}
               placeholder="도로명, 지번을 입력하세요."
             />
@@ -125,8 +125,8 @@ export default function RegisterPage() {
           <label className={styles.field}>
             <span>상세주소</span>
             <input
-              name="addressDetail"
-              value={form.addressDetail}
+              name="add2"
+              value={form.add2}
               onChange={onChange}
               placeholder="건물명 상세주소를 입력하세요. ex) 000동 0000호"
             />

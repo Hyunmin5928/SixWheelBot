@@ -314,16 +314,18 @@ bool Motor::pwm_isvalid(int pwm)
 Motor::Motor()
 {
     motor_setup();
+    open_log_file();
 }
 
 Motor::Motor(int lr_pwmPin, int ll_pwmPin,int rr_pwmPin, int rl_pwmPin, int rr_enPin, int rl_enPin, int lr_enPin, int ll_enPin){
-    
+    log_msg("Debug", "Motor constructor called");
     motor_setup(lr_pwmPin, ll_pwmPin, rr_pwmPin, rl_pwmPin, rr_enPin, rl_enPin, lr_enPin, ll_enPin);
     std::cout << "motor set up : user setting\n";
 }
 
 Motor::~Motor(){
-
+    close_log_file();
+    lidar.disconnecting();
 }
 #pragma endregion
 
@@ -338,6 +340,7 @@ void Motor::scan_oneCycle(){
                 const LaserPoint &p = scanData.points.at(i);
                 LaserPoint temp={p.angle*180.0/M_PI, p.range*1000.0, p.intensity};
                 usableData.push_back(temp);
+                
             }
         }
         else{
@@ -345,6 +348,7 @@ void Motor::scan_oneCycle(){
             fflush(stderr);
         }
     }
+    log_scanData();
     lidar.turnOff();
 }
 
@@ -352,8 +356,8 @@ std::vector<LaserPoint> Motor::get_scanData(){
     return usableData;
 }
 
-void Motor::show_scanData(){
-    string msg="";
+void Motor::log_scanData(){
+    std::string msg="";
     for(int i=0; i<usableData.size(); i++){
         msg+="{"+std::to_string(usableData[i].angle)+", "+std::to_string(usableData[i].range)+"}";
         if(i<usableData.size()-1){
@@ -501,7 +505,6 @@ int main() {
     motor.scan_oneCycle();
     //scanpoint 자동 업데이트
     //너무 빠른 업데이트를 막기위해 delay넣어야하는지는 실제 테스트해봐야함
-    motor.show_scanData();
     /*
     unsigned int time = millis();
     while(millis()-time <5000){

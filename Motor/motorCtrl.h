@@ -9,9 +9,9 @@
 #include <core/common/ydlidar_help.h>
 #include <fstream>
 #include <ctime>
-#include "../Communication/config/udp_client.cpp"
-/*
-임시 로그
+#include <string>
+
+// 임시 로그
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -27,7 +27,7 @@
 
 using json = nlohmann::json;
 
-전역 설정 변수
+
 std::string SERVER_IP;
 int         SERVER_PORT;
 std::string CLIENT_IP;
@@ -35,13 +35,46 @@ int         CLIENT_PORT;
 std::string ALLOW_IP;
 double      ACK_TIMEOUT;
 int         RETRY_LIMIT;
-std::string LOG_FILE;
+std::string LOG_FILE="Motor/log/motor_log.txt"; // 기본 로그 파일 경로
 
-const char* PID_FILE = "/var/run/udp_client.pid";
+//const char* PID_FILE = "/var/run/udp_client.pid";
 int log_fd;
 
-**전역 소켓 디스크립터**
+
 int sock_fd = -1;
+
+
+void open_log_file() {
+     if (LOG_FILE.empty()) {
+        LOG_FILE = "Motor/log/motor_log.txt";
+    }
+
+    std::filesystem::path log_path(LOG_FILE);
+    std::filesystem::path log_dir = log_path.parent_path();
+
+    try {
+        if (!std::filesystem::exists(log_dir)) {
+            std::filesystem::create_directories(log_dir);
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "Failed to create directory: " << log_dir << "\n"
+                  << e.what() << std::endl;
+        return;
+    }
+
+    log_fd = open(LOG_FILE.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0644);
+    if (log_fd == -1) {
+        std::cerr << "Failed to open log file: " << LOG_FILE << std::endl;
+        perror("open");
+    }
+}
+
+void close_log_file() {
+    if (log_fd != -1) {
+        close(log_fd);
+        log_fd = -1;
+    }
+}
 
 void log_msg(const std::string& level, const std::string& msg) {
     auto now = std::chrono::system_clock::to_time_t(
@@ -53,8 +86,7 @@ void log_msg(const std::string& level, const std::string& msg) {
     write(log_fd, oss.str().c_str(), oss.str().size());
 }
 
-^^^임시 로그^^^
-*/
+// ^^^임시 로그^^^
 
 class Motor{
     private:
@@ -99,7 +131,7 @@ class Motor{
 
         std::vector<LaserPoint> get_scanData();
 
-        void show_scanData();
+        void log_scanData();
         
         void straight(int pwm);
 

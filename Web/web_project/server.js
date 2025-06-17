@@ -126,8 +126,14 @@ app.post("/register", async (req, res) => {
 // ── 로그인(login) ───────────────────────────────────────────────────
 app.post("/login", (req, res, next) => {
   passport.authenticate("local", (err, user, info) => {
-    if (err)   return res.status(500).json(err);
-    if (!user) return res.status(401).json(info);
+    if (err) {
+      console.error("로그인 중 서버 에러:", err);
+      return res.status(500).json({ error: err.message });
+    }
+    if (!user) {
+      // info.message에 Passport 전략에서 보낸 메시지가 들어있습니다.
+      return res.status(401).json({ error: info.message });
+    }
     req.logIn(user, (e) => {
       if (e) return next(e);
       res.json({ loginSuccess: true });
@@ -183,89 +189,6 @@ server.listen(process.env.PORT || 4000, () => {
 // app.get('/', (req, res) => {
 //   res.send('서버 정상 작동 중');
 // });
-
-// 회원가입
-app.post("/api/register", async (req, res) => {
-  const {
-    id,           // MEM_ID
-    password,     // MEM_PW
-    name,         // MEM_NAME
-    zip,          // MEM_ZIP
-    add1,         // MEM_ADD1
-    add2,         // MEM_ADD2
-    phone,        // MEM_PHONE
-    email         // MEM_EMAIL
-  } = req.body;
-
-  try {
-    // 이미 존재하는 ID 또는 이메일 체크
-    const exists = await db.get(
-      "SELECT 1 FROM MEMBER WHERE MEM_ID = ? OR MEM_EMAIL = ?",
-      [id, email]
-    );
-    if (exists) {
-      return res.status(400).send("이미 존재하는 아이디 또는 이메일입니다.");
-    }
-
-    // 비밀번호 해시
-    const hash = await bcrypt.hash(password, 10);
-
-    // INSERT
-    await db.run(
-      `INSERT INTO MEMBER (
-         MEM_ID, MEM_PW, MEM_NAME, MEM_ZIP, 
-         MEM_ADD1, MEM_ADD2, MEM_PHONE, MEM_EMAIL
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, hash, email, name, nickname, birth, gender, phone, zip, add1, add2]
-    );
-
-    res.json({ registerSuccess: true });
-  } catch (e) {
-    console.error(e);
-    res.status(500).send("회원가입 오류");
-  }
-});
-
-// 로그인
-app.post("/api/login", (req, res, next) => {
-  passport.authenticate("local", (err, user, info) => {
-    if (err)   return res.status(500).json(err);
-    if (!user) return res.status(401).json(info);
-
-    req.logIn(user, (e) => {
-      if (e) return next(e);
-      res.json({ loginSuccess: true });
-    });
-  })(req, res, next);
-});
-
-// 로그아웃
-app.get("/api/logout", (req, res) => {
-  req.logout(() => {
-    res.json({ logoutSuccess: true });
-  });
-});
-
-// 로그인 상태 확인
-app.get("/api/checkLoggedIn", (req, res) => {
-  res.json({ isLoggedIn: !!req.user });
-});
-
-// 로그인 정보 제공
-app.get("/api/checkLogin", (req, res) => {
-  if (req.user) {
-    res.json({
-      isLoggedIn: true,
-      memNum:   req.user.MEM_NUM,
-      id:       req.user.MEM_ID,
-      email:    req.user.MEM_EMAIL,
-      name:     req.user.MEM_NAME
-    });
-  } else {
-    res.json({ isLoggedIn: false });
-  }
-});
-
 
 
 // 인증 메일 전송

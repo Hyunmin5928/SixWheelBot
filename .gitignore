@@ -369,3 +369,4 @@ FodyWeavers.xsd
 Communication/gpt.py
 build/
 */build
+*.db

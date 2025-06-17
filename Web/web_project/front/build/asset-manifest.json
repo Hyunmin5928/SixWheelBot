@@ -1,14 +1,18 @@
 {
   "files": {
-    "main.css": "/static/css/main.0f54d985.css",
-    "main.js": "/static/js/main.f914307b.js",
-    "static/media/SixWheelBotLogo.svg": "/static/media/SixWheelBotLogo.1cc4bff411382124884c7a6763138fab.svg",
+    "main.css": "/static/css/main.bae05172.css",
+    "main.js": "/static/js/main.c49e3008.js",
+    "static/media/deliveryservices.png": "/static/media/deliveryservices.a7dcc200001dd67b76ce.png",
+    "static/media/logo.png": "/static/media/logo.70e801af79e2fded1565.png",
+    "static/media/order.png": "/static/media/order.3be15408087060bec570.png",
+    "static/media/return.png": "/static/media/return.fe0cea4beae1ef43f25f.png",
+    "static/media/search.png": "/static/media/search.5c18d2429d958615eb44.png",
     "index.html": "/index.html",
-    "main.0f54d985.css.map": "/static/css/main.0f54d985.css.map",
-    "main.f914307b.js.map": "/static/js/main.f914307b.js.map"
+    "main.bae05172.css.map": "/static/css/main.bae05172.css.map",
+    "main.c49e3008.js.map": "/static/js/main.c49e3008.js.map"
   },
   "entrypoints": [
-    "static/css/main.0f54d985.css",
-    "static/js/main.f914307b.js"
+    "static/css/main.bae05172.css",
+    "static/js/main.c49e3008.js"
   ]
 }

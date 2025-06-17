@@ -63,138 +63,121 @@ Lidar::SendScanData(LaserScan scandata){
 }
 
 Lidar::start(){
-      printf("__   ______  _     ___ ____    _    ____  \n");
-      printf("\\ \\ / /  _ \\| |   |_ _|  _ \\  / \\  |  _ \\ \n");
-      printf(" \\ V /| | | | |    | || | | |/ _ \\ | |_) | \n");
-      printf("  | | | |_| | |___ | || |_| / ___ \\|  _ <  \n");
-      printf("  |_| |____/|_____|___|____/_/   \\_\\_| \\_\\ \n");
-      printf("\n");
-      fflush(stdout);
-      std::string port;
-      ydlidar::os_init();
+  std::string port;
+  ydlidar::os_init();
 
-      std::map<std::string, std::string> ports =
-          ydlidar::lidarPortList();
-      std::map<std::string, std::string>::iterator it;
+  std::map<std::string, std::string> ports =
+      ydlidar::lidarPortList();
+  std::map<std::string, std::string>::iterator it;
 
-      if (ports.size() == 1)
-      {
-        port = ports.begin()->second;
-      }
-      else
-      {
-        int id = 0;
+  if (ports.size() == 1)
+  {
+    port = ports.begin()->second;
+  }
+  else
+  {
+    int id = 0;
 
-        for (it = ports.begin(); it != ports.end(); it++)
-        {
-          printf("[%d] %s %s\n", id, it->first.c_str(), it->second.c_str());
-          id++;
-        }
+    for (it = ports.begin(); it != ports.end(); it++)
+    {
+      printf("[%d] %s %s\n", id, it->first.c_str(), it->second.c_str());
+      id++;
+    }
 
-        if (ports.empty())
-        {
-          printf("Not Lidar was detected. Please enter the lidar serial port:");
-          std::cin >> port;
-        }
-        else
-        {
-          while (ydlidar::os_isOk())
-          {
-            printf("Please select the lidar port:");
-            std::string number;
-            std::cin >> number;
-
-            if ((size_t)atoi(number.c_str()) >= ports.size())
-            {
-              continue;
-            }
-
-            it = ports.begin();
-            id = atoi(number.c_str());
-
-            while (id)
-            {
-              id--;
-              it++;
-            }
-
-            port = it->second;
-            break;
-          }
-        }
-      }
-
-      int baudrate = 230400;
-      std::map<int, int> baudrateList;
-      baudrateList[0] = 115200;
-      baudrateList[1] = 128000;
-      baudrateList[2] = 150000;
-      baudrateList[3] = 153600;
-      baudrateList[4] = 230400;
-      baudrateList[5] = 460800;
-      baudrateList[6] = 512000;
-
-      printf("Baudrate:\n");
-
-      for (std::map<int, int>::iterator it = baudrateList.begin();
-          it != baudrateList.end(); it++)
-      {
-        printf("[%d] %d\n", it->first, it->second);
-      }
-
+    if (ports.empty())
+    {
+      printf("Not Lidar was detected. Please enter the lidar serial port:");
+      std::cin >> port;
+    }
+    else
+    {
       while (ydlidar::os_isOk())
       {
-        printf("Please select the lidar baudrate:");
+        printf("Please select the lidar port:");
         std::string number;
         std::cin >> number;
 
-        if ((size_t)atoi(number.c_str()) > baudrateList.size())
+        if ((size_t)atoi(number.c_str()) >= ports.size())
         {
           continue;
         }
 
-        baudrate = baudrateList[atoi(number.c_str())];
+        it = ports.begin();
+        id = atoi(number.c_str());
+
+        while (id)
+        {
+          id--;
+          it++;
+        }
+
+        port = it->second;
         break;
       }
+    }
+  }
 
-      if (!ydlidar::os_isOk())
-        return 0;
+  int baudrate = 230400;
+  std::map<int, int> baudrateList;
+  baudrateList[0] = 115200;
+  baudrateList[1] = 128000;
+  baudrateList[2] = 150000;
+  baudrateList[3] = 153600;
+  baudrateList[4] = 230400;
+  baudrateList[5] = 460800;
+  baudrateList[6] = 512000;
 
-      //单通还是双通
-      bool isSingleChannel = false;
-      std::string input_channel;
-      printf("Whether the Lidar is one-way communication [yes/no]:");
-      std::cin >> input_channel;
-      std::transform(input_channel.begin(), input_channel.end(),
-                    input_channel.begin(),
-                    [](unsigned char c)
-                    {
-                      return std::tolower(c); // correct
-                    });
-      if (input_channel.find("y") != std::string::npos)
-        isSingleChannel = true;
+  printf("Baudrate:\n");
 
-      if (!ydlidar::os_isOk())
-        return 0;
+  for (std::map<int, int>::iterator it = baudrateList.begin();
+       it != baudrateList.end(); it++)
+  {
+    printf("[%d] %d\n", it->first, it->second);
+  }
 
-      //转速
-      float frequency = 5.0;
-      std::string input_frequency;
-      while (ydlidar::os_isOk() && !isSingleChannel)
-      {
-        printf("Please enter the lidar scan frequency[5-12]:");
-        std::cin >> input_frequency;
-        frequency = atof(input_frequency.c_str());
-        if (frequency <= 12 && frequency >= 5.0)
-        {
-          break;
-        }
-        fprintf(stderr, "Invalid scan frequency,"
-          "The scanning frequency range is 5 to 12 HZ, Please re-enter.\n");
-      }
+  while (ydlidar::os_isOk())
+  {
 
-      if (!ydlidar::os_isOk())
-        return 0;
+    baudrate = baudrateList[1];
+    break;
+  }
+
+  if (!ydlidar::os_isOk())
+    return 0;
+
+  //单通还是双通
+  bool isSingleChannel = false;
+  //std::string input_channel;
+  //printf("Whether the Lidar is one-way communication [yes/no]:");
+  //std::cin >> input_channel;
+  //input_channel = "no";
+  /*
+  std::transform(input_channel.begin(), input_channel.end(),
+                 input_channel.begin(),
+                 [](unsigned char c)
+                 {
+                   return std::tolower(c); // correct
+                 });
+  if (input_channel.find("y") != std::string::npos)
+    isSingleChannel = true;
+  */
+  if (!ydlidar::os_isOk())
+    return 0;
+
+  //speed
+  float frequency = 6.0;
+  /*
+  std::string input_frequency;
+  while (ydlidar::os_isOk() && !isSingleChannel)
+  {
+    //printf("Please enter the lidar scan frequency[5-12]:");
+    input_frequency=6;
+    frequency = atof(input_frequency.c_str());
+  }
+  */
+
+  if (!ydlidar::os_isOk())
+    return 0;
 
       CYdLidar laser;
       //////////////////////string property/////////////////
@@ -326,16 +309,13 @@ Lidar::start(){
       if (laser.doProcessSimple(scan))
       {
         //scan 데이터를 다른 함수로 전송해주어야함
+        
+        for (size_t i = 0; i < scan.points.size(); ++i)
+        {
+          const LaserPoint &p = scan.points.at(i);
+          scan.points[i]= LaserPoint(p.angle * 180.0 / M_PI, p.range * 1000.0, p.intensity);
+        }
         motor->set_scanpoints(scan);
-        printf("Scan received [%llu] points scanFreq [%.02f]\n",
-          scan.points.size(),
-          scan.scanFreq);
-          // for (size_t i = 0; i < scan.points.size(); ++i)
-          // {
-          //   const LaserPoint &p = scan.points.at(i);
-          //   printf("%d a:%.02f d:%.01f\n", i, p.angle * 180.0 / M_PI, p.range * 1000.0);
-          // }
-          // fflush(stdout);
       }
       else
       {

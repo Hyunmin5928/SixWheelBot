@@ -1,12 +1,13 @@
 #pragma once
-//#include "../../../YDLidar-SDK/src/CYdLidar.h"
-//#include "../../YDLidar-SDK/examples/lidar_class.h"
-#include <wiringPi.h>
+#include "../../YDLiDAR/YDLidar-SDK/src/CYdLidar.h"
+// #include "../../YDLiDAR/YDLidar-SDK/examples/myung-ryun-lidar.h"
 #include <softPwm.h>
 #include <iostream>
 #include <cmath>
 #include <vector>
 #include <functional>
+#include <wiringPi.h>
+#include <core/common/ydlidar_help.h>
 
 class Motor{
     private:
@@ -21,12 +22,10 @@ class Motor{
         int L_RENPin;
         int L_LENPin;
 
-        //LaserScan::points scanData;
+
         void motor_setup();
         void motor_setup(int lr_pwmPin, int ll_pwmPin,int rr_pwmPin, int rl_pwmPIn, int rr_enPin, int rl_enPin, int lr_enPin, int ll_enPin);
         bool pwm_isvalid(int pwm);
-
-        //LaserScan::points get_scanpoints(LaserScan& scan);
 
         float calculate_dgrspeed(int pwm);
 
@@ -39,11 +38,17 @@ class Motor{
         void lmotor_run(int pwm, bool front=true) ;
         void rmotor_run(int pwm, bool front=true) ;
 
+        
+
     public:
+        LaserScan scanData;
         Motor();
         Motor(int lr_pwmPin, int ll_pwmPin,int rr_pwmPin, int rl_pwmPin, int rr_enPin, int rl_enPin, int lr_enPin, int ll_enPin);
         ~Motor();
 
+        std::vector<LaserPoint> set_scanpoints(LaserScan& scan);
+
+        void calculate_ang_dist();
         void straight(int pwm);
 
        // @brief back off

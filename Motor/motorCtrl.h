@@ -6,6 +6,7 @@
 #include <cmath>
 #include <vector>
 #include <functional>
+#include <core/common/ydlidar_help.h>
 
 class Motor{
     private:
@@ -46,6 +47,7 @@ class Motor{
         ~Motor();
 
         void scan_oneCycle();
+
         std::vector<LaserPoint> get_scanData();
 
         void show_scanData();

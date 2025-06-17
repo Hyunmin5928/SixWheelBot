@@ -160,7 +160,7 @@ int Motor::lidar_setup(){
     lidar.enableSunNoise(false);
     lidar.setBottomPriority(true);
 
-    unit32_t t=getms();
+    uint32_t t = getms();
     int c=0;
     bool ret=lidar.initialize();
     if (!ret)

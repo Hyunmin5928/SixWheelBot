@@ -49,21 +49,31 @@ passport.use(new LocalStrategy({
   },
   async (userId, password, done) => {
     try {
-      // MEM_ID 로 조회
-      const user = await db.get(
+      // ① Promise<Database>에서 실제 db 인스턴스를 얻습니다.
+      const db = await dbPromise;
+
+      // ② DB에서 조회한 raw row를 row 변수에 담고,
+      const row = await db.get(
         "SELECT * FROM MEMBER WHERE MEM_ID = ?",
         [userId]
       );
-      if (!user) {
+      if (!row) {
         return done(null, false, { message: '존재하지 않는 아이디입니다.' });
       }
-      // MEM_PW 와 대조
-      const match = await bcrypt.compare(password, user.MEM_PW);
+
+      // ③ 비밀번호 검증
+      const match = await bcrypt.compare(password, row.MEM_PW);
       if (!match) {
         return done(null, false, { message: '비밀번호가 일치하지 않습니다.' });
       }
-      // 비밀번호 제외한 전체 row 반환
-      delete user.MEM_PW;
+
+      // 세션에 저장할 최소 정보만 담은 객체 생성
+      const user = {
+        memNum: row.MEM_NUM,
+        userId: row.MEM_ID,
+        name:   row.MEM_NAME,
+        email:  row.MEM_EMAIL
+      };
       return done(null, user);
     } catch (err) {
       return done(err);
@@ -71,24 +81,23 @@ passport.use(new LocalStrategy({
   }
 ));
 
+// ── serializeUser ───────────────────────────────────────────
 passport.serializeUser((user, done) => {
-  // 세션에는 MEM_NUM만 저장
-  done(null, user.MEM_NUM);
+  done(null, user.memNum);
 });
 
+// ── deserializeUser ───────────────────────────────────────────
 passport.deserializeUser(async (memNum, done) => {
   try {
-    // 비밀번호 제외한 컬럼만 조회
-    const user = await db.get(
-      `SELECT
-         MEM_NUM, MEM_ID, MEM_PW, MEM_NAME,
-         MEM_ZIP, MEM_ADD1, MEM_ADD2,
-         MEM_PHONE, MEM_EMAIL, MEM_JOINDATE, MEM_ADMIN
-       FROM MEMBER
-       WHERE MEM_NUM = ?`,
-      [memNum]
-    );
-    done(null, user || false);
+    const db = await dbPromise;
+    const row = await db.get(`SELECT MEM_NUM, MEM_ID, MEM_NAME, MEM_EMAIL FROM MEMBER WHERE MEM_NUM = ?`, [memNum]);
+    if (!row) return done(null, false);
+    done(null, {
+      memNum: row.MEM_NUM,
+      userId: row.MEM_ID,
+      name:   row.MEM_NAME,
+      email:  row.MEM_EMAIL
+    });
   } catch (err) {
     done(err);
   }

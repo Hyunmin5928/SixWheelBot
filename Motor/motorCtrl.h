@@ -7,6 +7,8 @@
 #include <vector>
 #include <functional>
 #include <core/common/ydlidar_help.h>
+#include <fstream>
+#include <ctime>
 
 class Motor{
     private:
@@ -25,6 +27,8 @@ class Motor{
         LaserScan scanData; //스캔 데이터 직접 받는 곳 삭제 절대 XXX
         std::vector<LaserPoint> usableData; //스캔 데이터  정제하여 받는 곳
 
+        std::ofstream logFile;
+        void log(const std::string& msg);
         int lidar_setup();
         void motor_setup();
         void motor_setup(int lr_pwmPin, int ll_pwmPin,int rr_pwmPin, int rl_pwmPIn, int rr_enPin, int rl_enPin, int lr_enPin, int ll_enPin);
@@ -46,6 +50,7 @@ class Motor{
         Motor(int lr_pwmPin, int ll_pwmPin,int rr_pwmPin, int rl_pwmPin, int rr_enPin, int rl_enPin, int lr_enPin, int ll_enPin);
         ~Motor();
 
+        
         void scan_oneCycle();
 
         std::vector<LaserPoint> get_scanData();

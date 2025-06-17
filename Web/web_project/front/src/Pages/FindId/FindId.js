@@ -32,8 +32,8 @@ export default function FindId() {
         success: { password: 'P@ssword123' }
       */
       const res = await axios.post('/api/find-id', form);
-      const { password } = res.data;
-      alert(`비밀번호는 "${password}" 입니다.`);
+      const { userId } = res.data;
+      alert(`아이디는 "${userId}" 입니다.`);
       nav('/login');
     } catch {
       setError('다시 시도해주세요.'); // 이름·이메일 불일치

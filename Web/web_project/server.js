@@ -211,5 +211,57 @@ server.listen(process.env.PORT || 4000, () => {
   console.log("🚀 Node 서버 실행 중: http://localhost:4000 http://192.168.0.208:4000");
 });
 
+// ── 아이디 찾기(find ID) ───────────────────────────────────────────
+app.post('/api/find-id', async (req, res) => {
+  const { name, email } = req.body;
+  try {
+    // 1) DB 인스턴스 가져오기
+    const db = await dbPromise;
+
+    // 2) 이름과 이메일이 일치하는 회원의 MEM_ID 조회
+    const row = await db.get(
+      `SELECT MEM_ID
+         FROM MEMBER
+        WHERE MEM_NAME = ? AND MEM_EMAIL = ?`,
+      [name, email]
+    );
+
+    // 3) 결과 응답
+    if (!row) {
+      return res.status(404).json({ message: '일치하는 사용자가 없습니다.' });
+    }
+    res.json({ userId: row.MEM_ID });
+  } catch (err) {
+    console.error('아이디 찾기 오류:', err);
+    res.status(500).send('서버 오류');
+  }
+});
 
 
+// ── 비밀번호 보기(find password) ───────────────────────────────────────────
+app.post('/api/find-pw', async (req, res) => {
+  const { userId, name, email } = req.body;
+  try {
+    // 1) DB 인스턴스 가져오기
+    const db = await dbPromise;
+
+    // 2) userId, 이름, 이메일이 일치하는 회원의 비밀번호(해시) 조회
+    const row = await db.get(
+      `SELECT MEM_PW
+         FROM MEMBER
+        WHERE MEM_ID = ? AND MEM_NAME = ? AND MEM_EMAIL = ?`,
+      [userId, name, email]
+    );
+
+    // 3) 결과 확인
+    if (!row) {
+      return res.status(404).json({ message: '일치하는 회원이 없습니다.' });
+    }
+
+    // 4) 클라이언트에 바로 반환
+    res.json({ password: row.MEM_PW });
+  } catch (err) {
+    console.error('비밀번호 조회 오류:', err);
+    res.status(500).send('서버 오류');
+  }
+});

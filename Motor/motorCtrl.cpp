@@ -34,10 +34,6 @@
 // private
 #pragma region Private functions
 
-LaserScan::points Motor::set_scanpoints(LaserScan& scan){
-    scanData=scan.points;
-    return scan.points;
-}
 
 int Motor::lidar_setup(){
     std::string port;
@@ -187,14 +183,14 @@ int Motor::lidar_setup(){
         device_info di;
         memset(&di, 0, DEVICEINFOSIZE);
         if (lidar.getDeviceInfo(di, EPT_Module)) {
-        ydlidar::core::common::printfDeviceInfo(di, EPT_Module);
+            ydlidar::core::common::printfDeviceInfo(di, EPT_Module);
         }
         else {
         printf("Fail to get module device info\n");
         }
 
         if (lidar.getDeviceInfo(di, EPT_Base)) {
-        ydlidar::core::common::printfDeviceInfo(di, EPT_Base);
+            ydlidar::core::common::printfDeviceInfo(di, EPT_Base);
         }
         else {
         printf("Fail to get baseplate device info\n");
@@ -341,7 +337,7 @@ void Motor::scan_oneCycle(){
         if(lidar.doProcessSimple(scanData)){
             usableData.clear();
             for(size_t i=0; i<scanData.points.size(); i++){
-                const lidarPoint &p = scanData.points.at(i);
+                const LaserPoint &p = scanData.points.at(i);
                 LaserPoint temp={p.angle*180.0/M_PI, p.range*1000.0, p.intensity};
                 usableData.push_back(temp);
             }
@@ -349,9 +345,6 @@ void Motor::scan_oneCycle(){
         else{
             fprintf(stderr, "Failed to get Lidar Data\n");
             fflush(stderr);
-        }
-        if(!c++){
-            printf("Time consuming [%u] from initialization to parsing to point cloud data\n", getms() - t);
         }
     }
     lidar.turnOff();
@@ -491,7 +484,7 @@ void Motor::curve_corner(float connerdistance, int pwm, float degree)
         }
         
     }else{
-        while(millis()-currentTime <= delayTime){
+        while(millis()-currentTime <= delaytime){
             pwmWrite(L_RpwmPin, pwm_2);
             pwmWrite(R_RpwmPin, pwm_1);
         }
@@ -506,8 +499,7 @@ int main() {
     motor.scan_oneCycle();
     //scanpoint 자동 업데이트
     //너무 빠른 업데이트를 막기위해 delay넣어야하는지는 실제 테스트해봐야함
-    std::cout<<motor.show_scanData();
-
+    motor.show_scanData();
     /*
     unsigned int time = millis();
     while(millis()-time <5000){

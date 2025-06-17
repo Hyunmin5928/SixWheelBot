@@ -1,13 +1,12 @@
 #pragma once
 #include "../LiDAR/YDLidar/YDLidar-SDK/src/CYdLidar.h"
-//#include "../../YDLidar-SDK/examples/lidar_class.h"
 #include <wiringPi.h>
 #include <softPwm.h>
 #include <iostream>
 #include <cmath>
 #include <vector>
-
 #include <functional>
+
 class Motor{
     private:
         int L_RpwmPin; //LEFT WHEEL. direction: FRONT
@@ -25,8 +24,8 @@ class Motor{
         LaserScan scanData; //스캔 데이터 직접 받는 곳 삭제 절대 XXX
         std::vector<LaserPoint> usableData; //스캔 데이터  정제하여 받는 곳
 
-        void lidar_setup();
-        int motor_setup();
+        int lidar_setup();
+        void motor_setup();
         void motor_setup(int lr_pwmPin, int ll_pwmPin,int rr_pwmPin, int rl_pwmPIn, int rr_enPin, int rl_enPin, int lr_enPin, int ll_enPin);
         bool pwm_isvalid(int pwm);
 
@@ -47,8 +46,9 @@ class Motor{
         ~Motor();
 
         void scan_oneCycle();
-        std::vector<LaserPoint> Motor::get_scanData();
-        std::vector<LaserPoint> show_scanData();
+        std::vector<LaserPoint> get_scanData();
+
+        void show_scanData();
         
         void straight(int pwm);
 

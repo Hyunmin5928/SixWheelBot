@@ -367,5 +367,5 @@ FodyWeavers.xsd
 # Communication/build/
 */build
 Communication/gpt.py
-/build
 build/
+*/build

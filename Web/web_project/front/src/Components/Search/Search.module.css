@@ -1,0 +1,138 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@100..900&display=swap');
+
+* {
+  font-family: "Noto Sans KR", sans-serif;
+}
+
+.searchResult-container {
+    background-color: #121212;
+    padding: 110px 330px 0px 330px;
+    min-height: calc(100vh - 70px);
+}
+
+.searchResult-loading-msg {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #121212;
+    color: aliceblue;
+    height: calc(100vh - 70px);
+    width: 100%;
+}
+
+.searchResult-loading-inside {
+    display: flex;
+    justify-content: space-evenly;
+    align-items: center;
+    font-size: 1.5rem;
+    width: 20%;
+}
+
+.search-result-msg {
+    display: flex;
+    align-items: center;
+    padding-bottom: 15px;
+}
+
+.search-result-keyword {
+    font-size: 2rem;
+    font-weight: 400;
+    color:aliceblue;
+    margin-right: 30px;
+}
+
+.search-result-keyword > .strong-value {
+    color: #46b646;
+}
+
+.search-result-count {
+    font-size: 1.2rem;
+    font-weight: 300;
+    color:aliceblue;
+    vertical-align: bottom;
+}
+
+.searchResult-price-info {
+    width: 100%;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    color:aliceblue;
+    box-sizing: border-box;
+    margin-bottom: 15px;
+    border-top: 1px solid gray;
+    border-bottom: 1px solid gray;
+}
+
+.avg-price, .low-price, .high-price {
+    width: calc(100% / 3);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border-right: 1px solid gray;
+}
+
+.high-price {
+    border-right: none;
+}
+
+.avg-price-title, .low-price-title, .high-price-title {
+    font-size: 1.5rem;
+    font-weight: 400;
+}
+
+.avg-price-value, .low-price-value, .high-price-value {
+    font-size: 1.7rem;
+    font-weight: 700;
+}
+
+.sort-types {
+    list-style: none;
+    padding-left: 0px;
+    color:aliceblue;
+    display: flex;
+    margin-top: 0px;
+    justify-content: flex-end;
+    margin-bottom: 30px;
+}
+
+.sort-types li {
+    color: rgb(134, 134, 134);
+    cursor: pointer;
+} 
+
+li:nth-child(1) {
+    padding-right: 15px;
+}
+li:nth-child(2) {
+    padding-right: 15px;
+    padding-left: 15px;
+}
+li:nth-child(3) {
+    padding-right: 15px;
+    padding-left: 15px;
+}
+li:nth-child(4) {
+    padding-left: 15px;
+}
+
+.sort-types li:hover:not(.active) {
+    color: aliceblue; /* 마우스를 올렸을 때만 해당 색깔로 바뀌고 클릭했을 때는 바뀌지 않음 */
+}
+
+.sort-types li.active {
+    color: aliceblue; 
+    font-weight: bold; 
+}
+
+.sort-types li:not(:last-child) {
+    border-right: 1px solid gray; /* 마지막 항목을 제외한 항목 간 경계 */
+}
+
+
+.search-result-cards {
+    display: grid;
+    grid-template-columns: repeat(4, 250px);
+    justify-content: space-between;
+    padding-bottom: 100px;
+}

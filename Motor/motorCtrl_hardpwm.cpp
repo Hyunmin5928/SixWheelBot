@@ -2,15 +2,15 @@
 
 #define PI 3.1415926 
 
-#define L_RPWM 23//GPIO 13/
-#define L_LPWM 24//GPIO 19/
-#define R_RPWM 1//GPIO 18
-#define R_LPWM 26//GPIO 12
+#define L_RPWM 23//GPIO 1
+#define L_LPWM 24//GPIO 23
+#define R_RPWM 1//GPIO 24
+#define R_LPWM 2//GPIO 26
 
-#define L_REN 21 //GPIO 5/
-#define L_LEN 22 //GPIO 6/
-#define R_REN 6 //GPIO 25/
-#define R_LEN 10 //GPIO 8/
+#define L_REN 21 //GPIO 5
+#define L_LEN 22 //GPIO 6
+#define R_REN 6 //GPIO 25
+#define R_LEN 10 //GPIO 8
 
 #define maxPulse 1024
 #define maxSpeed 150.0f
@@ -42,14 +42,12 @@ LaserScan::points Motor::set_scanpoints(LaserScan& scan){
 
 float Motor::calculate_dgrspeed(int pwm)
 {
-    return maxSpeed / 100.0f * pwm;
-
-    //초당 150rpm 최대 이동 >> 82 cm/sec
+    return maxSpeed / 100.0f * pwm * 6.0f;
 }
 
 float Motor::average_pwm(int l_pwm, int r_pwm)
 {
-    return (l_pwm + r_pwm) / 2.0f;
+    return l_pwm + r_pwm / 2.0f;
 }
 
 float Motor::calculate_tan(float degree)
@@ -74,31 +72,33 @@ void Motor::calculate_twin_pwm(float coredistance, int pwm, float degree, int* p
     
 }
 
-void Motor::lmotor_run(int pwm, bool front)
+void Motor::lmotor_run(int pwm, bool front=true)
 {
+    std::cout<<"Lmotor_run\n";
     validate_pwm(pwm);
     if (front) {
-        softPwmWrite(L_RpwmPin, pwm); //positive forward
-        softPwmWrite(L_LpwmPin, 0); // must turn off this pin when using L_pwmPin
+
+        pwmWrite(L_RpwmPin, pwm); //positive forward
+        pwmWrite(L_LpwmPin, 0); // must turn off this pin when using L_pwmPin
     }
     else {
-        softPwmWrite(L_RpwmPin, 0); //negative backward
-        softPwmWrite(L_LpwmPin, pwm);
+        pwmWrite(L_RpwmPin, 0); //negative backward
+        pwmWrite(L_LpwmPin, pwm);
     }
 
 }
 
-void Motor::rmotor_run(int pwm, bool front)
+void Motor::rmotor_run(int pwm, bool front = true)
 {
-    // std::cout << "Rmotor_run\n";
+    std::cout << "Rmotor_run\n";
     validate_pwm(pwm);
     if (front) {
-        softPwmWrite(R_RpwmPin, pwm); //positive forward
-        softPwmWrite(R_LpwmPin, 0); // must turn off this pin when using L_pwmPin
+        pwmWrite(R_RpwmPin, pwm); //positive forward
+        pwmWrite(R_LpwmPin, 0); // must turn off this pin when using L_pwmPin
     }
     else {
-        softPwmWrite(R_RpwmPin, 0); //negative backward
-        softPwmWrite(R_LpwmPin, pwm);
+        pwmWrite(R_RpwmPin, 0); //negative backward
+        pwmWrite(R_LpwmPin, pwm);
     }
 }
 
@@ -122,11 +122,14 @@ void Motor::motor_setup(int lr_pwmPin, int ll_pwmPin, int rr_pwmPin, int rl_pwmP
     pinMode(R_LENPin, OUTPUT);
     pinMode(L_RENPin, OUTPUT);
     pinMode(L_LENPin, OUTPUT);
+
+    pwmSetMode(PWM_MODE_MS);
+    //pwm max pulse
+    pwmSetRange(1024);
+    pwmSetClock(32);
     
-    softPwmCreate(L_RpwmPin, 0, maxPulse);
-    softPwmCreate(L_LpwmPin, 0, maxPulse);
-    softPwmCreate(R_RpwmPin, 0, maxPulse);
-    softPwmCreate(R_LpwmPin, 0, maxPulse);
+    digitalWrite(L_RENPin, HIGH);
+    digitalWrite(L_LENPin, HIGH);
 }
 
 void Motor::motor_setup()
@@ -169,41 +172,27 @@ Motor::~Motor(){
 void Motor::straight(int pwm)
 {
     validate_pwm(pwm);
-    digitalWrite(R_LENPin, HIGH);
-    digitalWrite(L_LENPin, HIGH);
-    digitalWrite(R_RENPin, HIGH);
-    digitalWrite(L_RENPin, HIGH);
-    std::cout << "rpwm go\n";
-    softPwmWrite(R_RpwmPin, pwm);   //positive forward
-    softPwmWrite(R_LpwmPin, 0);     // must turn off this pin when using R_pwmPin
-    std::cout << "lpwm go\n";
-    softPwmWrite(L_RpwmPin, pwm);   //positive forward
-    softPwmWrite(L_LpwmPin, 0);     //must turn off this pin when using R_pwmPin
+    pwmWrite(R_RpwmPin, pwm);   //positive forward
+    pwmWrite(R_LpwmPin, 0);     // must turn off this pin when using R_pwmPin
+    pwmWrite(L_RpwmPin, pwm);   //positive forward
+    pwmWrite(L_LpwmPin, 0);     //must turn off this pin when using R_pwmPin
 }
 
 void Motor::backoff(int pwm)
 {
     validate_pwm(pwm);
-    digitalWrite(R_LENPin, HIGH);
-    digitalWrite(R_RENPin, HIGH);
-    digitalWrite(L_LENPin, HIGH);
-    digitalWrite(L_RENPin, HIGH);
-    std::cout << "rpwm back\n";
-    softPwmWrite(R_RpwmPin, 0);
-    softPwmWrite(R_LpwmPin, pwm);
-    std::cout << "lpwm back\n";
-    softPwmWrite(L_RpwmPin, 0);
-    softPwmWrite(L_LpwmPin, pwm);
+    pwmWrite(R_LpwmPin, pwm);
+    pwmWrite(R_RpwmPin, 0);
+    pwmWrite(L_LpwmPin, pwm);
+    pwmWrite(L_RpwmPin, 0);
 }
 
 void Motor::stop(){
-    std::cout << "rpwm stop\n";
-    softPwmWrite(R_RpwmPin,0);
-    softPwmWrite(R_LpwmPin, 0);
-    std::cout << "lpwm stop\n";
-    softPwmWrite(L_RpwmPin,0);
-    softPwmWrite(L_LpwmPin, 0);
-    digitalWrite(L_RENPin, LOW);
+    pwmWrite(R_RpwmPin,0);
+    pwmWrite(R_LpwmPin, 0);
+    pwmWrite(L_RpwmPin,0);
+    pwmWrite(L_LpwmPin, 0);
+    digitalWrite(R_LENPin, LOW);
     digitalWrite(L_LENPin, LOW);
     digitalWrite(R_RENPin, LOW);
     digitalWrite(R_LENPin, LOW);
@@ -212,14 +201,13 @@ void Motor::stop(){
 void Motor::rotate(int pwm, float degree)
 {
     validate_pwm(pwm);
-    digitalWrite(R_LENPin, HIGH);
-    digitalWrite(L_LENPin, HIGH);
-    digitalWrite(R_RENPin, HIGH);
-    digitalWrite(L_RENPin, HIGH);
-    
+
     float dgrspeed = calculate_dgrspeed(pwm);
     //abs_dgr : 절대값 각도
-    float abs_dgr = (degree<0)? -degree : degree;
+    float abs_dgr = degree;
+    if(abs_dgr <0){
+        abs_dgr *= -1.0f;
+    }
     float delaytime = abs_dgr / dgrspeed;
 
     unsigned int currentTime = millis();
@@ -300,18 +288,14 @@ void Motor::curve_corner(float connerdistance, int pwm, float degree)
     unsigned int currentTime = millis();
     if(degree>0){
         while(millis()-currentTime <= delaytime){
-            softPwmWrite(L_RpwmPin, pwm_1);
-            softPwmWrite(R_RpwmPin, pwm_2);
-            softPwmWrite(L_LpwmPin, 0);
-            softPwmWrite(R_LpwmPin, 0);
+            pwmWrite(L_RpwmPin, pwm_1);
+            pwmWrite(R_RpwmPin, pwm_2);
         }
         stop();
     }else{
         while(millis()-currentTime <= delaytime){
-            softPwmWrite(L_RpwmPin, pwm_2);
-            softPwmWrite(R_RpwmPin, pwm_1);
-            softPwmWrite(L_LpwmPin, 0);
-            softPwmWrite(R_LpwmPin, 0);
+            pwmWrite(L_RpwmPin, pwm_2);
+            pwmWrite(R_RpwmPin, pwm_1);
         }
         stop();
     }
@@ -329,33 +313,31 @@ int main() {
     delay(3000);
     //직진 후진 회전 코너링 순서로 테스트
     unsigned int time = millis();
-    motor.straight(1024);
-    while(millis()-time <5000){
-    }
-    motor.stop();
-
-    
-    time=millis();
-    motor.backoff(1024);
     while(millis()-time <3000){
-        
+        motor.straight(1024);
     }
     motor.stop();
 
     time=millis();
-    motor.rotate(1000, 90);
+    while(millis()-time <3000){
+        motor.backoff(500);
+    }
+    motor.stop();
+
+    time=millis();
+    motor.rotate(500, 90);
     while(millis()-time<5000){
         // 5초 이후에도 멈추지 않으면
     }
     motor.stop();
     //motor.get_scanpoints()
 
-    // motor.curve_corner(80.0f, 1000, 90);
-    // time=millis();
-    // while(millis()-time < 5000){
-    //     // 5초 이후에도 멈추지 않으면
-    // }
-    // motor.stop();
-    
+    motor.curve_corner(80.0f, 500, 90);
+    time=millis();
+    while(millis()-time < 8000){
+        // 8초 이후에도 멈추지 않으면
+    }
+    motor.stop();
+
     return 0;
 }

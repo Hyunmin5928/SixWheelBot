@@ -1,4 +1,4 @@
-from flask import Flask, Response
+from flask import Flask, Response, stream_with_context
 from picamera2 import Picamera2, Preview
 import cv2
 import time
@@ -29,8 +29,16 @@ def generate_mjpeg():
 
 @app.route('/stream')
 def stream():
-    return Response(generate_mjpeg(),
-                    mimetype='multipart/x-mixed-replace; boundary=frame')
+    # return Response(generate_mjpeg(),
+    #                 mimetype='multipart/x-mixed-replace; boundary=frame')
+    resp = Response(
+        stream_with_context(generate_mjpeg()),
+        mimetype='multipart/x-mixed-replace; boundary=frame'
+    )
+    resp.headers['Connection'] = 'keep-alive'
+    # 필요하다면 Transfer-Encoding 헤더도 직접 추가 가능
+    # resp.headers['Transfer-Encoding'] = 'chunked'
+    return resp
 
 @app.route('/')
 def index():

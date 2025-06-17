@@ -21,8 +21,8 @@ export default function App() {
         <Route path="/"               element={<MainPage />} />
         <Route path="/login"          element={<LoginPage />} />
         <Route path="/register"       element={<RegisterPage />} />
-        <Route path="/find-id"        element={<FindId />} />
-        <Route path="/find-pw"        element={<FindPw />} />
+        <Route path="/findid"        element={<FindId />} />
+        <Route path="/findpw"        element={<FindPw />} />
         <Route path="/mypage"         element={<MyPage />} />
         <Route path="/order/new"      element={<OrderRequestPage />} />
         <Route path="/order/:id"      element={<OrderDetailPage />} />

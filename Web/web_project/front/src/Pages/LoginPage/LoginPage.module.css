@@ -1,99 +1,111 @@
-/* src/Pages/LoginPage/LoginPage.module.css */
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@100..900&display=swap');
+.page {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+}
 
-.loginPageBackground {
-  width: 100%;
-  min-height: calc(100vh - 70px);
-  background-color: #121212;
+/* ---------- Header ---------- */
+.header {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
-  overflow: hidden;
+  padding: 18px 24px;
+  background: #1f1f1f;
 }
 
-.loginFormScreen {
-  background-color: #202124;
-  width: 480px;
-  border-radius: 15px;
-  padding: 32px;
-  box-sizing: border-box;
-}
-
-.loginFormScreenInside {
-  width: 100%;
-  height: 100%;
-}
-
-.loginFormScreenInsideTop {
-  width: 100%;
+.logoBox {
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 40px;
-  font-family: 'Noto Sans KR', sans-serif;
-  color: #ffffff;
+  gap: 8px;
+  cursor: pointer;
 }
+.logoBox img { width: 32px; height: 32px; }
+.logoBox span { font-size: 28px; font-weight: 700; }
 
-.topLogo {
-  padding-top: 10px;
-  margin-right: 10px;
-}
-
-.loginFormInput {
-  width: 100%;
-  text-align: left;
-  color: #ffffff;
-  font-family: 'Noto Sans KR', sans-serif;
-  font-size: 20px;
-}
-
-.loginFormInput > div {
-  margin-bottom: 16px;
-}
-
-.loginFormInput input {
-  width: 100%;
-  height: 53px;
-  background-color: #000000;
-  border: none;
-  border-radius: 4px;
-  font-family: 'Noto Sans KR', sans-serif;
+.menu span {
+  margin-left: 24px;
   font-size: 14px;
+  cursor: pointer;
+  position: relative;
+}
+.menu span::after {
+  content: '';
+  position: absolute;
+  left: 0; bottom: -2px;
+  width: 100%; height: 1px;
+  background: var(--text);
+  transform: scaleX(0);
+  transition: transform .25s;
+}
+.menu span:hover::after { transform: scaleX(1); }
+
+/* ---------- Form ---------- */
+.wrapper {
+  max-width: 620px;
+  margin: 60px auto 120px;
+  padding: 0 24px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.form   { display: flex; flex-direction: column; gap: 32px; }
+.field  { display: flex; flex-direction: column; gap: 12px; }
+.field span { font-size: 16px; }
+
+.field input {
+  width: 100%; height: 53px;
   padding: 16px;
-  color: #ffffff;
-  box-sizing: border-box;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font-size: 14px;
 }
 
-.loginBtn {
-  width: 100%;
-  height: 53px;
-  margin-top: 10px;
-  border: none;
+.error {
+  font-size: .9rem;
+  color: var(--error);
+  text-align: center;
+}
+
+/* 버튼 */
+.submit, .submitDisabled {
+  width: 100%; height: 53px;
   border-radius: 4px;
-  background-color: #3255be;
-  color: #ffffff;
-  font-family: 'Noto Sans KR', sans-serif;
   font-size: 14px;
+  font-weight: 600;
+  border: none;
   cursor: pointer;
 }
+.submit { background: var(--primary); color: var(--text); }
+.submit:hover { background: #2645a0; }
+.submitDisabled {
+  background: #6c6c6c;
+  color: #cfcfcf;
+  cursor: not-allowed;
+}
 
-.toRegisterBtn {
-  width: 100%;
-  height: 53px;
-  margin-top: 20px;
-  border: none;
-  border-radius: 4px;
-  background-color: #32be32;
-  color: #ffffff;
-  font-family: 'Noto Sans KR', sans-serif;
-  font-size: 14px;
+/* ID/PW 찾기 링크 */
+.links {
+  margin-top: 40px;
+  text-align: center;
+  font-size: 15px;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+.links span {
   cursor: pointer;
 }
+.links span:hover { text-decoration: underline; }
 
-.loginBtn:hover {
-  background-color: #425a9f;
-}
-
-.toRegisterBtn:hover {
-  background-color: #399d39;
+/* 모바일 */
+@media (max-width: 600px) {
+  .wrapper { margin: 40px 16px 80px; }
+  .title   { font-size: 20px; }
 }

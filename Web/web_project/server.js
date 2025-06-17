@@ -1,16 +1,20 @@
-const express = require("express");
-const requestIp = require('request-ip');
-const cors = require("cors");
-const path = require("path");
-const crypto = require('crypto');
-const bcrypt = require("bcrypt");
-const moment = require('moment-timezone');
-const sqlite3 = require('sqlite3').verbose();
-const { open } = require('sqlite');
-const db = require('./database.js');
-const session = require("express-session");
-const passport = require("passport");
-const LocalStrategy = require("passport-local");
+// server.js
+const express           = require("express");
+const requestIp         = require('request-ip');
+const cors              = require("cors");
+const crypto            = require('crypto');
+const bcrypt            = require("bcrypt");
+const moment            = require('moment-timezone');
+const session           = require("express-session");
+const passport          = require("passport");
+const LocalStrategy     = require("passport-local").Strategy;
+const { createServer }  = require('http');
+const { Server }        = require('socket.io');
+const path              = require("path");
+
+// const db = require('./database.js');  // delivery.db
+
+const dbPromise = require('./database.js');
 
 
 const app = express();
@@ -19,165 +23,193 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(requestIp.mw());
 
-// 세션 및 Passport 설정
-app.use(session({ secret: process.env.SESSION_SECRET || 'secret', resave: false, saveUninitialized: false }));
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'secret',
+  resave: false,
+  saveUninitialized: false
+}));
 app.use(passport.initialize());
 app.use(passport.session());
+const buildPath = path.resolve(__dirname, 'front', 'build');
+app.use(express.static(buildPath));
 
-passport.use(new LocalStrategy(async (username, password, done) => {
-  try {
-    const user = await db.get("SELECT * FROM user WHERE username = ?", [username]);
-    if (!user) return done(null, false, { message: '존재하지 않는 아이디입니다.' });
-    if (await bcrypt.compare(password, user.password)) return done(null, user);
-    return done(null, false, { message: '비밀번호가 일치하지 않습니다.' });
-  } catch (err) {
-    return done(err);
+// 루트 경로로 오면 /mainpage 로 리다이렉트
+app.get('/', (req, res) => {
+  res.redirect('/MainPage');
+});
+
+// 그 외 모든 GET 은 React 라우터가 처리하도록 index.html 반환
+app.get('*', (req, res) => {
+  res.sendFile(path.join(buildPath, 'index.html'));
+});
+// ── Passport LocalStrategy ──────────────────────────────────────────
+passport.use(new LocalStrategy({
+    usernameField: 'userId',
+    passwordField: 'password'
+  },
+  async (userId, password, done) => {
+    try {
+      // ① Promise<Database>에서 실제 db 인스턴스를 얻습니다.
+      const db = await dbPromise;
+
+      // ② DB에서 조회한 raw row를 row 변수에 담고,
+      const row = await db.get(
+        "SELECT * FROM MEMBER WHERE MEM_ID = ?",
+        [userId]
+      );
+      if (!row) {
+        return done(null, false, { message: '존재하지 않는 아이디입니다.' });
+      }
+
+      // ③ 비밀번호 검증
+      const match = await bcrypt.compare(password, row.MEM_PW);
+      if (!match) {
+        return done(null, false, { message: '비밀번호가 일치하지 않습니다.' });
+      }
+
+      // 세션에 저장할 최소 정보만 담은 객체 생성
+      const user = {
+        memNum: row.MEM_NUM,
+        userId: row.MEM_ID,
+        name:   row.MEM_NAME,
+        email:  row.MEM_EMAIL
+      };
+      return done(null, user);
+    } catch (err) {
+      return done(err);
+    }
   }
-}));
-passport.serializeUser((user, done) => done(null, { id: user.id, username: user.username }));
-passport.deserializeUser(async (user, done) => {
+));
+
+// ── serializeUser ───────────────────────────────────────────
+passport.serializeUser((user, done) => {
+  done(null, user.memNum);
+});
+
+// ── deserializeUser ───────────────────────────────────────────
+passport.deserializeUser(async (memNum, done) => {
   try {
-    const row = await db.get("SELECT * FROM user WHERE id = ?", [user.id]);
-    if (row) delete row.password;
-    done(null, row);
+    const db = await dbPromise;
+    const row = await db.get(`SELECT MEM_NUM, MEM_ID, MEM_NAME, MEM_EMAIL FROM MEMBER WHERE MEM_NUM = ?`, [memNum]);
+    if (!row) return done(null, false);
+    done(null, {
+      memNum: row.MEM_NUM,
+      userId: row.MEM_ID,
+      name:   row.MEM_NAME,
+      email:  row.MEM_EMAIL
+    });
   } catch (err) {
     done(err);
   }
 });
 
-// 서버 및 WebSocket 시작
-// const server = createServer(app);
-// const io = new server(server, { cors: { origin: "http://localhost:3000", methods: ["GET","POST"] } });
-// server.listen(process.env.PORT||4000, () => console.log("서버 실행 중"));
-const { createServer } = require('http');
-const { Server }       = require('socket.io');
-// … app 설정 위에 …
+// ── 회원가입(register) ───────────────────────────────────────────────
+app.post("/api/register", async (req, res) => {
+  const {
+    userId,   // MEM_ID
+    password, // MEM_PW
+    name,     // MEM_NAME
+    zip,      // MEM_ZIP
+    add1,     // MEM_ADD1
+    add2,     // MEM_ADD2
+    phone,    // MEM_PHONE
+    email     // MEM_EMAIL
+  } = req.body;
 
+  const db = await dbPromise;
+
+   console.log("▶ req.body:", req.body);
+   const exists = await db.get(
+     "SELECT 1 FROM MEMBER WHERE MEM_ID = ? OR MEM_EMAIL = ?",
+     [userId, email]
+   );
+   console.log("▶ exists (row?):", exists);
+
+  try {
+    // 1) 중복 체크
+    if (exists) {
+      return res.status(400).send("이미 존재하는 아이디 또는 이메일입니다.");
+    }
+
+    // 2) 비밀번호 해시
+    const hash = await bcrypt.hash(password, 10);
+
+    // 3) INSERT
+    await db.run(
+      `INSERT INTO MEMBER (
+         MEM_ID, MEM_PW, MEM_NAME,
+         MEM_ZIP, MEM_ADD1, MEM_ADD2,
+         MEM_PHONE, MEM_EMAIL
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [userId, hash, name, zip, add1, add2, phone, email]
+    );
+
+    // 4) 성공 응답
+    res.json({ registerSuccess: true });
+  } catch (e) {
+    console.error("회원가입 오류:", e);
+    res.status(500).send("회원가입 오류");
+  }
+});
+
+// ── 로그인(login) ───────────────────────────────────────────────────
+app.post("/api/login", (req, res, next) => {
+  passport.authenticate("local", (err, user, info) => {
+    if (err) {
+      console.error("로그인 중 서버 에러:", err);
+      return res.status(500).json({ error: err.message });
+    }
+    if (!user) {
+      // info.message에 Passport 전략에서 보낸 메시지가 들어있습니다.
+      return res.status(401).json({ error: info.message });
+    }
+    req.logIn(user, (e) => {
+      if (e) return next(e);
+      res.json({ loginSuccess: true });
+    });
+  })(req, res, next);
+});
+
+// ── 로그아웃(logout) ─────────────────────────────────────────────────
+app.get("/api/logout", (req, res) => {
+  req.logout(() => {
+    res.json({ logoutSuccess: true });
+  });
+});
+
+// ── 로그인 상태 확인 ─────────────────────────────────────────────────
+app.get("/api/checkLoggedIn", (req, res) => {
+  res.json({ isLoggedIn: !!req.user });
+});
+
+// ── 로그인 사용자 정보 제공 ───────────────────────────────────────────
+app.get("/api/checkLogin", (req, res) => {
+  if (req.user) {
+    const {
+      MEM_NUM, MEM_ID, MEM_EMAIL,
+      MEM_NAME, MEM_NICKNAME
+    } = req.user;
+    res.json({
+      isLoggedIn: true,
+      memNum: MEM_NUM,
+      userId: MEM_ID,
+      email: MEM_EMAIL,
+      name: MEM_NAME,
+      nickname: MEM_NICKNAME
+    });
+  } else {
+    res.json({ isLoggedIn: false });
+  }
+});
+
+// ── 서버 및 Socket.IO 시작 ───────────────────────────────────────────
 const server = createServer(app);
 const io     = new Server(server, {
   cors: { origin: "http://localhost:3000", methods: ["GET","POST"] }
 });
-
 server.listen(process.env.PORT || 4000, () => {
-  console.log("🚀 Node 서버 실행 중: http://localhost:4000 or http://192.168.0.208:4000");
+  console.log("🚀 Node 서버 실행 중: http://localhost:4000 http://192.168.0.208:4000");
 });
 
 
 
-//--------------------------------- API 구현 ----------------------------------
-// server.js 의 API 구현 직전쯤
-// app.get('/', (req, res) => {
-//   res.send('서버 정상 작동 중');
-// });
-
-// 회원가입
-app.post("/register", async (req, res) => {
-  const { username, password } = req.body;
-  try {
-    const exists = await db.get("SELECT * FROM user WHERE username = ?", [username]);
-    if (exists) return res.status(400).send("이미 존재하는 아이디입니다.");
-    const hash = await bcrypt.hash(password, 10);
-    await db.run("INSERT INTO user (username,password) VALUES(?,?)", [username, hash]);
-    res.json({ registerSuccess: true });
-  } catch (e) { console.error(e); res.status(500).send("회원가입 오류"); }
-});
-
-// 로그인
-app.post("/login", (req, res, next) => {
-  passport.authenticate("local", (err, user, info) => {
-    if (err) return res.status(500).json(err);
-    if (!user) return res.status(401).json(info);
-    req.logIn(user, (e) => { if (e) return next(e); res.json({ loginSuccess: true }); });
-  })(req, res, next);
-});
-
-// 로그아웃
-app.get("/logout", (req, res) => { req.logout(() => res.json({ logoutSuccess: true })); });
-
-// 로그인 상태 확인
-app.get("/checkLoggedIn", (req, res) => { res.json({ isLoggedIn: !!req.user }); });
-
-// 로그인 정보 제공
-app.get("/checkLogin", (req, res) => {
-  if (req.user) res.json({ isLoggedIn: true, id: req.user.id, username: req.user.username });
-  else res.json({ isLoggedIn: false });
-});
-
-// 마이페이지: 작성자 ID 조회
-app.get("/userAuthorID", async (req,res) => {
-  try {
-    const user = await db.get("SELECT id FROM user WHERE username = ?", [req.query.username]);
-    if (user) res.send(user.id.toString());
-    else res.status(404).send("사용자를 찾을 수 없습니다.");
-  } catch (e) { console.error(e); res.status(500).send("서버 에러"); }
-});
-
-// 마이페이지: 내 배송 목록
-
-
-// 인증 메일 전송
-app.post('/verify-email', (req, res) => {
-  const { email } = req.body;
-  const code = generateRandomCode(6);
-  req.session.emailCode = code;
-  req.session.email = email;
-  transporter.sendMail({
-    from: `[E A S Y] <${process.env.EMAIL_USERNAME}>`,
-    to: email,
-    subject: '[E A S Y] 인증번호를 확인해주세요.',
-    html: `<h1>이메일 인증</h1><div>인증번호 [${code}]를 입력해주세요.</div>`
-  }, (err, info) => {
-    if (err) {
-      console.error(err);
-      res.status(500).json({ success: false, message: '이메일 전송 실패' });
-    } else {
-      res.json({ success: true, message: '이메일 전송 완료' });
-    }
-  });
-});
-
-// 인증 코드 확인
-app.post('/verify-email-code', (req, res) => {
-  const { email, emailCode } = req.body;
-  const ok = req.session.email === email && req.session.emailCode === emailCode;
-  res.json({ success: ok, message: ok ? '인증 성공' : '인증 실패' });
-});
-
-// 이메일 중복 체크
-app.post('/check-email', async (req, res) => {
-  const { email } = req.body;
-  try {
-    const user = await db.get("SELECT * FROM user WHERE email = ?", [email]);
-    res.json({ available: !user });
-  } catch (e) {
-    console.error('이메일 확인 오류:', e);
-    res.status(500).json({ message: '서버 에러' });
-  }
-});
-
-app.get('/user/:userId', async (req, res) => {
-  const id = req.params.userId;
-  try {
-    const user = await db.get("SELECT username FROM user WHERE id = ?", [id]);
-    if (user) res.json({ username: user.username });
-    else res.status(404).send('사용자 없음');
-  } catch (e) {
-    console.error('서버 에러:', e);
-    res.status(500).send('서버 에러');
-  }
-});
-
-// React 앱 build 결과물 정적 서빙
-const buildPath = path.resolve(__dirname, 'front', 'build');
-app.use(express.static(buildPath));
-
-// 위의 API 경로 외 모든 GET 요청에 대해 React index.html 반환
-app.get('*', (req, res) => {
-  res.sendFile(path.join(buildPath, 'index.html'));
-});
-
-// WebSocket 메시징 예시 유지
-// io.on('connection', socket => console.log('소켓 연결'));
-
-
-//------------------------------------------------------------------------------------------------------------------------------------//

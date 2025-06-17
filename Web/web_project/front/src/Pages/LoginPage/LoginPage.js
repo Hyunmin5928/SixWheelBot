@@ -1,83 +1,96 @@
-// src/Pages/LoginPage/LoginPage.js
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-import EasyLogo from '../../assets/logo.png';
-import styles   from './LoginPage.module.css';
+import logoImg from '../../assets/logo.png';
+import styles  from './LoginPage.module.css';
 
-export default function LoginPage({ onLogin, isLoggedIn }) {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const usernameInputRef = useRef(null);
-  const navigate = useNavigate();
+export default function LoginPage() {
+  const nav = useNavigate();
 
-  /* 로그인 성공 시 홈으로 리디렉션 */
+  /* ── 상태 ─────────────────────────── */
+  const [form, setForm] = useState({ userId: '', password: '' });
+  const [ready, setReady] = useState(false);
+  const [error, setError] = useState('');
+
   useEffect(() => {
-    if (isLoggedIn) navigate('/');
-  }, [isLoggedIn, navigate]);
+    setReady(form.userId.trim() && form.password.trim());
+  }, [form]);
 
-  /* 로그인 버튼 클릭 */
-  const handleLoginSubmit = async () => {
+  const onChange = (e) =>
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+
+  /* ── 제출 ─────────────────────────── */
+  const onSubmit = async (e) => {
+    e.preventDefault();
+    if (!ready) return;
     try {
-      await axios.post('/login', { username, password });
-      onLogin(true);
-      navigate('/');
-    } catch (error) {
-      alert(`로그인 오류: ${error.response?.data || error.message}`);
+      await axios.post('/api/login', form);      // ← 실제 API로 교체
+      alert('로그인 성공!');
+      nav('/');                                  // 로그인 후 메인으로
+    } catch (err) {
+      setError(err.response?.data || err.message);
     }
   };
 
-  /* 엔터 키 로그인 */
-  const loginKeyPress = (e) => {
-    if (e.key === 'Enter') handleLoginSubmit();
-  };
-
   return (
-    <div className={styles.loginBackground}>
-      <div className={styles.formWrapper}>
-        {/* ─── 로고 / 상단 ─────────────────────────── */}
-        <div className={styles.topSection}>
-          <img src={EasyLogo} alt="로고" width={80} height={80} />
-          <span className={styles.brand}>E A S Y</span>
+    <div className={styles.page}>
+      {/* ---------- Header ---------- */}
+      <header className={styles.header}>
+        <div className={styles.logoBox} onClick={() => nav('/')}>
+          <img src={logoImg} alt="logo" />
+          <span>SixWheel</span>
         </div>
+        <nav className={styles.menu}>
+          <span onClick={() => nav('/mypage')}>마이페이지</span>
+          <span onClick={() => nav('/register')}>회원가입</span>
+          <span onClick={() => nav('/category')}>카테고리</span>
+        </nav>
+      </header>
 
-        {/* ─── 아이디 입력 ─────────────────────────── */}
-        <div className={styles.inputGroup}>
-          <label>아이디</label>
-          <input
-            ref={usernameInputRef}
-            name="username"
-            placeholder="아이디를 입력해주세요"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-          />
+      {/* ---------- Form ---------- */}
+      <main className={styles.wrapper}>
+        <h1 className={styles.title}>로그인</h1>
+
+        <form className={styles.form} onSubmit={onSubmit}>
+          <label className={styles.field}>
+            <span>아이디</span>
+            <input
+              name="userId"
+              value={form.userId}
+              onChange={onChange}
+              placeholder="아이디를 입력하세요."
+            />
+          </label>
+
+          <label className={styles.field}>
+            <span>비밀번호</span>
+            <input
+              type="password"
+              name="password"
+              value={form.password}
+              onChange={onChange}
+              placeholder="비밀번호를 입력하세요."
+            />
+          </label>
+
+          {error && <p className={styles.error}>{error}</p>}
+
+          <button
+            type="submit"
+            className={ready ? styles.submit : styles.submitDisabled}
+            disabled={!ready}
+          >
+            확인
+          </button>
+        </form>
+
+        <div className={styles.links}>
+          <span onClick={() => nav('/findid')}>ID 찾기</span>
+          <span>/</span>
+          <span onClick={() => nav('/findpw')}>PW 찾기</span>
         </div>
-
-        {/* ─── 비밀번호 입력 ───────────────────────── */}
-        <div className={styles.inputGroup}>
-          <label>비밀번호</label>
-          <input
-            type="password"
-            name="password"
-            placeholder="비밀번호를 입력해주세요"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            onKeyDown={loginKeyPress}
-          />
-        </div>
-
-        {/* ─── 버튼 영역 ───────────────────────────── */}
-        <button className={styles.loginBtn} onClick={handleLoginSubmit}>
-          로그인
-        </button>
-        <button
-          className={styles.registerBtn}
-          onClick={() => navigate('/register')}
-        >
-          회원가입 하러가기
-        </button>
-      </div>
+      </main>
     </div>
   );
 }

@@ -34,17 +34,6 @@
 // private
 #pragma region Private functions
 
-void Motor::log(const std::string& msg){
-    if(logFile.is_open()) {
-            // 현재 시간 문자열 얻기
-            std::time_t now = std::time(nullptr);
-            char buf[64];
-            std::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", std::localtime(&now));
-
-            logFile << "[" << buf << "] " << msg << std::endl;
-        }
-}
-
 int Motor::lidar_setup(){
     std::string port;
     ydlidar::os_init();
@@ -325,10 +314,6 @@ bool Motor::pwm_isvalid(int pwm)
 Motor::Motor()
 {
     motor_setup();
-    logFile.open("motor_log.txt", std::ios::out);
-    if(logFile.is_open()) {
-        log("Motor instance created");
-    }
 }
 
 Motor::Motor(int lr_pwmPin, int ll_pwmPin,int rr_pwmPin, int rl_pwmPin, int rr_enPin, int rl_enPin, int lr_enPin, int ll_enPin){
@@ -338,10 +323,7 @@ Motor::Motor(int lr_pwmPin, int ll_pwmPin,int rr_pwmPin, int rl_pwmPin, int rr_e
 }
 
 Motor::~Motor(){
-    log("Motor instance deleted");
-    if(logFile.is_open()) {
-        logFile.close();
-    }
+
 }
 #pragma endregion
 
@@ -371,11 +353,14 @@ std::vector<LaserPoint> Motor::get_scanData(){
 }
 
 void Motor::show_scanData(){
-    log("show_scanData() called");
+    string msg="";
     for(int i=0; i<usableData.size(); i++){
-        log("angle : " + std::to_string(usableData[i].angle)+" - " + std::to_string(usableData[i].range));
+        msg+="{"+std::to_string(usableData[i].angle)+", "+std::to_string(usableData[i].range)+"}";
+        if(i<usableData.size()-1){
+            msg+=", ";
+        } 
     }
-    log("Total scan data points: " + std::to_string(usableData.size()));
+    log_msg("Debug", msg);
 }
 
 void Motor::straight(int pwm)

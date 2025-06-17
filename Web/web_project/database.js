@@ -17,7 +17,19 @@ db.serialize(() => {
 
   // 회원 테이블
   db.run(`
-.ta
+    CREATE TABLE IF NOT EXISTS MEMBER (
+      MEM_NUM      INTEGER PRIMARY KEY AUTOINCREMENT,
+      MEM_ID       TEXT    UNIQUE   NOT NULL,
+      MEM_PW       TEXT             NOT NULL,
+      MEM_NAME     TEXT    UNIQUE   NOT NULL,
+      MEM_ZIP      TEXT,
+      MEM_ADD1     TEXT,
+      MEM_ADD2     TEXT,
+      MEM_PHONE    TEXT             NOT NULL,
+      MEM_EMAIL    TEXT    UNIQUE   NOT NULL,
+      MEM_JOINDATE DATETIME         NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+      MEM_ADMIN    TEXT             NOT NULL DEFAULT 'N'
+    );
   `);
 
   // 주문(배송) 테이블

@@ -84,10 +84,14 @@ passport.deserializeUser(async (memNum, done) => {
 // ── 회원가입(register) ───────────────────────────────────────────────
 app.post("/register", async (req, res) => {
   const {
-    id, email, password,
-    name, nickname, birth,
-    gender, phone, zip,
-    add1, add2
+    id, 
+    password,
+    name, 
+    zip,
+    add1, 
+    add2,
+    phone, 
+    email
   } = req.body;
 
   try {
@@ -106,11 +110,10 @@ app.post("/register", async (req, res) => {
     // INSERT
     await db.run(
       `INSERT INTO MEMBER (
-         MEM_ID, MEM_PW, MEM_EMAIL, MEM_NAME,
-         MEM_NICKNAME, MEM_BIRTH, MEM_GEN,
-         MEM_PHONE, MEM_ZIP, MEM_ADD1, MEM_ADD2
+         MEM_ID, MEM_PW, MEM_NAME, MEM_ZIP, 
+         MEM_ADD1, MEM_ADD2, MEM_PHONE, MEM_EMAIL,
        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, hash, email, name, nickname, birth, gender, phone, zip, add1, add2]
+      [id, hash, name, zip, add1, add2, phone, email]
     );
 
     res.json({ registerSuccess: true });

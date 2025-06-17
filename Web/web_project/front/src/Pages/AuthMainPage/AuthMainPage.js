@@ -1,3 +1,4 @@
+// src/Pages/AuthMainPage/AuthMainPage.js
 import React, { useEffect } from 'react';
 import { useNavigate, NavLink } from 'react-router-dom';
 
@@ -7,21 +8,23 @@ import returnIcon    from '../../assets/return.png';
 import searchIcon    from '../../assets/search.png';
 import serviceBanner from '../../assets/deliveryservices.png';
 
-import styles from '../MainPage/MainPage.module.css';   // 기존 CSS 재사용
+import styles from '../MainPage/MainPage.module.css';   // ⚙️  동일 CSS 재사용
 
 export default function AuthMainPage() {
   const nav = useNavigate();
 
-  /* 토큰 없으면 게스트 메인으로 리다이렉트 */
+  /* 토큰이 없으면 게스트 메인(/)으로 돌려보냄 */
   useEffect(() => {
     if (!localStorage.getItem('TOKEN')) nav('/');
   }, [nav]);
 
+  /* 로그아웃 → 토큰 삭제 후 / 로 이동 */
   const logout = () => {
     localStorage.removeItem('TOKEN');
     nav('/');
   };
 
+  /* 배송·반품·조회 카드 데이터 */
   const cards = [
     { title: '배송 요청', imgSrc: orderIcon,  path: '/order/new' },
     { title: '반품 신청', imgSrc: returnIcon, path: '/return/new' },
@@ -38,9 +41,9 @@ export default function AuthMainPage() {
         </div>
 
         <nav className={styles.userMenu}>
-          <span onClick={() => nav('/mypage')}>마이페이지</span>
-          <span onClick={logout}>로그아웃</span>
-          <NavLink to="/category">카테고리</NavLink>
+          <NavLink to="/mypage"   className={styles.menuLink}>마이페이지</NavLink>
+          <button onClick={logout} className={styles.menuLink}>로그아웃</button>
+          <NavLink to="/category" className={styles.menuLink}>카테고리</NavLink>
         </nav>
       </header>
 
@@ -57,7 +60,9 @@ export default function AuthMainPage() {
 
       {/* ---------- 운송장 검색 ---------- */}
       <div className={styles.trackingBox}>
-        <input placeholder="운송장 번호를 입력하시고 배송 정보를 확인하세요." />
+        <input
+          placeholder="운송장 번호를 입력하시고 배송 정보를 확인하세요."
+        />
         <button><span className="material-icons">search</span></button>
       </div>
 
@@ -82,7 +87,7 @@ export default function AuthMainPage() {
       {/* ---------- Footer ---------- */}
       <footer className={styles.footer}>
         <div className={styles.footerInner}>
-          {/* SNS·링크 블록은 MainPage와 동일 */}
+          {/* SNS·링크 블록은 MainPage와 동일 — 필요 시 채워넣으세요 */}
         </div>
       </footer>
     </div>

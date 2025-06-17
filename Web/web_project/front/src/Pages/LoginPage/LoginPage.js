@@ -8,8 +8,7 @@ import styles  from './LoginPage.module.css';
 export default function LoginPage() {
   const nav = useNavigate();
 
-  /* ── 상태 ─────────────────────────── */
-  const [form, setForm] = useState({ userId: '', password: '' });
+  const [form, setForm]   = useState({ userId: '', password: '' });
   const [ready, setReady] = useState(false);
   const [error, setError] = useState('');
 
@@ -18,16 +17,16 @@ export default function LoginPage() {
   }, [form]);
 
   const onChange = (e) =>
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
 
-  /* ── 제출 ─────────────────────────── */
   const onSubmit = async (e) => {
     e.preventDefault();
     if (!ready) return;
     try {
-      await axios.post('/api/login', form);      // ← 실제 API로 교체
-      alert('로그인 성공!');
-      nav('/');                                  // 로그인 후 메인으로
+      const res = await axios.post('/api/login', form);
+      /* 토큰(또는 true 등)을 저장해 로그인 상태 표시 */
+      localStorage.setItem('TOKEN', res.data.token || 'true');
+      nav('/home');         // 로그인 전용 메인으로 이동
     } catch (err) {
       setError(err.response?.data || err.message);
     }
@@ -35,23 +34,21 @@ export default function LoginPage() {
 
   return (
     <div className={styles.page}>
-      {/* ---------- Header ---------- */}
+      {/* Header */}
       <header className={styles.header}>
         <div className={styles.logoBox} onClick={() => nav('/')}>
           <img src={logoImg} alt="logo" />
           <span>SixWheel</span>
         </div>
         <nav className={styles.menu}>
-          <span onClick={() => nav('/mypage')}>마이페이지</span>
           <span onClick={() => nav('/register')}>회원가입</span>
           <span onClick={() => nav('/category')}>카테고리</span>
         </nav>
       </header>
 
-      {/* ---------- Form ---------- */}
+      {/* Form */}
       <main className={styles.wrapper}>
         <h1 className={styles.title}>로그인</h1>
-
         <form className={styles.form} onSubmit={onSubmit}>
           <label className={styles.field}>
             <span>아이디</span>
@@ -62,7 +59,6 @@ export default function LoginPage() {
               placeholder="아이디를 입력하세요."
             />
           </label>
-
           <label className={styles.field}>
             <span>비밀번호</span>
             <input
@@ -73,9 +69,7 @@ export default function LoginPage() {
               placeholder="비밀번호를 입력하세요."
             />
           </label>
-
           {error && <p className={styles.error}>{error}</p>}
-
           <button
             type="submit"
             className={ready ? styles.submit : styles.submitDisabled}

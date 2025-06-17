@@ -12,7 +12,10 @@ const { createServer }  = require('http');
 const { Server }        = require('socket.io');
 const path              = require("path");
 
-const db = require('./database.js');  // delivery.db
+// const db = require('./database.js');  // delivery.db
+
+const dbPromise = require('./database.js');
+
 
 const app = express();
 app.use(cors());
@@ -104,12 +107,17 @@ app.post("/api/register", async (req, res) => {
     email     // MEM_EMAIL
   } = req.body;
 
+  const db = await dbPromise;
+
+   console.log("▶ req.body:", req.body);
+   const exists = await db.get(
+     "SELECT 1 FROM MEMBER WHERE MEM_ID = ? OR MEM_EMAIL = ?",
+     [userId, email]
+   );
+   console.log("▶ exists (row?):", exists);
+
   try {
     // 1) 중복 체크
-    const exists = await db.get(
-      "SELECT 1 FROM MEMBER WHERE MEM_ID = ? OR MEM_EMAIL = ?",
-      [userId, email]
-    );
     if (exists) {
       return res.status(400).send("이미 존재하는 아이디 또는 이메일입니다.");
     }
@@ -196,76 +204,3 @@ server.listen(process.env.PORT || 4000, () => {
 
 
 
-//--------------------------------- API 구현 ----------------------------------
-// server.js 의 API 구현 직전쯤
-// app.get('/', (req, res) => {
-//   res.send('서버 정상 작동 중');
-// });
-
-
-// // 인증 메일 전송
-// app.post('/verify-email', (req, res) => {
-//   const { email } = req.body;
-//   const code = generateRandomCode(6);
-//   req.session.emailCode = code;
-//   req.session.email = email;
-//   transporter.sendMail({
-//     from: `[E A S Y] <${process.env.EMAIL_USERNAME}>`,
-//     to: email,
-//     subject: '[E A S Y] 인증번호를 확인해주세요.',
-//     html: `<h1>이메일 인증</h1><div>인증번호 [${code}]를 입력해주세요.</div>`
-//   }, (err, info) => {
-//     if (err) {
-//       console.error(err);
-//       res.status(500).json({ success: false, message: '이메일 전송 실패' });
-//     } else {
-//       res.json({ success: true, message: '이메일 전송 완료' });
-//     }
-//   });
-// });
-
-// // 인증 코드 확인
-// app.post('/verify-email-code', (req, res) => {
-//   const { email, emailCode } = req.body;
-//   const ok = req.session.email === email && req.session.emailCode === emailCode;
-//   res.json({ success: ok, message: ok ? '인증 성공' : '인증 실패' });
-// });
-
-// // 이메일 중복 체크
-// app.post('/check-email', async (req, res) => {
-//   const { email } = req.body;
-//   try {
-//     const user = await db.get("SELECT * FROM user WHERE email = ?", [email]);
-//     res.json({ available: !user });
-//   } catch (e) {
-//     console.error('이메일 확인 오류:', e);
-//     res.status(500).json({ message: '서버 에러' });
-//   }
-// });
-
-// app.get('/user/:userId', async (req, res) => {
-//   const id = req.params.userId;
-//   try {
-//     const user = await db.get("SELECT username FROM user WHERE id = ?", [id]);
-//     if (user) res.json({ username: user.username });
-//     else res.status(404).send('사용자 없음');
-//   } catch (e) {
-//     console.error('서버 에러:', e);
-//     res.status(500).send('서버 에러');
-//   }
-// });
-
-// // React 앱 build 결과물 정적 서빙
-// const buildPath = path.resolve(__dirname, 'front', 'build');
-// app.use(express.static(buildPath));
-
-// // 위의 API 경로 외 모든 GET 요청에 대해 React index.html 반환
-// app.get('*', (req, res) => {
-//   res.sendFile(path.join(buildPath, 'index.html'));
-// });
-
-// // WebSocket 메시징 예시 유지
-// // io.on('connection', socket => console.log('소켓 연결'));
-
-
-// //------------------------------------------------------------------------------------------------------------------------------------//

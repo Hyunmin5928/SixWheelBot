@@ -1,22 +1,27 @@
 // database.js
 const sqlite3 = require('sqlite3').verbose();
-const path    = require('path');
+const { open } = require('sqlite');
+const path = require('path');
+
+// delivery.db 파일 경로 설정
 const dbPath = path.resolve(__dirname, 'delivery.db');
 
-const db     = new sqlite3.Database(dbPath, (err) => {
-  if (err) {
-    console.error('SQLite 연결 실패:', err.message);
-    process.exit(1);
-  }
-  console.log('SQLite 연결 성공:', dbPath);
-});
+/**
+ * 프로미스 기반 SQLite 데이터베이스 초기화
+ * open()을 활용해 Promise<Database> 반환
+ */
+async function initDB() {
+  // sqlite3 드라이버 사용
+  const db = await open({
+    filename: dbPath,
+    driver: sqlite3.Database
+  });
 
-db.serialize(() => {
-  // 외래키 사용을 원하면 아래 주석 해제
-  // db.run('PRAGMA foreign_keys = ON;');
+  // 외래키 활성화 (옵션)
+  await db.exec('PRAGMA foreign_keys = ON;');
 
-  // 회원 테이블
-  db.run(`
+  // 테이블 생성
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS MEMBER (
       MEM_NUM      INTEGER PRIMARY KEY AUTOINCREMENT,
       MEM_ID       TEXT    UNIQUE   NOT NULL,
@@ -30,10 +35,6 @@ db.serialize(() => {
       MEM_JOINDATE DATETIME         NOT NULL DEFAULT (CURRENT_TIMESTAMP),
       MEM_ADMIN    TEXT             NOT NULL DEFAULT 'N'
     );
-  `);
-
-  // 주문(배송) 테이블
-  db.run(`
     CREATE TABLE IF NOT EXISTS ORDERS (
       ORDERS_NUM     INTEGER PRIMARY KEY AUTOINCREMENT,
       ORDERS_USER    INTEGER       NOT NULL,
@@ -46,19 +47,13 @@ db.serialize(() => {
       ORDERS_ADD2    TEXT          NOT NULL,
       ORDERS_MEMO    TEXT,
       ORDERS_DEL     TEXT          NOT NULL DEFAULT 'N',
-      RETURN_STATE   TEXT          NOT NULL DEFAULT 'N',
+      RETURN_STATE   TEXT          NOT NULL DEFAULT 'Y',
       RETURN_DATE    DATETIME,
       RETURN_STATUS  TEXT,
       RETURN_COST    INTEGER,
-      -- 외래키 설정 (필요시 주석 해제)
-      -- FOREIGN KEY(ORDERS_USER) REFERENCES MEMBER(MEM_NUM)
       CHECK(ORDERS_DEL IN ('Y','N')),
       CHECK(RETURN_STATE IN ('Y','N'))
     );
-  `);
-
-  // 배달로그 테이블
-  db.run(`
     CREATE TABLE IF NOT EXISTS DELIVERY (
       DELIVERY_NUM  INTEGER PRIMARY KEY AUTOINCREMENT,
       DELIVERY_CNT  INTEGER       NOT NULL DEFAULT 0,
@@ -67,6 +62,10 @@ db.serialize(() => {
       UPDATE_DATE   DATETIME      NOT NULL DEFAULT (CURRENT_TIMESTAMP)
     );
   `);
-});
 
-module.exports = db;
+  console.log('SQLite 연결 성공:', dbPath);
+  return db;
+}
+
+// Promise<Database> 객체를 모듈로 내보냄
+module.exports = initDB();

@@ -34,7 +34,6 @@
 // private
 #pragma region Private functions
 
-
 int Motor::lidar_setup(){
     std::string port;
     ydlidar::os_init();
@@ -315,7 +314,6 @@ bool Motor::pwm_isvalid(int pwm)
 Motor::Motor()
 {
     motor_setup();
-    std::cout << "motor set up : default\n";
 }
 
 Motor::Motor(int lr_pwmPin, int ll_pwmPin,int rr_pwmPin, int rl_pwmPin, int rr_enPin, int rl_enPin, int lr_enPin, int ll_enPin){
@@ -325,7 +323,7 @@ Motor::Motor(int lr_pwmPin, int ll_pwmPin,int rr_pwmPin, int rl_pwmPin, int rr_e
 }
 
 Motor::~Motor(){
-    std::cout << "motor instance deleted\n";
+
 }
 #pragma endregion
 
@@ -355,10 +353,14 @@ std::vector<LaserPoint> Motor::get_scanData(){
 }
 
 void Motor::show_scanData(){
+    string msg="";
     for(int i=0; i<usableData.size(); i++){
-        std::cout<<usableData[i].angle<<usableData[i].range<<"\n";
+        msg+="{"+std::to_string(usableData[i].angle)+", "+std::to_string(usableData[i].range)+"}";
+        if(i<usableData.size()-1){
+            msg+=", ";
+        } 
     }
-    std::cout<<"----* end of scan data *----\n";
+    log_msg("Debug", msg);
 }
 
 void Motor::straight(int pwm)

@@ -1,17 +1,18 @@
-const express = require("express");
-const requestIp = require('request-ip');
-const cors = require("cors");
-const path = require("path");
-const crypto = require('crypto');
-const bcrypt = require("bcrypt");
-const moment = require('moment-timezone');
-const sqlite3 = require('sqlite3').verbose();
-const { open } = require('sqlite');
-const db = require('./database.js');
-const session = require("express-session");
-const passport = require("passport");
-const LocalStrategy = require("passport-local");
+// server.js
+const express           = require("express");
+const requestIp         = require('request-ip');
+const cors              = require("cors");
+const crypto            = require('crypto');
+const bcrypt            = require("bcrypt");
+const moment            = require('moment-timezone');
+const session           = require("express-session");
+const passport          = require("passport");
+const LocalStrategy     = require("passport-local").Strategy;
+const { createServer }  = require('http');
+const { Server }        = require('socket.io');
+const path              = require("path");
 
+const db = require('./database.js');  // delivery.db
 
 const app = express();
 app.use(cors());
@@ -19,47 +20,157 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(requestIp.mw());
 
-// 세션 및 Passport 설정
-app.use(session({ secret: process.env.SESSION_SECRET || 'secret', resave: false, saveUninitialized: false }));
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'secret',
+  resave: false,
+  saveUninitialized: false
+}));
 app.use(passport.initialize());
 app.use(passport.session());
 
-passport.use(new LocalStrategy(async (username, password, done) => {
-  try {
-    const user = await db.get("SELECT * FROM user WHERE username = ?", [username]);
-    if (!user) return done(null, false, { message: '존재하지 않는 아이디입니다.' });
-    if (await bcrypt.compare(password, user.password)) return done(null, user);
-    return done(null, false, { message: '비밀번호가 일치하지 않습니다.' });
-  } catch (err) {
-    return done(err);
+// ── Passport LocalStrategy ──────────────────────────────────────────
+passport.use(new LocalStrategy({
+    usernameField: 'id',
+    passwordField: 'password'
+  },
+  async (id, password, done) => {
+    try {
+      // MEM_ID 로 조회
+      const user = await db.get(
+        "SELECT * FROM MEMBER WHERE MEM_ID = ?",
+        [id]
+      );
+      if (!user) {
+        return done(null, false, { message: '존재하지 않는 아이디입니다.' });
+      }
+      // MEM_PW 와 대조
+      const match = await bcrypt.compare(password, user.MEM_PW);
+      if (!match) {
+        return done(null, false, { message: '비밀번호가 일치하지 않습니다.' });
+      }
+      // 비밀번호 제외한 전체 row 반환
+      delete user.MEM_PW;
+      return done(null, user);
+    } catch (err) {
+      return done(err);
+    }
   }
-}));
-passport.serializeUser((user, done) => done(null, { id: user.id, username: user.username }));
-passport.deserializeUser(async (user, done) => {
+));
+
+passport.serializeUser((user, done) => {
+  // 세션에는 MEM_NUM만 저장
+  done(null, user.MEM_NUM);
+});
+
+passport.deserializeUser(async (memNum, done) => {
   try {
-    const row = await db.get("SELECT * FROM user WHERE id = ?", [user.id]);
-    if (row) delete row.password;
-    done(null, row);
+    // 비밀번호 제외한 컬럼만 조회
+    const user = await db.get(
+      `SELECT
+         MEM_NUM, MEM_ID, MEM_EMAIL, MEM_NAME,
+         MEM_NICKNAME, MEM_BIRTH, MEM_GEN,
+         MEM_PHONE, MEM_ZIP, MEM_ADD1, MEM_ADD2,
+         MEM_JOINDATE, MEM_ADMIN
+       FROM MEMBER
+       WHERE MEM_NUM = ?`,
+      [memNum]
+    );
+    done(null, user || false);
   } catch (err) {
     done(err);
   }
 });
 
-// 서버 및 WebSocket 시작
-// const server = createServer(app);
-// const io = new server(server, { cors: { origin: "http://localhost:3000", methods: ["GET","POST"] } });
-// server.listen(process.env.PORT||4000, () => console.log("서버 실행 중"));
-const { createServer } = require('http');
-const { Server }       = require('socket.io');
-// … app 설정 위에 …
+// ── 회원가입(register) ───────────────────────────────────────────────
+app.post("/register", async (req, res) => {
+  const {
+    id, email, password,
+    name, nickname, birth,
+    gender, phone, zip,
+    add1, add2
+  } = req.body;
 
+  try {
+    // 이미 존재하는 아이디 또는 이메일 체크
+    const exists = await db.get(
+      "SELECT 1 FROM MEMBER WHERE MEM_ID = ? OR MEM_EMAIL = ?",
+      [id, email]
+    );
+    if (exists) {
+      return res.status(400).send("이미 존재하는 아이디 또는 이메일입니다.");
+    }
+
+    // 비밀번호 해시
+    const hash = await bcrypt.hash(password, 10);
+
+    // INSERT
+    await db.run(
+      `INSERT INTO MEMBER (
+         MEM_ID, MEM_PW, MEM_EMAIL, MEM_NAME,
+         MEM_NICKNAME, MEM_BIRTH, MEM_GEN,
+         MEM_PHONE, MEM_ZIP, MEM_ADD1, MEM_ADD2
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, hash, email, name, nickname, birth, gender, phone, zip, add1, add2]
+    );
+
+    res.json({ registerSuccess: true });
+  } catch (e) {
+    console.error(e);
+    res.status(500).send("회원가입 오류");
+  }
+});
+
+// ── 로그인(login) ───────────────────────────────────────────────────
+app.post("/login", (req, res, next) => {
+  passport.authenticate("local", (err, user, info) => {
+    if (err)   return res.status(500).json(err);
+    if (!user) return res.status(401).json(info);
+    req.logIn(user, (e) => {
+      if (e) return next(e);
+      res.json({ loginSuccess: true });
+    });
+  })(req, res, next);
+});
+
+// ── 로그아웃(logout) ─────────────────────────────────────────────────
+app.get("/logout", (req, res) => {
+  req.logout(() => {
+    res.json({ logoutSuccess: true });
+  });
+});
+
+// ── 로그인 상태 확인 ─────────────────────────────────────────────────
+app.get("/checkLoggedIn", (req, res) => {
+  res.json({ isLoggedIn: !!req.user });
+});
+
+// ── 로그인 사용자 정보 제공 ───────────────────────────────────────────
+app.get("/checkLogin", (req, res) => {
+  if (req.user) {
+    const {
+      MEM_NUM, MEM_ID, MEM_EMAIL,
+      MEM_NAME, MEM_NICKNAME
+    } = req.user;
+    res.json({
+      isLoggedIn: true,
+      memNum: MEM_NUM,
+      id: MEM_ID,
+      email: MEM_EMAIL,
+      name: MEM_NAME,
+      nickname: MEM_NICKNAME
+    });
+  } else {
+    res.json({ isLoggedIn: false });
+  }
+});
+
+// ── 서버 및 Socket.IO 시작 ───────────────────────────────────────────
 const server = createServer(app);
 const io     = new Server(server, {
   cors: { origin: "http://localhost:3000", methods: ["GET","POST"] }
 });
-
 server.listen(process.env.PORT || 4000, () => {
-  console.log("🚀 Node 서버 실행 중: http://localhost:4000 or http://192.168.0.208:4000");
+  console.log("🚀 Node 서버 실행 중: http://localhost:4000 http://192.168.0.208:4000");
 });
 
 
@@ -71,48 +182,87 @@ server.listen(process.env.PORT || 4000, () => {
 // });
 
 // 회원가입
-app.post("/register", async (req, res) => {
-  const { username, password } = req.body;
+app.post("/api/register", async (req, res) => {
+  const {
+    id,           // MEM_ID
+    password,     // MEM_PW
+    name,         // MEM_NAME
+    zip,          // MEM_ZIP
+    add1,         // MEM_ADD1
+    add2,         // MEM_ADD2
+    phone,        // MEM_PHONE
+    email         // MEM_EMAIL
+  } = req.body;
+
   try {
-    const exists = await db.get("SELECT * FROM user WHERE username = ?", [username]);
-    if (exists) return res.status(400).send("이미 존재하는 아이디입니다.");
+    // 이미 존재하는 ID 또는 이메일 체크
+    const exists = await db.get(
+      "SELECT 1 FROM MEMBER WHERE MEM_ID = ? OR MEM_EMAIL = ?",
+      [id, email]
+    );
+    if (exists) {
+      return res.status(400).send("이미 존재하는 아이디 또는 이메일입니다.");
+    }
+
+    // 비밀번호 해시
     const hash = await bcrypt.hash(password, 10);
-    await db.run("INSERT INTO user (username,password) VALUES(?,?)", [username, hash]);
+
+    // INSERT
+    await db.run(
+      `INSERT INTO MEMBER (
+         MEM_ID, MEM_PW, MEM_NAME, MEM_ZIP, 
+         MEM_ADD1, MEM_ADD2, MEM_PHONE, MEM_EMAIL
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, hash, email, name, nickname, birth, gender, phone, zip, add1, add2]
+    );
+
     res.json({ registerSuccess: true });
-  } catch (e) { console.error(e); res.status(500).send("회원가입 오류"); }
+  } catch (e) {
+    console.error(e);
+    res.status(500).send("회원가입 오류");
+  }
 });
 
 // 로그인
-app.post("/login", (req, res, next) => {
+app.post("/api/login", (req, res, next) => {
   passport.authenticate("local", (err, user, info) => {
-    if (err) return res.status(500).json(err);
+    if (err)   return res.status(500).json(err);
     if (!user) return res.status(401).json(info);
-    req.logIn(user, (e) => { if (e) return next(e); res.json({ loginSuccess: true }); });
+
+    req.logIn(user, (e) => {
+      if (e) return next(e);
+      res.json({ loginSuccess: true });
+    });
   })(req, res, next);
 });
 
 // 로그아웃
-app.get("/logout", (req, res) => { req.logout(() => res.json({ logoutSuccess: true })); });
+app.get("/api/logout", (req, res) => {
+  req.logout(() => {
+    res.json({ logoutSuccess: true });
+  });
+});
 
 // 로그인 상태 확인
-app.get("/checkLoggedIn", (req, res) => { res.json({ isLoggedIn: !!req.user }); });
+app.get("/api/checkLoggedIn", (req, res) => {
+  res.json({ isLoggedIn: !!req.user });
+});
 
 // 로그인 정보 제공
-app.get("/checkLogin", (req, res) => {
-  if (req.user) res.json({ isLoggedIn: true, id: req.user.id, username: req.user.username });
-  else res.json({ isLoggedIn: false });
+app.get("/api/checkLogin", (req, res) => {
+  if (req.user) {
+    res.json({
+      isLoggedIn: true,
+      memNum:   req.user.MEM_NUM,
+      id:       req.user.MEM_ID,
+      email:    req.user.MEM_EMAIL,
+      name:     req.user.MEM_NAME
+    });
+  } else {
+    res.json({ isLoggedIn: false });
+  }
 });
 
-// 마이페이지: 작성자 ID 조회
-app.get("/userAuthorID", async (req,res) => {
-  try {
-    const user = await db.get("SELECT id FROM user WHERE username = ?", [req.query.username]);
-    if (user) res.send(user.id.toString());
-    else res.status(404).send("사용자를 찾을 수 없습니다.");
-  } catch (e) { console.error(e); res.status(500).send("서버 에러"); }
-});
-
-// 마이페이지: 내 배송 목록
 
 
 // 인증 메일 전송

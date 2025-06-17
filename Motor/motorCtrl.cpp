@@ -1,16 +1,17 @@
 #include "motorCtrl.h"
-
+#define DISABLE_WIRINGPI_DELAY
+#include <wiringPi.h>
 #define PI 3.1415926 
 
-#define L_RPWM 23//GPIO 13/
-#define L_LPWM 24//GPIO 19/
-#define R_RPWM 1//GPIO 18
-#define R_LPWM 26//GPIO 12
+#define L_RPWM 23//1
+#define L_LPWM 24//23
+#define R_RPWM 1//24
+#define R_LPWM 2//26
 
-#define L_REN 21 //GPIO 5/
-#define L_LEN 22 //GPIO 6/
-#define R_REN 6 //GPIO 25/
-#define R_LEN 10 //GPIO 8/
+#define L_REN 21
+#define L_LEN 22
+#define R_REN 6
+#define R_LEN 10
 
 #define maxPulse 1024
 #define maxSpeed 150.0f
@@ -33,23 +34,179 @@
 // private
 #pragma region Private functions
 
-/*
-LaserScan::points Motor::set_scanpoints(LaserScan& scan){
-    scanData=scan.points;
-    return scan.points;
+
+int Motor::lidar_setup(){
+    std::string port;
+    ydlidar::os_init();
+
+    std::map<std::string, std::string> ports =
+        ydlidar::lidarPortList();
+    std::map<std::string, std::string>::iterator it;
+
+    if (ports.size() == 1)
+    {
+        port = ports.begin()->second;
+    }
+    else
+    {
+        int id = 0;
+
+        for (it = ports.begin(); it != ports.end(); it++)
+        {
+        printf("[%d] %s %s\n", id, it->first.c_str(), it->second.c_str());
+        id++;
+        }
+
+        if (ports.empty()){
+        printf("Not Lidar was detected. Please enter the lidar serial port:");
+        std::cin >> port;
+        }
+        else {
+            while (ydlidar::os_isOk())
+            {
+                printf("Please select the lidar port:");
+                std::string number;
+                std::cin >> number;
+
+                if ((size_t)atoi(number.c_str()) >= ports.size())
+                {
+                continue;
+                }
+
+                it = ports.begin();
+                id = atoi(number.c_str());
+
+                while (id)
+                {
+                id--;
+                it++;
+                }
+
+                port = it->second;
+                break;
+            }
+        }
+    }
+
+    int baudrate = 128000;
+    bool isSingleChannel = false;
+    float frequency = 6.0;
+
+    if(!ydlidar::os_isOk())
+        return 0;
+
+    lidar.setlidaropt(LidarPropSerialPort, port.c_str(), port.size());
+    /// ignore array
+    std::string ignore_array;
+    ignore_array.clear();
+    lidar.setlidaropt(LidarPropIgnoreArray, ignore_array.c_str(),
+                        ignore_array.size());
+
+    //////////////////////int property/////////////////
+    /// lidar baudrate
+    lidar.setlidaropt(LidarPropSerialBaudrate, &baudrate, sizeof(int));
+    int optval = TYPE_TRIANGLE;
+    lidar.setlidaropt(LidarPropLidarType, &optval, sizeof(int));
+    optval = YDLIDAR_TYPE_SERIAL;
+    lidar.setlidaropt(LidarPropDeviceType, &optval, sizeof(int));
+    /// sample rate
+    optval = isSingleChannel ? 3 : 4;
+    optval = 5;
+    lidar.setlidaropt(LidarPropSampleRate, &optval, sizeof(int));
+    /// abnormal count
+    optval = 4;
+    lidar.setlidaropt(LidarPropAbnormalCheckCount, &optval, sizeof(int));
+    /// Intenstiy bit count
+    optval = 10;
+    lidar.setlidaropt(LidarPropIntenstiyBit, &optval, sizeof(int));
+
+    //////////////////////bool property/////////////////
+    /// fixed angle resolution
+    bool b_optvalue = false;
+    lidar.setlidaropt(LidarPropFixedResolution, &b_optvalue, sizeof(bool));
+    /// rotate 180
+    b_optvalue = false;
+    lidar.setlidaropt(LidarPropReversion, &b_optvalue, sizeof(bool));
+    /// Counterclockwise
+    b_optvalue = false;
+    lidar.setlidaropt(LidarPropInverted, &b_optvalue, sizeof(bool));
+    b_optvalue = true;
+    lidar.setlidaropt(LidarPropAutoReconnect, &b_optvalue, sizeof(bool));
+    /// one-way communication
+    b_optvalue = false;
+    lidar.setlidaropt(LidarPropSingleChannel, &isSingleChannel, sizeof(bool));
+    /// intensity
+    b_optvalue = false;
+    lidar.setlidaropt(LidarPropIntenstiy, &b_optvalue, sizeof(bool));
+    /// Motor DTR
+    b_optvalue = true;
+    lidar.setlidaropt(LidarPropSupportMotorDtrCtrl, &b_optvalue, sizeof(bool));
+    /// HeartBeat
+    b_optvalue = false;
+    lidar.setlidaropt(LidarPropSupportHeartBeat, &b_optvalue, sizeof(bool));
+
+    //////////////////////float property/////////////////
+    /// unit: °
+    float f_optvalue = 180.0f;
+    lidar.setlidaropt(LidarPropMaxAngle, &f_optvalue, sizeof(float));
+    f_optvalue = -180.0f;
+    lidar.setlidaropt(LidarPropMinAngle, &f_optvalue, sizeof(float));
+    f_optvalue = 64.f;
+    lidar.setlidaropt(LidarPropMaxRange, &f_optvalue, sizeof(float));
+    f_optvalue = 0.05f;
+    lidar.setlidaropt(LidarPropMinRange, &f_optvalue, sizeof(float));
+    lidar.setlidaropt(LidarPropScanFrequency, &frequency, sizeof(float));
+    lidar.enableGlassNoise(false);
+    lidar.enableSunNoise(false);
+    lidar.setBottomPriority(true);
+
+    uint32_t t = getms();
+    int c=0;
+    bool ret=lidar.initialize();
+    if (!ret)
+    {
+        fprintf(stderr, "Fail to initialize %s\n", lidar.DescribeError());
+        fflush(stderr);
+        return -1;
+    }
+
+    ret = lidar.turnOn();
+    if (!ret)
+    {
+        fprintf(stderr, "Fail to start %s\n", lidar.DescribeError());
+        fflush(stderr);
+        return -1;
+    }
+
+    if (ret)
+    {
+        device_info di;
+        memset(&di, 0, DEVICEINFOSIZE);
+        if (lidar.getDeviceInfo(di, EPT_Module)) {
+            ydlidar::core::common::printfDeviceInfo(di, EPT_Module);
+        }
+        else {
+        printf("Fail to get module device info\n");
+        }
+
+        if (lidar.getDeviceInfo(di, EPT_Base)) {
+            ydlidar::core::common::printfDeviceInfo(di, EPT_Base);
+        }
+        else {
+        printf("Fail to get baseplate device info\n");
+        }
+    }
+    return 0;
 }
-*/
 
 float Motor::calculate_dgrspeed(int pwm)
 {
-    return maxSpeed / 100.0f * pwm;
-
-    //초당 150rpm 최대 이동 >> 82 cm/sec
+    return maxSpeed / 100.0f * pwm * 6.0f;
 }
 
 float Motor::average_pwm(int l_pwm, int r_pwm)
 {
-    return (l_pwm + r_pwm) / 2.0f;
+    return l_pwm + r_pwm / 2.0f;
 }
 
 float Motor::calculate_tan(float degree)
@@ -74,31 +231,33 @@ void Motor::calculate_twin_pwm(float coredistance, int pwm, float degree, int* p
     
 }
 
-void Motor::lmotor_run(int pwm, bool front)
+void Motor::lmotor_run(int pwm, bool front=true)
 {
+    std::cout<<"Lmotor_run\n";
     validate_pwm(pwm);
     if (front) {
-        softPwmWrite(L_RpwmPin, pwm); //positive forward
-        softPwmWrite(L_LpwmPin, 0); // must turn off this pin when using L_pwmPin
+
+        pwmWrite(L_RpwmPin, pwm); //positive forward
+        pwmWrite(L_LpwmPin, 0); // must turn off this pin when using L_pwmPin
     }
     else {
-        softPwmWrite(L_RpwmPin, 0); //negative backward
-        softPwmWrite(L_LpwmPin, pwm);
+        pwmWrite(L_RpwmPin, 0); //negative backward
+        pwmWrite(L_LpwmPin, pwm);
     }
 
 }
 
-void Motor::rmotor_run(int pwm, bool front)
+void Motor::rmotor_run(int pwm, bool front = true)
 {
-    // std::cout << "Rmotor_run\n";
+    std::cout << "Rmotor_run\n";
     validate_pwm(pwm);
     if (front) {
-        softPwmWrite(R_RpwmPin, pwm); //positive forward
-        softPwmWrite(R_LpwmPin, 0); // must turn off this pin when using L_pwmPin
+        pwmWrite(R_RpwmPin, pwm); //positive forward
+        pwmWrite(R_LpwmPin, 0); // must turn off this pin when using L_pwmPin
     }
     else {
-        softPwmWrite(R_RpwmPin, 0); //negative backward
-        softPwmWrite(R_LpwmPin, pwm);
+        pwmWrite(R_RpwmPin, 0); //negative backward
+        pwmWrite(R_LpwmPin, pwm);
     }
 }
 
@@ -122,11 +281,16 @@ void Motor::motor_setup(int lr_pwmPin, int ll_pwmPin, int rr_pwmPin, int rl_pwmP
     pinMode(R_LENPin, OUTPUT);
     pinMode(L_RENPin, OUTPUT);
     pinMode(L_LENPin, OUTPUT);
+
+    pwmSetMode(PWM_MODE_MS);
+    //pwm max pulse
+    pwmSetRange(1024);
+    pwmSetClock(32);
     
-    softPwmCreate(L_RpwmPin, 0, maxPulse);
-    softPwmCreate(L_LpwmPin, 0, maxPulse);
-    softPwmCreate(R_RpwmPin, 0, maxPulse);
-    softPwmCreate(R_LpwmPin, 0, maxPulse);
+    digitalWrite(L_RENPin, HIGH);
+    digitalWrite(L_LENPin, HIGH);
+
+    lidar_setup();
 }
 
 void Motor::motor_setup()
@@ -166,44 +330,61 @@ Motor::~Motor(){
 #pragma endregion
 
 #pragma region Move functions
+
+void Motor::scan_oneCycle(){
+    lidar.turnOn();
+    if(ydlidar::os_isOk()){
+        if(lidar.doProcessSimple(scanData)){
+            usableData.clear();
+            for(size_t i=0; i<scanData.points.size(); i++){
+                const LaserPoint &p = scanData.points.at(i);
+                LaserPoint temp={p.angle*180.0/M_PI, p.range*1000.0, p.intensity};
+                usableData.push_back(temp);
+            }
+        }
+        else{
+            fprintf(stderr, "Failed to get Lidar Data\n");
+            fflush(stderr);
+        }
+    }
+    lidar.turnOff();
+}
+
+std::vector<LaserPoint> Motor::get_scanData(){
+    return usableData;
+}
+
+void Motor::show_scanData(){
+    for(int i=0; i<usableData.size(); i++){
+        std::cout<<usableData[i].angle<<usableData[i].range<<"\n";
+    }
+    std::cout<<"----* end of scan data *----\n";
+}
+
 void Motor::straight(int pwm)
 {
     validate_pwm(pwm);
-    digitalWrite(R_LENPin, HIGH);
-    digitalWrite(L_LENPin, HIGH);
-    digitalWrite(R_RENPin, HIGH);
-    digitalWrite(L_RENPin, HIGH);
-    std::cout << "rpwm go\n";
-    softPwmWrite(R_RpwmPin, pwm);   //positive forward
-    softPwmWrite(R_LpwmPin, 0);     // must turn off this pin when using R_pwmPin
-    std::cout << "lpwm go\n";
-    softPwmWrite(L_RpwmPin, pwm);   //positive forward
-    softPwmWrite(L_LpwmPin, 0);     //must turn off this pin when using R_pwmPin
+    pwmWrite(R_RpwmPin, pwm);   //positive forward
+    pwmWrite(R_LpwmPin, 0);     // must turn off this pin when using R_pwmPin
+    pwmWrite(L_RpwmPin, pwm);   //positive forward
+    pwmWrite(L_LpwmPin, 0);     //must turn off this pin when using R_pwmPin
 }
 
 void Motor::backoff(int pwm)
 {
     validate_pwm(pwm);
-    digitalWrite(R_LENPin, HIGH);
-    digitalWrite(R_RENPin, HIGH);
-    digitalWrite(L_LENPin, HIGH);
-    digitalWrite(L_RENPin, HIGH);
-    std::cout << "rpwm back\n";
-    softPwmWrite(R_RpwmPin, 0);
-    softPwmWrite(R_LpwmPin, pwm);
-    std::cout << "lpwm back\n";
-    softPwmWrite(L_RpwmPin, 0);
-    softPwmWrite(L_LpwmPin, pwm);
+    pwmWrite(R_LpwmPin, pwm);
+    pwmWrite(R_RpwmPin, 0);
+    pwmWrite(L_LpwmPin, pwm);
+    pwmWrite(L_RpwmPin, 0);
 }
 
 void Motor::stop(){
-    std::cout << "rpwm stop\n";
-    softPwmWrite(R_RpwmPin,0);
-    softPwmWrite(R_LpwmPin, 0);
-    std::cout << "lpwm stop\n";
-    softPwmWrite(L_RpwmPin,0);
-    softPwmWrite(L_LpwmPin, 0);
-    digitalWrite(L_RENPin, LOW);
+    pwmWrite(R_RpwmPin,0);
+    pwmWrite(R_LpwmPin, 0);
+    pwmWrite(L_RpwmPin,0);
+    pwmWrite(L_LpwmPin, 0);
+    digitalWrite(R_LENPin, LOW);
     digitalWrite(L_LENPin, LOW);
     digitalWrite(R_RENPin, LOW);
     digitalWrite(R_LENPin, LOW);
@@ -212,14 +393,13 @@ void Motor::stop(){
 void Motor::rotate(int pwm, float degree)
 {
     validate_pwm(pwm);
-    digitalWrite(R_LENPin, HIGH);
-    digitalWrite(L_LENPin, HIGH);
-    digitalWrite(R_RENPin, HIGH);
-    digitalWrite(L_RENPin, HIGH);
-    
+
     float dgrspeed = calculate_dgrspeed(pwm);
     //abs_dgr : 절대값 각도
-    float abs_dgr = (degree<0)? -degree : degree;
+    float abs_dgr = degree;
+    if(abs_dgr <0){
+        abs_dgr *= -1.0f;
+    }
     float delaytime = abs_dgr / dgrspeed;
 
     unsigned int currentTime = millis();
@@ -235,7 +415,6 @@ void Motor::rotate(int pwm, float degree)
         }
             // 모터 최대 150rpm, 설정 최대 pwm 100, 6.0f는 초당 각속도 계산을 위한 상수
     }
-    stop();
 }
 
 //동작 중에 추가로 피해야할 대상이 나타나면 유연하게 회피하도록 해야함
@@ -300,20 +479,15 @@ void Motor::curve_corner(float connerdistance, int pwm, float degree)
     unsigned int currentTime = millis();
     if(degree>0){
         while(millis()-currentTime <= delaytime){
-            softPwmWrite(L_RpwmPin, pwm_1);
-            softPwmWrite(R_RpwmPin, pwm_2);
-            softPwmWrite(L_LpwmPin, 0);
-            softPwmWrite(R_LpwmPin, 0);
+            pwmWrite(L_RpwmPin, pwm_1);
+            pwmWrite(R_RpwmPin, pwm_2);
         }
-        stop();
+        
     }else{
         while(millis()-currentTime <= delaytime){
-            softPwmWrite(L_RpwmPin, pwm_2);
-            softPwmWrite(R_RpwmPin, pwm_1);
-            softPwmWrite(L_LpwmPin, 0);
-            softPwmWrite(R_LpwmPin, 0);
+            pwmWrite(L_RpwmPin, pwm_2);
+            pwmWrite(R_RpwmPin, pwm_1);
         }
-        stop();
     }
     
 }
@@ -322,40 +496,28 @@ void Motor::curve_corner(float connerdistance, int pwm, float degree)
 
 int main() {
     Motor motor;
-    //Lidar lidar(&motor);
-    //lidar.start();
+    motor.scan_oneCycle();
     //scanpoint 자동 업데이트
     //너무 빠른 업데이트를 막기위해 delay넣어야하는지는 실제 테스트해봐야함
-    delay(3000);
-    //직진 후진 회전 코너링 순서로 테스트
+    motor.show_scanData();
+    /*
     unsigned int time = millis();
-    motor.straight(1024);
     while(millis()-time <5000){
+        motor.scan_OneCycle();
+        motor.straight(1024);
     }
-    motor.stop();
-
-    
     time=millis();
-    motor.backoff(1024);
     while(millis()-time <3000){
-        
-    }
-    motor.stop();
 
+        motor.backoff(1024);
+    }
     time=millis();
-    motor.rotate(1000, 90);
-    while(millis()-time<5000){
-        // 5초 이후에도 멈추지 않으면
+    motor.get_scanpoints()
+    while(millis()-time <3000){
+        motor.curve_corner(100.0f, 500, 90);
     }
+    */
     motor.stop();
-    //motor.get_scanpoints()
-
-    // motor.curve_corner(80.0f, 1000, 90);
-    // time=millis();
-    // while(millis()-time < 5000){
-    //     // 5초 이후에도 멈추지 않으면
-    // }
-    // motor.stop();
     
     return 0;
 }

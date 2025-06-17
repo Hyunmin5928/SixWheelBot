@@ -1,12 +1,12 @@
 #pragma once
-//#include "../../../YDLidar-SDK/src/CYdLidar.h"
-//#include "../../YDLidar-SDK/examples/lidar_class.h"
+#include "../LiDAR/YDLidar/YDLidar-SDK/src/CYdLidar.h"
 #include <wiringPi.h>
 #include <softPwm.h>
 #include <iostream>
 #include <cmath>
 #include <vector>
 #include <functional>
+#include <core/common/ydlidar_help.h>
 
 class Motor{
     private:
@@ -21,12 +21,14 @@ class Motor{
         int L_RENPin;
         int L_LENPin;
 
-        //LaserScan::points scanData;
+        CYdLidar lidar;
+        LaserScan scanData; //스캔 데이터 직접 받는 곳 삭제 절대 XXX
+        std::vector<LaserPoint> usableData; //스캔 데이터  정제하여 받는 곳
+
+        int lidar_setup();
         void motor_setup();
         void motor_setup(int lr_pwmPin, int ll_pwmPin,int rr_pwmPin, int rl_pwmPIn, int rr_enPin, int rl_enPin, int lr_enPin, int ll_enPin);
         bool pwm_isvalid(int pwm);
-
-        //LaserScan::points get_scanpoints(LaserScan& scan);
 
         float calculate_dgrspeed(int pwm);
 
@@ -36,14 +38,20 @@ class Motor{
 
         void calculate_twin_pwm(float coredistance, int pwm, float degree, int* pwm1, int* pwm2);
 
-        void lmotor_run(int pwm, bool front=true) ;
-        void rmotor_run(int pwm, bool front=true) ;
+        void lmotor_run(int pwm, bool front) ;
+        void rmotor_run(int pwm, bool front) ;
 
     public:
         Motor();
         Motor(int lr_pwmPin, int ll_pwmPin,int rr_pwmPin, int rl_pwmPin, int rr_enPin, int rl_enPin, int lr_enPin, int ll_enPin);
         ~Motor();
 
+        void scan_oneCycle();
+
+        std::vector<LaserPoint> get_scanData();
+
+        void show_scanData();
+        
         void straight(int pwm);
 
        // @brief back off

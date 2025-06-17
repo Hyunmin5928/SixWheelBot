@@ -1,6 +1,12 @@
 #pragma once
+<<<<<<< HEAD
 #include "../../YDLiDAR/YDLidar-SDK/src/CYdLidar.h"
 // #include "../../YDLiDAR/YDLidar-SDK/examples/myung-ryun-lidar.h"
+=======
+#include "../LiDAR/YDLidar/YDLidar-SDK/src/CYdLidar.h"
+//#include "../../YDLidar-SDK/examples/lidar_class.h"
+#include <wiringPi.h>
+>>>>>>> 6872a42 (CYdLidar 클래스 넣어서 라이다 초기화 + 설정 + 1회만 가동할 수 있도록 함. 모터 클래스에서 스캔 값 가지고 올 수 있으나, 임계값 이하의 거리 데이터만 따로 필터링해서 모터 동작하도록 해야함.)
 #include <softPwm.h>
 #include <iostream>
 #include <cmath>
@@ -24,6 +30,14 @@ class Motor{
 
 
         void motor_setup();
+
+        CYdLidar lidar;
+        LaserScan scanData; //스캔 데이터 직접 받는 곳 삭제 절대 XXX
+        std::vector<LaserPoint> usableData; //스캔 데이터  정제하여 받는 곳
+
+        void lidar_setup();
+        int motor_setup();
+
         void motor_setup(int lr_pwmPin, int ll_pwmPin,int rr_pwmPin, int rl_pwmPIn, int rr_enPin, int rl_enPin, int lr_enPin, int ll_enPin);
         bool pwm_isvalid(int pwm);
 
@@ -46,9 +60,16 @@ class Motor{
         Motor(int lr_pwmPin, int ll_pwmPin,int rr_pwmPin, int rl_pwmPin, int rr_enPin, int rl_enPin, int lr_enPin, int ll_enPin);
         ~Motor();
 
+<<<<<<< HEAD
         std::vector<LaserPoint> set_scanpoints(LaserScan& scan);
 
         void calculate_ang_dist();
+=======
+        void scan_oneCycle();
+        std::vector<LaserPoint> Motor::get_scanData();
+        std::vector<LaserPoint> show_scanData();
+        
+>>>>>>> 6872a42 (CYdLidar 클래스 넣어서 라이다 초기화 + 설정 + 1회만 가동할 수 있도록 함. 모터 클래스에서 스캔 값 가지고 올 수 있으나, 임계값 이하의 거리 데이터만 따로 필터링해서 모터 동작하도록 해야함.)
         void straight(int pwm);
 
        // @brief back off

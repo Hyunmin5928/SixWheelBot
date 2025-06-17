@@ -3,7 +3,7 @@
 #define DISABLE_WIRINGPI_DELAY
 #include <wiringPi.h>
 #include "motorCtrl.h"
-
+#ifdef __MOTORCTRL_H__
 #define PI 3.1415926 
 
 #define L_RPWM 23//GPIO 13/
@@ -28,6 +28,8 @@
 #endif
 
 
+#endif
+
 //degree 값을 180 ~ -180 으로 설정함. 0~360으로 나올 경우 변수 변경 필요 (실제 받아오는 값은 전방 부채꼴 각도이므로, 유의)
 
 //@brief pwm값 유효성 확인
@@ -40,6 +42,178 @@
 // private
 #pragma region Private functions
 
+<<<<<<< HEAD
+=======
+LaserScan::points Motor::set_scanpoints(LaserScan& scan){
+    scanData=scan.points;
+    return scan.points;
+}
+
+int Motor::lidar_setup(){
+    std::string port;
+    ydlidar::os_init();
+
+    std::map<std::string, std::string> ports =
+        ydlidar::lidarPortList();
+    std::map<std::string, std::string>::iterator it;
+
+    if (ports.size() == 1)
+    {
+        port = ports.begin()->second;
+    }
+    else
+    {
+        int id = 0;
+
+        for (it = ports.begin(); it != ports.end(); it++)
+        {
+        printf("[%d] %s %s\n", id, it->first.c_str(), it->second.c_str());
+        id++;
+        }
+
+        if (ports.empty()){
+        printf("Not Lidar was detected. Please enter the lidar serial port:");
+        std::cin >> port;
+        }
+        else {
+            while (ydlidar::os_isOk())
+            {
+                printf("Please select the lidar port:");
+                std::string number;
+                std::cin >> number;
+
+                if ((size_t)atoi(number.c_str()) >= ports.size())
+                {
+                continue;
+                }
+
+                it = ports.begin();
+                id = atoi(number.c_str());
+
+                while (id)
+                {
+                id--;
+                it++;
+                }
+
+                port = it->second;
+                break;
+            }
+        }
+    }
+
+    int baudrate = 128000;
+    bool isSingleChannel = false;
+    float frequency = 6.0;
+
+    if(!ydlidar::os_isOk())
+        return 0;
+
+    lidar.setlidaropt(LidarPropSerialPort, port.c_str(), port.size());
+    /// ignore array
+    std::string ignore_array;
+    ignore_array.clear();
+    lidar.setlidaropt(LidarPropIgnoreArray, ignore_array.c_str(),
+                        ignore_array.size());
+
+    //////////////////////int property/////////////////
+    /// lidar baudrate
+    lidar.setlidaropt(LidarPropSerialBaudrate, &baudrate, sizeof(int));
+    int optval = TYPE_TRIANGLE;
+    lidar.setlidaropt(LidarPropLidarType, &optval, sizeof(int));
+    optval = YDLIDAR_TYPE_SERIAL;
+    lidar.setlidaropt(LidarPropDeviceType, &optval, sizeof(int));
+    /// sample rate
+    optval = isSingleChannel ? 3 : 4;
+    optval = 5;
+    lidar.setlidaropt(LidarPropSampleRate, &optval, sizeof(int));
+    /// abnormal count
+    optval = 4;
+    lidar.setlidaropt(LidarPropAbnormalCheckCount, &optval, sizeof(int));
+    /// Intenstiy bit count
+    optval = 10;
+    lidar.setlidaropt(LidarPropIntenstiyBit, &optval, sizeof(int));
+
+    //////////////////////bool property/////////////////
+    /// fixed angle resolution
+    bool b_optvalue = false;
+    lidar.setlidaropt(LidarPropFixedResolution, &b_optvalue, sizeof(bool));
+    /// rotate 180
+    b_optvalue = false;
+    lidar.setlidaropt(LidarPropReversion, &b_optvalue, sizeof(bool));
+    /// Counterclockwise
+    b_optvalue = false;
+    lidar.setlidaropt(LidarPropInverted, &b_optvalue, sizeof(bool));
+    b_optvalue = true;
+    lidar.setlidaropt(LidarPropAutoReconnect, &b_optvalue, sizeof(bool));
+    /// one-way communication
+    b_optvalue = false;
+    lidar.setlidaropt(LidarPropSingleChannel, &isSingleChannel, sizeof(bool));
+    /// intensity
+    b_optvalue = false;
+    lidar.setlidaropt(LidarPropIntenstiy, &b_optvalue, sizeof(bool));
+    /// Motor DTR
+    b_optvalue = true;
+    lidar.setlidaropt(LidarPropSupportMotorDtrCtrl, &b_optvalue, sizeof(bool));
+    /// HeartBeat
+    b_optvalue = false;
+    lidar.setlidaropt(LidarPropSupportHeartBeat, &b_optvalue, sizeof(bool));
+
+    //////////////////////float property/////////////////
+    /// unit: °
+    float f_optvalue = 180.0f;
+    lidar.setlidaropt(LidarPropMaxAngle, &f_optvalue, sizeof(float));
+    f_optvalue = -180.0f;
+    lidar.setlidaropt(LidarPropMinAngle, &f_optvalue, sizeof(float));
+    f_optvalue = 64.f;
+    lidar.setlidaropt(LidarPropMaxRange, &f_optvalue, sizeof(float));
+    f_optvalue = 0.05f;
+    lidar.setlidaropt(LidarPropMinRange, &f_optvalue, sizeof(float));
+    lidar.setlidaropt(LidarPropScanFrequency, &frequency, sizeof(float));
+    lidar.enableGlassNoise(false);
+    lidar.enableSunNoise(false);
+    lidar.setBottomPriority(true);
+
+    unit32_t t=getms();
+    int c=0;
+    bool ret=lidar.initialize();
+    if (!ret)
+    {
+        fprintf(stderr, "Fail to initialize %s\n", lidar.DescribeError());
+        fflush(stderr);
+        return -1;
+    }
+
+    ret = lidar.turnOn();
+    if (!ret)
+    {
+        fprintf(stderr, "Fail to start %s\n", lidar.DescribeError());
+        fflush(stderr);
+        return -1;
+    }
+
+    if (ret)
+    {
+        device_info di;
+        memset(&di, 0, DEVICEINFOSIZE);
+        if (lidar.getDeviceInfo(di, EPT_Module)) {
+        ydlidar::core::common::printfDeviceInfo(di, EPT_Module);
+        }
+        else {
+        printf("Fail to get module device info\n");
+        }
+
+        if (lidar.getDeviceInfo(di, EPT_Base)) {
+        ydlidar::core::common::printfDeviceInfo(di, EPT_Base);
+        }
+        else {
+        printf("Fail to get baseplate device info\n");
+        }
+    }
+    return 0;
+}
+
+>>>>>>> 6872a42 (CYdLidar 클래스 넣어서 라이다 초기화 + 설정 + 1회만 가동할 수 있도록 함. 모터 클래스에서 스캔 값 가지고 올 수 있으나, 임계값 이하의 거리 데이터만 따로 필터링해서 모터 동작하도록 해야함.)
 float Motor::calculate_dgrspeed(int pwm)
 {
     std::cout<<"maxSpeed : "<<maxSpeed<<"\n";
@@ -133,10 +307,17 @@ void Motor::motor_setup(int lr_pwmPin, int ll_pwmPin, int rr_pwmPin, int rl_pwmP
     pinMode(L_RENPin, OUTPUT);
     pinMode(L_LENPin, OUTPUT);
     
+<<<<<<< HEAD
     softPwmCreate(L_RpwmPin, 0, maxPulse);
     softPwmCreate(L_LpwmPin, 0, maxPulse);
     softPwmCreate(R_RpwmPin, 0, maxPulse);
     softPwmCreate(R_LpwmPin, 0, maxPulse);
+=======
+    digitalWrite(L_RENPin, HIGH);
+    digitalWrite(L_LENPin, HIGH);
+
+    lidar_setup();
+>>>>>>> 6872a42 (CYdLidar 클래스 넣어서 라이다 초기화 + 설정 + 1회만 가동할 수 있도록 함. 모터 클래스에서 스캔 값 가지고 올 수 있으나, 임계값 이하의 거리 데이터만 따로 필터링해서 모터 동작하도록 해야함.)
 }
 
 void Motor::motor_setup()
@@ -177,6 +358,7 @@ Motor::~Motor(){
 
 #pragma region Move functions
 
+<<<<<<< HEAD
 // std::vector<LaserPoint> Motor::set_scanpoints(LaserScan& scan){
 //     scanData=scan.points;
 //     for(int i=0; i<scanData.size(); i++){
@@ -185,6 +367,40 @@ Motor::~Motor(){
 //     std::cout<<"--------------end scan data----------------\n";
 //     return scan.points;
 // }
+=======
+void Motor::scan_oneCycle(){
+    lidar.turnOn();
+    if(ydlidar::os_isOk()){
+        if(lidar.doProcessSimple(scanData)){
+            usableData.clear();
+            for(size_t i=0; i<scanData.points.size(); i++){
+                const lidarPoint &p = scanData.points.at(i);
+                LaserPoint temp={p.angle*180.0/M_PI, p.range*1000.0, p.intensity};
+                usableData.push_back(temp);
+            }
+        }
+        else{
+            fprintf(stderr, "Failed to get Lidar Data\n");
+            fflush(stderr);
+        }
+        if(!c++){
+            printf("Time consuming [%u] from initialization to parsing to point cloud data\n", getms() - t);
+        }
+    }
+    lidar.turnOff();
+}
+
+std::vector<LaserPoint> Motor::get_scanData(){
+    return usableData;
+}
+
+void Motor::show_scanData(){
+    for(int i=0; i<usableData.size(); i++){
+        std::cout<<usableData[i].angle<<usableData[i].range<<"\n";
+    }
+    std::cout<<"----* end of scan data *----\n";
+}
+>>>>>>> 6872a42 (CYdLidar 클래스 넣어서 라이다 초기화 + 설정 + 1회만 가동할 수 있도록 함. 모터 클래스에서 스캔 값 가지고 올 수 있으나, 임계값 이하의 거리 데이터만 따로 필터링해서 모터 동작하도록 해야함.)
 
 void Motor::straight(int pwm)
 {
@@ -349,6 +565,7 @@ void Motor::curve_corner(float connerdistance, int pwm, float degree)
 
 int main() {
     Motor motor;
+<<<<<<< HEAD
     // Lidar lidar(&motor);
     // lidar.start();
     // lidar.lidar_only_Cycle();
@@ -632,6 +849,30 @@ int main() {
     //motor.straight(70); // 직진
     while(millis()-time <7000){
     }
+=======
+    motor.scan_oneCycle();
+    //scanpoint 자동 업데이트
+    //너무 빠른 업데이트를 막기위해 delay넣어야하는지는 실제 테스트해봐야함
+    std::cout<<motor.show_scanData();
+
+    /*
+    unsigned int time = millis();
+    while(millis()-time <5000){
+        motor.scan_OneCycle();
+        motor.straight(1024);
+    }
+    time=millis();
+    while(millis()-time <3000){
+
+        motor.backoff(1024);
+    }
+    time=millis();
+    motor.get_scanpoints()
+    while(millis()-time <3000){
+        motor.curve_corner(100.0f, 500, 90);
+    }
+    */
+>>>>>>> 6872a42 (CYdLidar 클래스 넣어서 라이다 초기화 + 설정 + 1회만 가동할 수 있도록 함. 모터 클래스에서 스캔 값 가지고 올 수 있으나, 임계값 이하의 거리 데이터만 따로 필터링해서 모터 동작하도록 해야함.)
     motor.stop();
     // lidar.lidar_off();
     // time=millis();

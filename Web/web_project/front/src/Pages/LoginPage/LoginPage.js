@@ -3,8 +3,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-import EasyLogo from '../../assets/logo.png';   // ⬅️ PNG 로고
-import styles   from './LoginPage.module.css';             // CSS 모듈
+import EasyLogo from '../../assets/logo.png';
+import styles   from './LoginPage.module.css';
 
 export default function LoginPage({ onLogin, isLoggedIn }) {
   const [username, setUsername] = useState('');

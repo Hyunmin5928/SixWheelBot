@@ -1,5 +1,12 @@
 import requests
 import json
+import sys
+
+# 전역 리스트
+ROUTE_COORDS = []
+CROSSWALK_COORDS = []
+TURN_POINTS = []
+
 
 # 🔧 설정
 API_KEY = "6uHPB650j41F9NmAfTKjs5DxEZ0eBcTC77dm55iX"  
@@ -24,6 +31,10 @@ TURN_TYPE_MAP = {
     201: "도착지"
 }
 
+
+def redirect_stdout_to_log(log_file_path="route_log.txt"):
+    log_file = open(log_file_path, "a", encoding="utf-8")
+    sys.stdout = log_file
 
 
 # 1. Tmap 도보 길찾기 API 호출
@@ -89,6 +100,11 @@ def parse_route_coords(data):
     # ✅ 좌표 리스트 구성 (turnType 포함)
     route_coords = [(lat, lon, coord_map[(lat, lon)]) for (lat, lon) in coord_map]
 
+     # ✅ 전역 변수에 저장
+    ROUTE_COORDS = route_coords
+    CROSSWALK_COORDS = crosswalk_coords
+    TURN_POINTS = turn_points
+
     return route_coords, crosswalk_coords, turn_points
 
 
@@ -112,7 +128,15 @@ def print_route_with_turntypes(route_coords):
     for lat, lon, turn_type in route_coords:
         t_str = str(turn_type) if turn_type is not None else "없음"
         print(f"{lat:.7f}, {lon:.7f}, {t_str}")
-       
+
+# 리스트 반환 함수
+def get_route_coords():
+    return ROUTE_COORDS
+def get_crosswalk_coords():
+    return CROSSWALK_COORDS
+def get_turn_points():
+    return TURN_POINTS
+
 
 
 

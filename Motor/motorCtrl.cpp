@@ -289,18 +289,15 @@ void Motor::curve_avoid(float distance, int pwm, float degree, bool recover = fa
         if(degree > 0){ //왼쪽 회피
             rotate(pwm, avoid_degree);
             log_msg("Debug", "rotate left for avoid : avoid angle");
-            std::cout << "rotate left for avoid : avoid angle\n";
         }
         else{ //오른쪽 회피
             rotate(pwm, -avoid_degree);
             log_msg("Debug", "rotate right for avoid : avoid angle");
-            std::cout << "rotate right for avoid : avoid angle\n";
         }
     }
     long long unsigned int currentTime = millis();
     straight(pwm);
     log_msg("Debug", "straight for avoid");
-    std::cout << "straight for avoid\n";
     while(millis() - currentTime < 500) {
 
     }
@@ -308,12 +305,10 @@ void Motor::curve_avoid(float distance, int pwm, float degree, bool recover = fa
     if(degree > 0){ //왼쪽 회피
         rotate(pwm, -avoid_degree);
         log_msg("Debug", "rotate left for avoid : recover angle");
-        std::cout << "rotate left for avoid : recover angle\n";
     }
     else {
         rotate(pwm, avoid_degree);
         log_msg("Debug", "rotate right for avoid : recover angle");
-        std::cout << "rotate right for avoid : recover angle\n";
     }
 
     /*

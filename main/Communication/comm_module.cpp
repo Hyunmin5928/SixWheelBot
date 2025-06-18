@@ -9,6 +9,8 @@
 #include <nlohmann/json.hpp>
 #include "SafeQueue.hpp"
 
+extern std::atomic<bool> running;
+
 // udp_client.cpp 에 정의된 함수/변수들
 extern int        sock_fd;
 extern std::string SERVER_IP;
@@ -30,9 +32,11 @@ std::vector<double> get_current_gps();
 
 using json = nlohmann::json;
 
-void comm_thread(SafeQueue<std::pair<double,double>>& gps_q,
-                 SafeQueue<int>& cmd_q,
-                 std::atomic<bool>& running)
+void comm_thread(
+    SafeQueue<std::vector<std::vector<double>>>& map_q,
+    SafeQueue<std::pair<double,double>>& gps_q,
+    SafeQueue<int>& cmd_q,
+    std::atomic<bool>& running)
 {
     // 1) 소켓 생성 & 바인드
     sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -50,6 +54,24 @@ void comm_thread(SafeQueue<std::pair<double,double>>& gps_q,
 
     // 논블로킹으로 서버→명령 수신
     fcntl(sock_fd, F_SETFL, O_NONBLOCK);
+
+    // 1) 처음 한 번, map 수신 (블록킹)
+    char buf[65536];
+    std::vector<std::vector<double>> route;
+    while (running) {
+        ssize_t len = recvfrom(sock_fd, buf, sizeof(buf)-1, 0, nullptr, nullptr);
+        if (len>0) {
+            buf[len]=0;
+            auto pkt = json::parse(buf);
+            if (pkt["type"]=="map") {
+                route = pkt["route"].get<decltype(route)>();
+                // ACK_MAP 전송
+                sendto(sock_fd, "ACK_MAP:0", 9,0,(sockaddr*)&srv,sizeof(srv));
+                map_q.Produce(std::move(route));
+                break;
+            }
+        }
+    }
 
     // 2) 로그 전송용 캐시 & 패킷 번호
     std::map<int,std::string> cache;
@@ -111,4 +133,7 @@ void comm_thread(SafeQueue<std::pair<double,double>>& gps_q,
 
     // 스레드 종료 시 자원 정리
     close(sock_fd);
+    map_q.Finish();
+    gps_q.Finish();
+    cmd_q.Finish();
 }

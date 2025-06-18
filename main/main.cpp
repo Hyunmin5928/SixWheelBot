@@ -91,16 +91,31 @@ int main(){
     return 1;
   }
   // 각 모듈 간 데이터 교환용 큐
-  SafeQueue<int>                      lidar_queue;    // 예: LiDAR raw
   SafeQueue<int>                      motor_cmd_queue;// 예: 회피 명령 코드
   SafeQueue<std::pair<double,double>> gps_queue;     // 예: {위도,경도}
   SafeQueue<std::string>              vision_route_q; // 예: "REPLAN"
-  
+  SafeQueue<std::vector<ScanPoint>>      lidar_queue;
   // 쓰레드 생성
-  std::thread t_motor(  motor_thread,  std::ref(lidar_queue), std::ref(motor_cmd_queue), std::ref(running));
-  std::thread t_gps(    gps_thread,    std::ref(gps_queue),   std::ref(vision_route_q), std::ref(running));
-  std::thread t_vision( vision_thread, std::ref(vision_route_q), std::ref(gps_queue),   std::ref(running));
-  std::thread t_comm(   comm_thread,   std::ref(gps_queue),   std::ref(motor_cmd_queue), std::ref(running));
+  std::thread t_motor(
+    motor_thread,
+    std::ref(lidar_queue),
+    std::ref(motor_cmd_queue),
+    std::ref(running));
+  std::thread t_gps(    
+    gps_thread,    
+    std::ref(gps_queue),   
+    std::ref(vision_route_q), 
+    std::ref(running));
+  std::thread t_vision( 
+    vision_thread, 
+    std::ref(vision_route_q), 
+    std::ref(gps_queue),   
+    std::ref(running));
+  std::thread t_comm(   
+    comm_thread,   
+    std::ref(gps_queue),   
+    std::ref(motor_cmd_queue), 
+    std::ref(running));
 
   // 필요에 따라 SIGINT 핸들링 → running=false 로 설정
 

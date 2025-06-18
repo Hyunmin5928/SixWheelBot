@@ -26,9 +26,23 @@
 #include <sstream>
 #include <string>
 
+using json = nlohmann::json;
 
 class Motor{
     private:
+        std::string SERVER_IP;
+        int         SERVER_PORT;
+        std::string CLIENT_IP;
+        int         CLIENT_PORT;
+        std::string ALLOW_IP;
+        double      ACK_TIMEOUT;
+        int         RETRY_LIMIT;
+        std::string LOG_FILE="Motor/log/motor_log.txt"; // 기본 로그 파일 경로
+
+        int log_fd;
+        int sock_fd = -1;
+
+
         int L_RpwmPin; //LEFT WHEEL. direction: FRONT
         int L_LpwmPin; //LEFT WHEEL. direction: BACK
         int R_RpwmPin; //RIGHT WHEEL. direction: FRONT
@@ -59,6 +73,35 @@ class Motor{
         Motor();
         Motor(int lr_pwmPin, int ll_pwmPin,int rr_pwmPin, int rl_pwmPin, int rr_enPin, int rl_enPin, int lr_enPin, int ll_enPin);
         ~Motor();
+
+        void log_msg(const std::string& level, const std::string& msg) {
+            auto now = std::chrono::system_clock::to_time_t(
+                        std::chrono::system_clock::now());
+            std::ostringstream oss;
+            oss << std::put_time(std::localtime(&now),
+                                "%Y-%m-%d %H:%M:%S")
+                << " [" << level << "] " << msg << "\n";
+            write(log_fd, oss.str().c_str(), oss.str().size());
+        }
+
+        void open_log_file() {
+            log_fd = open(LOG_FILE.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0644);
+            if (log_fd < 0) {
+                std::cerr << "Failed to open log file: " << LOG_FILE << std::endl;
+            } else {
+                log_msg("INFO", "Log file opened successfully.");
+            }
+        }
+
+        void close_log_file() {
+            if (log_fd >= 0) {
+                close(log_fd);
+                log_fd = -1;
+                log_msg("INFO", "Log file closed successfully.");
+            } else {
+                std::cerr << "Log file is not open." << std::endl;
+            }
+        }
 
         void straight(int pwm);
 

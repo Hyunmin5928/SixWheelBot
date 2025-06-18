@@ -370,3 +370,4 @@ Communication/gpt.py
 build/
 */build
 *.db
+Web/web_project/*.db

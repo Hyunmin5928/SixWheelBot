@@ -228,22 +228,27 @@ void Motor::curve_avoid(float distance, int pwm, float degree, bool recover = fa
         
         if(degree > 0){ //왼쪽 회피
             rotate(pwm, avoid_degree);
+            log_msg("Debug", "rotate left for avoid : avoid angle");
         }
         else{ //오른쪽 회피
             rotate(pwm, -avoid_degree);
+            log_msg("Debug", "rotate right for avoid : avoid angle");
         }
     }
     long long unsigned int currentTime = millis();
     straight(pwm);
+    log_msg("Debug", "straight for avoid");
     while(millis() - currentTime < 500) {
 
     }
     stop();
     if(degree > 0){ //왼쪽 회피
         rotate(pwm, -avoid_degree);
+        log_msg("Debug", "rotate left for avoid : recover angle");
     }
     else {
         rotate(pwm, avoid_degree);
+        log_msg("Debug", "rotate right for avoid : recover angle");
     }
 
     /*
@@ -317,13 +322,12 @@ int main() {
     Motor motor;
     Lidar lidar;
     lidar.scan_oneCycle();
-    
-    float avoid_dgr;
-    float avoid_dist=16000.0f;
 
-    std::cout<<lidar.read_last_line();
+    if(lidar.get_nearPoint().angle<20.0f && lidar.get_nearPoint().angle > -20.0f && lidar.get_nearPoint().range < avoidDistance_trigger){
+        motor.curve_avoid(lidar.get_nearPoint().range, 700, lidar.get_nearPoint().angle);
 
-    
+    }
+    delay(2000);
     /*
     for(int i=0; i<scanpoints.size(); i++){
         

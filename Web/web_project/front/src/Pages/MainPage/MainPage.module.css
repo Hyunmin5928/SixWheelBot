@@ -13,14 +13,37 @@
 /* ── 헤더 ───────────────────────────── */
 .header { display:flex; justify-content:space-between; align-items:center;
           padding:16px 32px; background:#3b3b3b; }
+
 .logoArea{ display:flex; align-items:center; gap:8px; font-size:32px; cursor:pointer; }
 .logoArea img{ width:40px; }
 
-.userMenu a{ margin-left:24px; color:#fff; font-size:14px; text-decoration:none; position:relative; }
+.userMenu { display:flex; align-items:center; }
+
+/* 메뉴 공통 (NavLink · button) */
+.userMenu a,
+.userMenu .menuLink{
+  margin-left:24px;
+  color:#fff;
+  font-size:14px;
+  text-decoration:none;
+  background:none;
+  border:0;
+  cursor:pointer;
+  position:relative;
+}
 .userMenu a.active{ font-weight:700; }
-.userMenu a::after{ content:""; position:absolute; left:0; bottom:-4px; width:0; height:2px;
-                    background:#fff; transition:width .2s; }
-.userMenu a:hover::after{ width:100%; }
+
+.userMenu a::after,
+.userMenu .menuLink::after{
+  content:"";
+  position:absolute;
+  left:0; bottom:-4px;
+  width:0; height:2px;
+  background:#fff;
+  transition:width .2s;
+}
+.userMenu a:hover::after,
+.userMenu .menuLink:hover::after{ width:100%; }
 
 /* ── 히어로 ──────────────────────────── */
 .hero { padding:64px 32px; background:#424242; }

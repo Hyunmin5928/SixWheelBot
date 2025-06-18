@@ -254,6 +254,7 @@ void Motor::rotate(int pwm, float degree)
 {
     validate_pwm(pwm);
 
+    /*
     float dgrspeed = calculate_dgrspeed(pwm);
     std::cout<<dgrspeed<<"\n";
     //abs_dgr : 절대값 각도
@@ -263,8 +264,9 @@ void Motor::rotate(int pwm, float degree)
     }
     float delaytime = abs_dgr / dgrspeed;
     std::cout<<delaytime;
+    */
     unsigned int currentTime = millis();
-    while(millis()-currentTime < delaytime){
+    while(millis()-currentTime < 3000){
         
         if (degree > 0) 
         {
@@ -376,38 +378,39 @@ void Motor::curve_corner(float connerdistance, int pwm, float degree)
 int main() {
     Motor motor;
     long long unsigned int time = millis();
-    //Lidar lidar;
+    Lidar lidar;
 
-    motor.curve_corner(800.0f, 30, 90); //delay time > 270
-
-
-    /*
     lidar.scan_oneCycle();
     bool done = false;
     time=millis();
     while(1){
         motor.straight(40);
-        while(millis()-time <500){
+        while(millis()-time <5000){
             lidar.scan_oneCycle();
     
             if(lidar.get_nearPoint().angle<60.0f && lidar.get_nearPoint().angle > -60.0f && lidar.get_nearPoint().range < avoidDistance_trigger && lidar.get_nearPoint().range>0.0f){
                 std::cout << "Avoiding obstacle at angle: " << lidar.get_nearPoint().angle << ", distance: " << lidar.get_nearPoint().range << "\n";
                 done = true;
             }
+            if(done){
+                delay(100);
+                motor.stop();
+                delay(100);
+                //로테이트 함수가 안돌음
+                motor.rotate(50, 30);
+                break;
+            }
+            
         }   
         if(done){
+            //여기 위치에서도 로테이트 함수가 안돌음
             break;
         }
         time = millis();
     }
-    motor.stop();
-    delay(1000);
-    motor.rotate(50, lidar.get_nearPoint().angle);
-
-    */
     //motor.curve_avoid(lidar.get_nearPoint().range, 30, lidar.get_nearPoint().angle);
     
-        
+    motor.stop();
 
     /*
     for(int i=0; i<scanpoints.size(); i++){

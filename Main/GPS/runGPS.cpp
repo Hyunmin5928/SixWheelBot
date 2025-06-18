@@ -1,5 +1,3 @@
-
-#include <Python.h>
 #include <iostream>
 #include "GPS_parse.h"
 #include <unistd.h>

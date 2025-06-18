@@ -13,6 +13,7 @@
 #include <string>
 
 std::vector<std::tuple<double, double, int>> parsed_coords;
+bool finish = false;
 
 void load_coords_from_txt(const std::string& filepath) {
     std::ifstream file(filepath);
@@ -53,6 +54,9 @@ void runGPS() {
     init_logger("gps.log");
 
     while (true) {
+        if(finish){
+            break;
+        }
         bool G_flag = gps_device.GetGPSdata(&gps);
 
         if (G_flag) {
@@ -63,10 +67,51 @@ void runGPS() {
 
                 double angle = GeoUtils::bearing(
                     gps.latitude, gps.longitude, target_lat, target_lon);
+                double dist = GeoUtils::haversine_distance(gps.latitude, gps.longitude, target_lat, target_lon);
+                if(dist<=1){
+                    parsed_coords.pop_front();  
+                    //도달한 좌표가 횡단보도 or 회전포인트인지 확인 
+                    if(turn>0){
+                        switch (turn) {
+                            case 12: // 좌회전
+                            case 212: //좌회전 + 횡단보도
+                            
+                            case 16: // 8시 방향 좌회전
+                            case 214: //8시 방향 + 횡단보도
 
-                std::cout << "🧭 현재 위치 → 첫 좌표 방향: " << angle << "도\n";
+                            case 17: // 10시 방향 좌회전
+                            case 215: //10시 방향 + 횡단보도
+                                
+                                break;
 
-                // TODO: 방향 명령 내리는 코드 추가
+                            case 13: // 우회전
+                            case 213: //우회전 + 횡단보도 
+
+                            case 18: // 2시 방향 우회전
+                            case 216: //2시 방향 + 횡단보도
+
+                            case 19: // 4시 방향 우회전
+                            case 217: //4시 방향 + 횡단보도
+                                
+                                break;
+
+            
+                            case 211: //횡단보도
+
+                            case 201:
+                                std::cout << "🏁 도착 지점" << std::endl;
+                                finish = true;
+                                break;
+
+                        }
+
+                    }    
+                }else{
+                    // TODO: 방향 명령 내리는 코드 추가
+                    std::cout << "🧭 현재 위치 → 좌표 방향: " << angle << "도\n";
+                }
+
+
             }
 
         } else {

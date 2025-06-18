@@ -4,11 +4,17 @@
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <map>
-#include <thread>
+#include <tuple>
+#include <vector>
+#include <string>
 #include <nlohmann/json.hpp>
 #include <atomic>
+#include <map>
+#include <thread>
+#include <cmath>
+#include <chrono>
 #include "../SafeQueue.hpp"
+using json = nlohmann::json;
 
 extern std::atomic<bool> running;
 extern int         sock_fd;
@@ -20,10 +26,11 @@ extern int         log_fd;
 extern int         RETRY_LIMIT;
 extern double      ACK_TIMEOUT;
 
+// map data 수신 후 map_queue에 전달 only
 void comm_thread(
-    SafeQueue<std::pair<double,double>>& gps_q,
-    SafeQueue<int>&                      cmd_q,
-    SafeQueue<std::string>&              log_q);
+    SafeQueue<std::vector<std::tuple<double,double,int>>>& map_q,
+    SafeQueue<int>&                                        cmd_q,
+    SafeQueue<std::string>&                                log_q);
 
 void log_sender_thread(
     SafeQueue<std::string>& log_q);

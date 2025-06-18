@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
@@ -8,43 +8,42 @@ import styles  from './FindPw.module.css';
 export default function FindPw() {
   const nav = useNavigate();
 
-  /* ── 상태 ─────────────────────────── */
-  const [form, setForm] = useState({
-    userId: '',
-    name:   '',
-    email:  '',
-  });
-  const [ready, setReady] = useState(false);
+  // 입력 상태
+  const [form, setForm]   = useState({ userId: '', name: '', email: '' });
   const [error, setError] = useState('');
 
-  /* 입력 체크 */
-  useEffect(() => {
-    setReady(form.userId.trim() && form.name.trim() && form.email.trim());
-  }, [form]);
+  // 입력값 변경 시
+  const onChange = e => {
+    setError('');
+    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
 
-  const onChange = (e) =>
-    setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
+  // 세 칸 모두 채워졌는지
+  const ready = form.userId && form.name && form.email;
 
-  /* ── 제출 ─────────────────────────── */
-  const onSubmit = async (e) => {
+  // 확인 클릭
+  const onSubmit = async e => {
     e.preventDefault();
     if (!ready) return;
+
     try {
-      /*
-        POST /api/find-pw
-        body: { userId, name, email }
-        success: { password: '******' }
-      */
       const res = await axios.post('/api/find-pw', form);
-      const { password } = res.data;
-      alert(`비밀번호는 "${password}" 입니다.`);
-      nav('/login');
-    } catch {
-      setError('다시 시도해주세요.');
+
+      // 일치 확인되면 reset-pw 페이지로
+      if (res.data.ok) {
+        nav('/reset-pw', { state: { userId: form.userId } });
+      } else {
+        setError('잘못된 회원 정보입니다.');
+      }
+    } catch (err) {
+      if (err.response?.status === 404) {
+        setError('잘못된 회원 정보입니다.');
+      } else {
+        setError(err.response?.data || err.message);
+      }
     }
   };
 
-  /* ── UI ──────────────────────────── */
   return (
     <div className={styles.page}>
       {/* Header */}
@@ -54,7 +53,6 @@ export default function FindPw() {
           <span>SixWheel</span>
         </div>
         <nav className={styles.menu}>
-          <span onClick={() => nav('/mypage')}>마이페이지</span>
           <span onClick={() => nav('/login')}>로그인</span>
           <span onClick={() => nav('/category')}>카테고리</span>
         </nav>
@@ -62,24 +60,35 @@ export default function FindPw() {
 
       {/* Form */}
       <main className={styles.wrapper}>
-        <h1 className={styles.title}>비밀번호 찾기</h1>
-
+        <h1 className={styles.title}>PW 찾기</h1>
         <form className={styles.form} onSubmit={onSubmit}>
-          {[
-            ['userId', '아이디', '아이디를 입력하세요.'],
-            ['name',   '이름',   '이름을 입력하세요.'],
-            ['email',  '이메일', '이메일을 입력하세요.'],
-          ].map(([key, label, ph]) => (
-            <label key={key} className={styles.field}>
-              <span>{label}</span>
-              <input
-                name={key}
-                value={form[key]}
-                onChange={onChange}
-                placeholder={ph}
-              />
-            </label>
-          ))}
+          <label className={styles.field}>
+            <span>아이디</span>
+            <input
+              name="userId"
+              value={form.userId}
+              onChange={onChange}
+              placeholder="아이디를 입력하세요."
+            />
+          </label>
+          <label className={styles.field}>
+            <span>이름</span>
+            <input
+              name="name"
+              value={form.name}
+              onChange={onChange}
+              placeholder="이름을 입력하세요."
+            />
+          </label>
+          <label className={styles.field}>
+            <span>이메일</span>
+            <input
+              name="email"
+              value={form.email}
+              onChange={onChange}
+              placeholder="이메일을 입력하세요."
+            />
+          </label>
 
           {error && <p className={styles.error}>{error}</p>}
 

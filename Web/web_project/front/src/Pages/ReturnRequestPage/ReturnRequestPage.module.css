@@ -1,0 +1,68 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@100..900&display=swap');
+:root{ --bg:#262626; --text:#e0e0e0; --box-dark:#3b3b3b; --box-light:#e5e5e5; }
+*{box-sizing:border-box;font-family:"Noto Sans KR",sans-serif;}
+
+.page{background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* ---------- Header ---------- */
+.header{
+  display:flex;justify-content:space-between;align-items:center;
+  background:#3b3b3b;padding:16px 32px;
+}
+.logoArea{display:flex;align-items:center;gap:8px;font-size:32px;cursor:pointer;}
+.logoArea img{width:40px;height:40px;}
+.userMenu{display:flex;align-items:center;}
+.menuLink,.userMenu a{
+  margin-left:24px;color:#fff;font-size:14px;background:none;border:0;cursor:pointer;
+  text-decoration:none;position:relative;
+}
+.menuLink::after,.userMenu a::after{
+  content:"";position:absolute;left:0;bottom:-4px;height:2px;width:0;
+  background:#fff;transition:width .2s;
+}
+.menuLink:hover::after,.userMenu a:hover::after,
+.userMenu a.active::after{width:100%;}
+
+/* ---------- Profile ---------- */
+.profileBox{
+  max-width:860px;margin:48px auto 72px;padding:28px 40px;background:#3b3b3b;
+  border-radius:40px;display:flex;align-items:center;gap:20px;
+}
+.profileIcon{width:56px;height:56px;border-radius:12px;
+  background:url("../../assets/logo.png") center/60% no-repeat #6f6f73;}
+.profileBox p{margin:0;font-size:20px;font-weight:500;}
+
+/* ---------- Stats ---------- */
+.statsBox{
+  max-width:860px;margin:0 auto 88px;padding:36px 48px;background:#3b3b3b;
+  border-radius:36px;
+}
+.statsBox header{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;}
+.statsBox h3{margin:0;font-size:15px;color:#c8c8c8;font-weight:400;}
+.statsBox button{background:none;border:0;font-size:15px;color:#c8c8c8;cursor:pointer;}
+.statsBox ul{display:flex;gap:32px;list-style:none;padding:0;margin:0;}
+.statsBox li{flex:1;background:#e5e5e5;border-radius:10px;text-align:center;padding:26px 0;color:#1d1d1d;}
+.statsBox em{display:block;font-size:15px;margin-bottom:8px;font-style:normal;}
+.statsBox strong{font-size:26px;font-weight:700;}
+
+/* ---------- Form ---------- */
+.form{
+  max-width:860px;margin:0 auto;padding:56px 48px;background:#2b2b2b;border-radius:10px;
+  display:flex;flex-direction:column;gap:26px;
+}
+.form h2{text-align:center;margin:0 0 8px;font-size:18px;font-weight:600;}
+.form label span{display:block;margin-bottom:8px;font-size:15px;color:#c8c8c8;}
+.form input{width:100%;padding:14px;background:#1a1a1a;border:1px solid #555;border-radius:4px;color:var(--text);}
+.submit,.disabled{
+  margin-top:24px;padding:14px 0;font-size:16px;border:none;border-radius:4px;width:200px;align-self:center;
+}
+.submit{background:#3255BE;color:#fff;cursor:pointer;}
+.disabled{background:#555;color:#888;cursor:not-allowed;}
+
+/* ---------- 모바일 ---------- */
+@media(max-width:600px){
+  .header{padding:12px 16px;}
+  .profileBox{padding:24px 28px;}
+  .statsBox ul{flex-direction:column;gap:20px;}
+  .form{padding:48px 28px;}
+}

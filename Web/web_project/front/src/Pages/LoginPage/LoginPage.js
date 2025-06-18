@@ -26,6 +26,8 @@ export default function LoginPage() {
       const res = await axios.post('/api/login', form);
       /* 토큰(또는 true 등)을 저장해 로그인 상태 표시 */
       localStorage.setItem('TOKEN', res.data.token || 'true');
+      /* 추가: 로그인한 userId 도 저장 */
+      localStorage.setItem('USER_ID', form.userId);
       nav('/home');         // 로그인 전용 메인으로 이동
     } catch (err) {
       setError(err.response?.data || err.message);

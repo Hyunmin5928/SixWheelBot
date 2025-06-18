@@ -38,10 +38,10 @@ passport.use(new LocalStrategy({
   async (userId, password, done) => {
     try {
       const db  = await dbPromise;
-      const row = await db.get(
-        "SELECT * FROM MEMBER WHERE MEM_ID = ?",
-        [userId]
-      );
+      const row = await db.get(`
+       SELECT MEM_NUM, MEM_ID, MEM_PW, MEM_NAME, MEM_EMAIL, MEM_ADMIN
+       FROM   MEMBER
+       WHERE  MEM_ID = ?`, [userId]);
       if (!row)   return done(null, false, { message: '존재하지 않는 아이디입니다.' });
 
       const match = await bcrypt.compare(password, row.MEM_PW);
@@ -51,7 +51,8 @@ passport.use(new LocalStrategy({
         memNum: row.MEM_NUM,
         userId: row.MEM_ID,
         name:   row.MEM_NAME,
-        email:  row.MEM_EMAIL
+        email:  row.MEM_EMAIL,
+        role:   row.MEM_ADMIN === 'Y' ? 'ADMIN' : 'USER'
       });
     } catch (err) {
       done(err);
@@ -62,16 +63,17 @@ passport.serializeUser((user, done) => done(null, user.memNum));
 passport.deserializeUser(async (memNum, done) => {
   try {
     const db  = await dbPromise;
-    const row = await db.get(
-      "SELECT MEM_NUM, MEM_ID, MEM_NAME, MEM_EMAIL FROM MEMBER WHERE MEM_NUM = ?",
-      [memNum]
-    );
+    const row = await db.get(`
+     SELECT MEM_NUM, MEM_ID, MEM_NAME, MEM_EMAIL, MEM_ADMIN
+     FROM   MEMBER
+     WHERE  MEM_NUM = ?`, [memNum]);
     if (!row) return done(null, false);
     done(null, {
       memNum: row.MEM_NUM,
       userId: row.MEM_ID,
       name:   row.MEM_NAME,
-      email:  row.MEM_EMAIL
+      email:  row.MEM_EMAIL,
+      role:   row.MEM_ADMIN === 'Y' ? 'ADMIN' : 'USER'
     });
   } catch (err) {
     done(err);
@@ -104,13 +106,20 @@ app.post("/api/register", async (req, res) => {
 });
 
 // ── 로그인 ─────────────────────────────────────────────────
-app.post("/api/login", (req, res, next) => {
-  passport.authenticate("local", (err, user, info) => {
+app.post('/api/login', (req, res, next) => {
+  passport.authenticate('local', (err, user, info) => {
     if (err)   return res.status(500).json({ error: err.message });
     if (!user) return res.status(401).json({ error: info.message });
+
     req.logIn(user, e => {
       if (e) return next(e);
-      res.json({ loginSuccess: true });
+
+      // ★ 200 OK + role 포함
+      res.json({
+        loginSuccess: true,
+        userId: user.userId,
+        role:   user.role          // 'ADMIN' or 'USER'
+      });
     });
   })(req, res, next);
 });

@@ -7,25 +7,28 @@ import styles  from './OrderRequestPage.module.css';
 import { getOrders, createOrder } from '../../Services/order';
 
 export default function OrderRequestPage() {
-  /* 로그인 사용자 ID는 로컬스토리지에서 간단히 추출 */
+  /* 로그인 사용자 ID */
   const userId = localStorage.getItem('USER_ID') || 'OOO';
   const nav    = useNavigate();
 
-  /* 로그아웃 */
+  /* ───────── 로그아웃 ───────── */
   const logout = () => {
     localStorage.removeItem('TOKEN');
+    localStorage.removeItem('USER_ID');
     nav('/');
   };
 
-  /* ─── 통계 상태 ─── */
+  /* ───────── 통계 상태 ───────── */
   const [stats, setStats] = useState({ total: 0, prog: 0, done: 0 });
 
-  /* ─── 받는 주소 ─── */
-  const [addr, setAddr]     = useState('');
+  /* ───────── 입력 상태 ───────── */
+  const [addr,   setAddr]   = useState('');
   const [detail, setDetail] = useState('');
-  const ready = addr.trim() && detail.trim();
+  const [item,   setItem]   = useState('');
 
-  /* ─── 통계 로딩 ─── */
+  const ready = addr.trim() && detail.trim() && item.trim();
+
+  /* ───────── 통계 로딩 ───────── */
   useEffect(() => {
     (async () => {
       try {
@@ -35,22 +38,32 @@ export default function OrderRequestPage() {
           prog:  list.filter(o => o.status === 'IN_PROGRESS').length,
           done:  list.filter(o => o.status === 'COMPLETED').length,
         });
-      } catch (e) { console.error(e); }
+      } catch (e) {
+        console.error('통계 로드 실패', e);
+      }
     })();
   }, []);
 
-  /* ─── 신청 ─── */
-  const submit = async e => {
+  /* ───────── 신청 ───────── */
+  const submit = async (e) => {
     e.preventDefault();
     if (!ready) return;
     try {
-      await createOrder({ receiver: { address: addr, detail } });
+      await createOrder({
+        receiver: { address: addr, detail },
+        itemType: item,
+      });
       alert('배송 신청이 완료되었습니다.');
-      setAddr(''); setDetail('');
+      setAddr('');
+      setDetail('');
+      setItem('');
       nav('/home');
-    } catch (err) { alert(err.message); }
+    } catch (err) {
+      alert(err.response?.data || err.message);
+    }
   };
 
+  /* ───────── 렌더링 ───────── */
   return (
     <div className={styles.page}>
       {/* ---------- Header ---------- */}
@@ -94,7 +107,7 @@ export default function OrderRequestPage() {
           <span>주소</span>
           <input
             value={addr}
-            onChange={e => setAddr(e.target.value)}
+            onChange={(e) => setAddr(e.target.value)}
             placeholder="도로명, 지번을 입력하세요."
           />
         </label>
@@ -103,8 +116,17 @@ export default function OrderRequestPage() {
           <span>상세주소</span>
           <input
             value={detail}
-            onChange={e => setDetail(e.target.value)}
+            onChange={(e) => setDetail(e.target.value)}
             placeholder="건물명 상세주소를 입력하세요. ex) 000동 0000호"
+          />
+        </label>
+
+        <label>
+          <span>물품 종류</span>
+          <input
+            value={item}
+            onChange={(e) => setItem(e.target.value)}
+            placeholder="물품 종류를 입력하세요. ex) 폭탄"
           />
         </label>
 

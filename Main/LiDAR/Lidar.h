@@ -1,5 +1,5 @@
 #pragma once
-#include "../LiDAR/YDLidar/YDLidar-SDK/src/CYdLidar.h"
+#include "lib/CYdLidar.h"
 #include <iostream>
 #include <cmath>
 #include <vector>

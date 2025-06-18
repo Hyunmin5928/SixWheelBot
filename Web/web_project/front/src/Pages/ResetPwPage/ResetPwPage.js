@@ -12,21 +12,18 @@ export default function ResetPwPage() {
 
   // 직접 URL 접근 방지
   useEffect(() => {
-    if (!userId) {
-      nav('/findpw');
-    }
+    if (!userId) nav('/findpw');
   }, [userId, nav]);
 
-  const [pw, setPw]       = useState('');
-  const [chk, setChk]     = useState('');
+  const [pw,   setPw]   = useState('');
+  const [chk,  setChk]  = useState('');
   const [match, setMatch] = useState(true);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState('');
 
-  // pw/chk 비교 및 버튼 활성화 여부
   useEffect(() => {
     setMatch(pw === chk);
-    setReady(pw !== '' && chk !== '' && pw === chk);
+    setReady(pw && chk && pw === chk);
   }, [pw, chk]);
 
   const onSubmit = async e => {
@@ -34,10 +31,7 @@ export default function ResetPwPage() {
     if (!ready) return;
 
     try {
-      await axios.post('/api/reset-pw', {
-        userId,
-        newPassword: pw
-      });
+      await axios.post('/api/reset-pw', { userId, newPassword: pw });
       alert('비밀번호가 재설정되었습니다. 다시 로그인 해주세요.');
       nav('/login');
     } catch (err) {
@@ -50,8 +44,7 @@ export default function ResetPwPage() {
       {/* Header */}
       <header className={styles.header}>
         <div className={styles.logoBox} onClick={() => nav('/')}>
-          <img src={logoImg} alt="logo" />
-          <span>SixWheel</span>
+          <img src={logoImg} alt="logo"/><span>SixWheel</span>
         </div>
         <nav className={styles.menu}>
           <span onClick={() => nav('/login')}>로그인</span>

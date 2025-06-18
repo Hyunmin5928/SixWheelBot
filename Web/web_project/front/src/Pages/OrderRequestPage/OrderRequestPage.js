@@ -50,8 +50,11 @@ export default function OrderRequestPage() {
     if (!ready) return;
     try {
       await createOrder({
-        receiver: { address: addr, detail },
-        itemType: item,
+        userId,                                 // 로그인한 회원 ID
+        receiver: {                            // 한 문자열에 합쳐 보냄
+          address: `${addr} ${detail}`.trim()
+        },
+        itemType: item
       });
       alert('배송 신청이 완료되었습니다.');
       setAddr('');

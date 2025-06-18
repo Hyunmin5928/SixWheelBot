@@ -16,9 +16,9 @@
 #define maxPulse 1024
 #define maxSpeed 150.0f
 
-#define avoidDistance_trigger 300.0f //cm
-#define avoidDistance_step1 250.0f
-#define avoidDistance_step2 180.0f
+#define avoidDistance_trigger 800.0f //cm
+#define avoidDistance_step1 1000.0f
+#define avoidDistance_step2 800.0f
 #define wheelInterval 31.0f //cm
 
 
@@ -426,11 +426,28 @@ void Motor::rotate(int pwm, float degree)
 //동작 중에 추가로 피해야할 대상이 나타나면 유연하게 회피하도록 해야함
 void Motor::curve_avoid(float distance, int pwm, float degree, bool recover = false)
 {
-    float currentDegree=0;
-    if(distance<=avoidDistance_trigger){
-        //if(degree>)
-        //curve_corner(distance, pwm, 20);
-        //if(distance<=avoidDistance_step1){}
+    float abs_degree = degree>0 ? degree : -degree;
+    float avoid_degree = 30.0f-abs_degree;
+    if(distance<=avoidDistance_trigger && degree >= -20.0f && degree <= 20.0f){
+        
+        if(degree > 0){ //왼쪽 회피
+            rotate(pwm, avoid_degree);
+        }
+        else{ //오른쪽 회피
+            rotate(pwm, -avoid_degree);
+        }
+    }
+    long long unsigned int currentTime = millis();
+    straight(pwm);
+    while(millis() - currentTime < 500) {
+
+    }
+    stop();
+    if(degree > 0){ //왼쪽 회피
+        rotate(pwm, -avoid_degree);
+    }
+    else {
+        rotate(pwm, avoid_degree);
     }
 
     /*
@@ -503,6 +520,22 @@ void Motor::curve_corner(float connerdistance, int pwm, float degree)
 int main() {
     Motor motor;
     motor.scan_oneCycle();
+    std::vector<LaserPoint> scanpoints = motor.get_scanData();
+    float avoid_dgr;
+    float avoid_dist=16000.0f;
+    for(int i=0; i<scanpoints.size(); i++){
+        
+        if(scanpoints[i].angle <20.0f && scanpoints[i].angle > -20.0f && scanpoints[i].range < avoidDistance_trigger){
+            if(scanpoints[i].range < avoid_dist && scanpoints[i].range != 0.0f){
+                avoid_dgr=scanpoints[i].angle;
+                avoid_dist = scanpoints[i].range;
+            }
+        }
+    }
+    log_msg("Debug", "scanpoint near : "+std::to_string(avoid_dgr)+", "+std::to_string(avoid_dist));
+
+    motor.curve_avoid(avoid_dist, 700, avoid_dgr);
+
     //scanpoint 자동 업데이트
     //너무 빠른 업데이트를 막기위해 delay넣어야하는지는 실제 테스트해봐야함
     /*
@@ -523,6 +556,5 @@ int main() {
     }
     */
     motor.stop();
-    
     return 0;
 }

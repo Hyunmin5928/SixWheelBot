@@ -1,3 +1,4 @@
+
 #include <Python.h>
 #include <iostream>
 #include "GPS_parse.h"
@@ -10,7 +11,6 @@
 #include <fstream>
 #include <sstream>
 #include <string>
-
 
 std::vector<std::tuple<double, double, int>> parsed_coords;
 
@@ -41,43 +41,47 @@ void load_coords_from_txt(const std::string& filepath) {
     std::cout << "✅ .txt 좌표 불러오기 완료: " << parsed_coords.size() << "개\n";
 }
 
-void runGPS(){
-std::string cmd = "python3 recv_socket.py";  // 실행 (좌표 받아서 /tmp/coords.json 저장)
-system(cmd.c_str());
-load_coords_from_txt(filepath); //파일 경로 바꿔야 함
-GPS gps_device;
-sGPS gps;
-init_logger("gps.log");
-bool G_flag = false;
-G_flag = gps_device.GetGPSdata(&gps);
-while(true){
-    if (G_flag) {
-        std::cout << "[✅] GPS 데이터 수신 성공!" << std::endl;
-        //현재 좌표랑 대조해서 방향 계산
-          if (!parsed_coords.empty()) {
+void runGPS() {
+    std::string cmd = "python3 recv_socket.py";  // 좌표 받아서 /tmp/coords.txt 저장
+    system(cmd.c_str());
+
+    std::string filepath = "/tmp/coords.txt";    // 파일 경로 정의
+    load_coords_from_txt(filepath);
+
+    GPS gps_device;
+    sGPS gps;
+    init_logger("gps.log");
+
+    while (true) {
+        bool G_flag = gps_device.GetGPSdata(&gps);
+
+        if (G_flag) {
+            std::cout << "[✅] GPS 데이터 수신 성공!" << std::endl;
+
+            if (!parsed_coords.empty()) {
                 auto [target_lat, target_lon, turn] = parsed_coords.front();
 
                 double angle = GeoUtils::bearing(
                     gps.latitude, gps.longitude, target_lat, target_lon);
 
                 std::cout << "🧭 현재 위치 → 첫 좌표 방향: " << angle << "도\n";
-        //방향 명령 내리기
-                }
-        
-    } else {
 
-        std::cout << "[❌] GPS 데이터 수신 대기 중..." << std::endl;
+                // TODO: 방향 명령 내리는 코드 추가
+            }
 
+        } else {
+            std::cout << "[❌] GPS 데이터 수신 대기 중..." << std::endl;
+        }
+
+        // 디버깅용 출력
+        for (const auto& [lat, lon, turn] : parsed_coords) {
+            std::cout << "위도: " << lat << ", 경도: " << lon
+                      << ", turnType: " << (turn >= 0 ? std::to_string(turn) : "없음") << "\n";
+        }
+
+        usleep(1000000);  // 1초 대기
     }
 
-    for (const auto& [lat, lon, turn] : parsed_coords) {
-    std::cout << "위도: " << lat << ", 경도: " << lon
-              << ", turnType: " << (turn >= 0 ? std::to_string(turn) : "없음") << "\n";
-    }
-}
-
-close_logger();
-
-return 0;
-
+    close_logger();
+    // return 0 은 이 함수 내부에서는 필요 없음
 }

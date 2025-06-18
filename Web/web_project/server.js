@@ -256,6 +256,103 @@ app.put('/api/user/:id', async (req, res) => {
   }
 });
 
+/* ---------- 배송 신청 ---------- */
+app.post('/api/order', async (req, res) => {
+  const { userId, receiver, itemType } = req.body;      // ★ itemType 포함
+  if (!userId || !receiver?.address || !itemType) return res.status(400).send('값 누락');
+
+  try {
+    const db = await dbPromise;
+    const { lastID } = await db.run(
+      `INSERT INTO ORDER_REQ (MEM_ID, REC_ADDR, REC_DETAIL, ITEM_TYPE)
+       VALUES (?, ?, ?, ?)`,
+      [userId, receiver.address, receiver.detail, itemType]
+    );
+    res.json({ id: lastID, ok: true });
+  } catch (e) {
+    console.error('배송 신청 오류', e);
+    res.status(500).send('서버 오류');
+  }
+});
+
+/* ---------- 배송 대기 목록 ---------- */
+app.get('/api/order', async (_req, res) => {
+  const db = await dbPromise;
+  const rows = await db.all(
+    `SELECT ORD_ID as id, MEM_ID as userId,
+            (REC_ADDR || ' ' || IFNULL(REC_DETAIL, '')) AS address,
+            ITEM_TYPE as itemType, STATUS as status
+       FROM ORDER_REQ
+      WHERE STATUS = 'PENDING'
+      ORDER BY REQ_TIME ASC`
+  );
+  res.json(rows);
+});
+
+/* ---------- 반품 신청 / 목록 ---------- */
+app.post('/api/return', async (req, res) => {
+  const { userId, sender, itemType } = req.body;
+  if (!userId || !sender?.address || !itemType) return res.status(400).send('값 누락');
+
+  try {
+    const db = await dbPromise;
+    const { lastID } = await db.run(
+      `INSERT INTO RETURN_REQ (MEM_ID, SEND_ADDR, SEND_DETAIL, ITEM_TYPE)
+       VALUES (?, ?, ?, ?)`,
+      [userId, sender.address, sender.detail, itemType]
+    );
+    res.json({ id: lastID, ok: true });
+  } catch (e) {
+    console.error('반품 신청 오류', e);
+    res.status(500).send('서버 오류');
+  }
+});
+
+app.get('/api/return', async (_req, res) => {
+  const db = await dbPromise;
+  const rows = await db.all(
+    `SELECT RET_ID as id, MEM_ID as userId,
+            SEND_ADDR as address, SEND_DETAIL as detail,
+            ITEM_TYPE as itemType, STATUS as status
+       FROM RETURN_REQ
+      WHERE STATUS = 'PENDING'
+      ORDER BY REQ_TIME ASC`
+  );
+  res.json(rows);
+});
+
+/* ── 배송 요청 수락 ─────────────────────── */
+app.post('/api/order/:id/accept', async (req, res) => {
+  try {
+    const db = await dbPromise;
+    const { changes } = await db.run(
+      `UPDATE ORDER_REQ SET STATUS='ACCEPTED' WHERE ORD_ID = ?`,
+      [req.params.id]
+    );
+    if (changes === 0) return res.status(404).send('해당 주문이 없습니다.');
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('order accept 오류', e);
+    res.status(500).send('서버 오류');
+  }
+});
+
+/* ── 반품 요청 수락 ─────────────────────── */
+app.post('/api/return/:id/accept', async (req, res) => {
+  try {
+    const db = await dbPromise;
+    const { changes } = await db.run(
+      `UPDATE RETURN_REQ SET STATUS='ACCEPTED' WHERE RET_ID = ?`,
+      [req.params.id]
+    );
+    if (changes === 0) return res.status(404).send('해당 반품이 없습니다.');
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('return accept 오류', e);
+    res.status(500).send('서버 오류');
+  }
+});
+
 // ── React SPA 라우팅 ───────────────────────────────────
 app.get('/', (_req, res) => res.redirect('/'));
 app.get('*', (_req, res) => res.sendFile(path.join(buildPath, 'index.html')));

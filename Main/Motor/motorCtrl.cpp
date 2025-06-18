@@ -16,9 +16,9 @@
 #define maxPulse 1024
 #define maxSpeed 150.0f
 
-#define avoidDistance_trigger 800.0f //cm
-#define avoidDistance_step1 1000.0f
-#define avoidDistance_step2 800.0f
+#define avoidDistance_trigger 300.0f //cm
+#define avoidDistance_step1 250.0f
+#define avoidDistance_step2 180.0f
 #define wheelInterval 31.0f //cm
 
 
@@ -151,17 +151,17 @@ Motor::Motor()
 }
 
 Motor::Motor(int lr_pwmPin, int ll_pwmPin,int rr_pwmPin, int rl_pwmPin, int rr_enPin, int rl_enPin, int lr_enPin, int ll_enPin){
+    
     motor_setup(lr_pwmPin, ll_pwmPin, rr_pwmPin, rl_pwmPin, rr_enPin, rl_enPin, lr_enPin, ll_enPin);
     std::cout << "motor set up : user setting\n";
 }
 
 Motor::~Motor(){
+
 }
 #pragma endregion
 
 #pragma region Move functions
-
-
 
 void Motor::straight(int pwm)
 {
@@ -222,33 +222,11 @@ void Motor::rotate(int pwm, float degree)
 //동작 중에 추가로 피해야할 대상이 나타나면 유연하게 회피하도록 해야함
 void Motor::curve_avoid(float distance, int pwm, float degree, bool recover = false)
 {
-    float abs_degree = degree>0 ? degree : -degree;
-    float avoid_degree = 30.0f-abs_degree;
-    if(distance<=avoidDistance_trigger && degree >= -20.0f && degree <= 20.0f){
-        
-        if(degree > 0){ //왼쪽 회피
-            rotate(pwm, avoid_degree);
-            log_msg("Debug", "rotate left for avoid : avoid angle");
-        }
-        else{ //오른쪽 회피
-            rotate(pwm, -avoid_degree);
-            log_msg("Debug", "rotate right for avoid : avoid angle");
-        }
-    }
-    long long unsigned int currentTime = millis();
-    straight(pwm);
-    log_msg("Debug", "straight for avoid");
-    while(millis() - currentTime < 500) {
-
-    }
-    stop();
-    if(degree > 0){ //왼쪽 회피
-        rotate(pwm, -avoid_degree);
-        log_msg("Debug", "rotate left for avoid : recover angle");
-    }
-    else {
-        rotate(pwm, avoid_degree);
-        log_msg("Debug", "rotate right for avoid : recover angle");
+    float currentDegree=0;
+    if(distance<=avoidDistance_trigger){
+        //if(degree>)
+        //curve_corner(distance, pwm, 20);
+        //if(distance<=avoidDistance_step1){}
     }
 
     /*
@@ -317,53 +295,3 @@ void Motor::curve_corner(float connerdistance, int pwm, float degree)
 }
 
 #pragma endregion
-
-int main() {
-    Motor motor;
-    Lidar lidar;
-    lidar.scan_oneCycle();
-
-    if(lidar.get_nearPoint().angle<20.0f && lidar.get_nearPoint().angle > -20.0f && lidar.get_nearPoint().range < avoidDistance_trigger){
-        motor.curve_avoid(lidar.get_nearPoint().range, 700, lidar.get_nearPoint().angle);
-
-    }
-    delay(2000);
-    /*
-    for(int i=0; i<scanpoints.size(); i++){
-        
-        if(scanpoints[i].angle <20.0f && scanpoints[i].angle > -20.0f && scanpoints[i].range < avoidDistance_trigger){
-            if(scanpoints[i].range < avoid_dist && scanpoints[i].range != 0.0f){
-                avoid_dgr=scanpoints[i].angle;
-                avoid_dist = scanpoints[i].range;
-            }
-        }
-    }
-    log_msg("Debug", "scanpoint near : "+std::to_string(avoid_dgr)+", "+std::to_string(avoid_dist));
-    */
-
-    
-
-    //motor.curve_avoid(avoid_dist, 700, avoid_dgr);
-
-    //scanpoint 자동 업데이트
-    //너무 빠른 업데이트를 막기위해 delay넣어야하는지는 실제 테스트해봐야함
-    /*
-    unsigned int time = millis();
-    while(millis()-time <5000){
-        motor.scan_OneCycle();
-        motor.straight(1024);
-    }
-    time=millis();
-    while(millis()-time <3000){
-
-        motor.backoff(1024);
-    }
-    time=millis();
-    motor.get_scanpoints()
-    while(millis()-time <3000){
-        motor.curve_corner(100.0f, 500, 90);
-    }
-    */
-    motor.stop();
-    return 0;
-}

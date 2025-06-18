@@ -26,9 +26,23 @@
 #include <sstream>
 #include <string>
 
+using json = nlohmann::json;
 
 class Motor{
     private:
+        std::string SERVER_IP;
+        int         SERVER_PORT;
+        std::string CLIENT_IP;
+        int         CLIENT_PORT;
+        std::string ALLOW_IP;
+        double      ACK_TIMEOUT;
+        int         RETRY_LIMIT;
+        std::string LOG_FILE="Motor/log/motor_log.txt"; // 기본 로그 파일 경로
+
+        int log_fd;
+        int sock_fd = -1;
+
+
         int L_RpwmPin; //LEFT WHEEL. direction: FRONT
         int L_LpwmPin; //LEFT WHEEL. direction: BACK
         int R_RpwmPin; //RIGHT WHEEL. direction: FRONT
@@ -59,6 +73,12 @@ class Motor{
         Motor();
         Motor(int lr_pwmPin, int ll_pwmPin,int rr_pwmPin, int rl_pwmPin, int rr_enPin, int rl_enPin, int lr_enPin, int ll_enPin);
         ~Motor();
+
+        void log_msg(const std::string& level, const std::string& msg);
+
+        void open_log_file();
+
+        void close_log_file();
 
         void straight(int pwm);
 

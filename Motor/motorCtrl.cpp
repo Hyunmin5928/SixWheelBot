@@ -96,6 +96,36 @@ void Motor::rmotor_run(int pwm, bool front = true)
     }
 }
 
+void Motor::log_msg(const std::string& level, const std::string& msg) {
+    auto now = std::chrono::system_clock::to_time_t(
+                std::chrono::system_clock::now());
+    std::ostringstream oss;
+    oss << std::put_time(std::localtime(&now),
+                                "%Y-%m-%d %H:%M:%S")
+                << " [" << level << "] " << msg << "\n";
+    write(log_fd, oss.str().c_str(), oss.str().size());
+}
+
+void Motor::open_log_file(){
+    log_fd = open(LOG_FILE.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0644);
+    if (log_fd < 0) {
+        std::cerr << "Failed to open log file: " << LOG_FILE << std::endl;
+    } else {
+        log_msg("INFO", "Log file opened successfully.");
+    }
+}
+
+void Motor::close_log_file() {
+    if (log_fd >= 0) {
+        close(log_fd);
+        log_fd = -1;
+        log_msg("INFO", "Log file closed successfully.");
+        } 
+        else {
+            std::cerr << "Log file is not open." << std::endl;
+        }
+}
+
 void Motor::motor_setup(int lr_pwmPin, int ll_pwmPin, int rr_pwmPin, int rl_pwmPin, int rrenPin, int rlenPin, int lrenPin, int llenPin) {
     wiringPiSetup();
     std::cout<<"setup\n";
@@ -124,6 +154,9 @@ void Motor::motor_setup(int lr_pwmPin, int ll_pwmPin, int rr_pwmPin, int rl_pwmP
     
     digitalWrite(L_RENPin, HIGH);
     digitalWrite(L_LENPin, HIGH);
+    open_log_file();
+    log_msg("INFO", "Motor setup");
+    std::cout << "Motor setup complete.\n";
 }
 
 void Motor::motor_setup()
@@ -156,6 +189,9 @@ Motor::Motor(int lr_pwmPin, int ll_pwmPin,int rr_pwmPin, int rl_pwmPin, int rr_e
 }
 
 Motor::~Motor(){
+    log_msg("INFO", "Motor destructor called, cleaning up resources.");
+    close_log_file();
+    stop();
 }
 #pragma endregion
 
@@ -228,22 +264,32 @@ void Motor::curve_avoid(float distance, int pwm, float degree, bool recover = fa
         
         if(degree > 0){ //왼쪽 회피
             rotate(pwm, avoid_degree);
+            log_msg("Debug", "rotate left for avoid : avoid angle");
+            std::cout << "rotate left for avoid : avoid angle\n";
         }
         else{ //오른쪽 회피
             rotate(pwm, -avoid_degree);
+            log_msg("Debug", "rotate right for avoid : avoid angle");
+            std::cout << "rotate right for avoid : avoid angle\n";
         }
     }
     long long unsigned int currentTime = millis();
     straight(pwm);
+    log_msg("Debug", "straight for avoid");
+    std::cout << "straight for avoid\n";
     while(millis() - currentTime < 500) {
 
     }
     stop();
     if(degree > 0){ //왼쪽 회피
         rotate(pwm, -avoid_degree);
+        log_msg("Debug", "rotate left for avoid : recover angle");
+        std::cout << "rotate left for avoid : recover angle\n";
     }
     else {
         rotate(pwm, avoid_degree);
+        log_msg("Debug", "rotate right for avoid : recover angle");
+        std::cout << "rotate right for avoid : recover angle\n";
     }
 
     /*
@@ -317,13 +363,12 @@ int main() {
     Motor motor;
     Lidar lidar;
     lidar.scan_oneCycle();
-    
-    float avoid_dgr;
-    float avoid_dist=16000.0f;
 
-    std::cout<<lidar.read_last_line();
+    if(lidar.get_nearPoint().angle<20.0f && lidar.get_nearPoint().angle > -20.0f && lidar.get_nearPoint().range < avoidDistance_trigger){
+        motor.curve_avoid(lidar.get_nearPoint().range, 700, lidar.get_nearPoint().angle);
 
-    
+    }
+    delay(2000);
     /*
     for(int i=0; i<scanpoints.size(); i++){
         

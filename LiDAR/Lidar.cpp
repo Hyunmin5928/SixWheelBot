@@ -262,3 +262,17 @@ void Lidar::log_scanData(){
 std::vector<LaserPoint> Lidar::get_scanData(){
     return usableData;
 }
+
+LaserPoint Lidar::get_nearPoint(){
+    LaserPoint nearPoint;
+    float minRange = std::numeric_limits<float>::max();
+
+    for (const auto& point : usableData) {
+        if (point.range < minRange && point.range > 0.0f) {
+            minRange = point.range;
+            nearPoint = point;
+        }
+    }
+
+    return nearPoint;
+}

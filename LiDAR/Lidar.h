@@ -60,7 +60,7 @@ class Lidar{
         std::string read_last_line();
         std::vector<LaserScan> read_log(const std::string& log_file);
         void log_msg(const std::string& level, const std::string& msg);
-
+        LaserPoint get_nearPoint();
         void scan_oneCycle();
         std::vector<LaserPoint> get_scanData();
         void log_scanData();

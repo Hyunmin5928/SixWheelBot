@@ -182,6 +182,71 @@ app.post('/api/reset-pw', async (req, res) => {
   }
 });
 
+// ── 회원 프로필 조회 ──────────────────────────────────
+//    GET /api/user/abc → { userId:"abc", password:"(hash)", name:"", ... }
+app.get('/api/user/:id', async (req, res) => {
+  try {
+    const db  = await dbPromise;
+    const row = await db.get(
+      `SELECT
+         MEM_ID   AS userId,
+         MEM_PW   AS password,
+         MEM_NAME AS name,
+         MEM_ZIP  AS zip,
+         MEM_ADD1 AS address,
+         MEM_ADD2 AS detail,
+         MEM_PHONE AS phone,
+         MEM_EMAIL AS email
+       FROM MEMBER
+       WHERE MEM_ID = ?`,
+      [req.params.id]
+    );
+    if (!row) return res.status(404).send('해당 회원이 없습니다.');
+    res.json(row);                 // 그대로 프런트에 전달
+  } catch (err) {
+    console.error('프로필 조회 오류:', err);
+    res.status(500).send('서버 오류');
+  }
+});
+
+// ── 회원 프로필 수정 (PUT) ───────────────────────────
+app.put('/api/user/:id', async (req, res) => {
+  const userId = req.params.id;
+  const {
+    password, name, zip, address, detail, phone, email
+  } = req.body;
+
+  try {
+    const db = await dbPromise;
+
+    /* ① 비밀번호는 해시가 필요할 수 있으므로 분기 */
+    let hash = null;
+    if (password) {
+      hash = await bcrypt.hash(password, 10);
+    }
+
+    /* ② UPDATE 구문 — 비밀번호 포함/미포함 둘 다 처리 */
+    const { changes } = await db.run(
+      `UPDATE MEMBER
+          SET MEM_PW   = COALESCE(?, MEM_PW),
+              MEM_NAME = ?,
+              MEM_ZIP  = ?,
+              MEM_ADD1 = ?,
+              MEM_ADD2 = ?,
+              MEM_PHONE= ?,
+              MEM_EMAIL= ?
+        WHERE MEM_ID   = ?`,
+      [hash, name, zip, address, detail, phone, email, userId]
+    );
+
+    if (changes === 0) return res.status(404).send('해당 회원이 없습니다.');
+    res.json({ updateSuccess: true });
+  } catch (err) {
+    console.error('프로필 수정 오류:', err);
+    res.status(500).send('서버 오류');
+  }
+});
+
 // ── React SPA 라우팅 ───────────────────────────────────
 app.get('/', (_req, res) => res.redirect('/'));
 app.get('*', (_req, res) => res.sendFile(path.join(buildPath, 'index.html')));

@@ -19,22 +19,29 @@ export default function LoginPage() {
   const onChange = (e) =>
     setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
 
+  /* ---------- 수정된 onSubmit ---------- */
   const onSubmit = async (e) => {
     e.preventDefault();
     if (!ready) return;
+
     try {
-      const res = await axios.post('/api/login', form);
-      /* 토큰(또는 true 등)을 저장해 로그인 상태 표시 */
-      localStorage.setItem('TOKEN', res.data.token || 'true');
-      /* 추가: 로그인한 userId 도 저장 */
-      localStorage.setItem('USER_ID', form.userId);
-      nav('/home');         // 로그인 전용 메인으로 이동
+      const res = await axios.post('/api/login', form, { withCredentials: true });
+
+      localStorage.setItem('USER_ID', res.data.userId);
+      localStorage.setItem('ROLE',    res.data.role);
+
+      if (res.data.role === 'ADMIN') {
+        nav('/admin');
+      } else {
+        nav('/home');
+      }
     } catch (err) {
-      setError(err.response?.data || err.message);
+      setError(err.response?.data?.error || err.message);
     }
   };
 
   return (
+    /* --- JSX 는 이전과 동일 --- */
     <div className={styles.page}>
       {/* Header */}
       <header className={styles.header}>
@@ -71,7 +78,9 @@ export default function LoginPage() {
               placeholder="비밀번호를 입력하세요."
             />
           </label>
+
           {error && <p className={styles.error}>{error}</p>}
+
           <button
             type="submit"
             className={ready ? styles.submit : styles.submitDisabled}

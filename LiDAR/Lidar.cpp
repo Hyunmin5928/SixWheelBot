@@ -265,10 +265,10 @@ std::vector<LaserPoint> Lidar::get_scanData(){
 
 LaserPoint Lidar::get_nearPoint(){
     LaserPoint nearPoint;
-    float minRange = std::numeric_limits<float>::max();
+    float minRange = get_scanData()[0].range;
 
     for (const auto& point : usableData) {
-        if (point.range < minRange && point.range > 0.0f) {
+        if (point.range < minRange && point.range > 0.0f && point.angle < 60.0f && point.angle>-60.0f) {
             minRange = point.range;
             nearPoint = point;
         }

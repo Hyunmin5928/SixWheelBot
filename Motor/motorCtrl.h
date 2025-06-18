@@ -60,6 +60,8 @@ class Motor{
 
         float calculate_dgrspeed(int pwm);
 
+        float calculate_delaytime(int pwm, float degree);
+
         float average_pwm(int l_pwm, int r_pwm);
 
         float calculate_tan(float degree) ;

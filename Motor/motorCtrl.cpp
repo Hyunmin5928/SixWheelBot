@@ -34,170 +34,6 @@
 // private
 #pragma region Private functions
 
-int Motor::lidar_setup(){
-    std::string port;
-    ydlidar::os_init();
-
-    std::map<std::string, std::string> ports =
-        ydlidar::lidarPortList();
-    std::map<std::string, std::string>::iterator it;
-
-    if (ports.size() == 1)
-    {
-        port = ports.begin()->second;
-    }
-    else
-    {
-        int id = 0;
-
-        for (it = ports.begin(); it != ports.end(); it++)
-        {
-        printf("[%d] %s %s\n", id, it->first.c_str(), it->second.c_str());
-        id++;
-        }
-
-        if (ports.empty()){
-        printf("Not Lidar was detected. Please enter the lidar serial port:");
-        std::cin >> port;
-        }
-        else {
-            while (ydlidar::os_isOk())
-            {
-                printf("Please select the lidar port:");
-                std::string number;
-                std::cin >> number;
-
-                if ((size_t)atoi(number.c_str()) >= ports.size())
-                {
-                continue;
-                }
-
-                it = ports.begin();
-                id = atoi(number.c_str());
-
-                while (id)
-                {
-                id--;
-                it++;
-                }
-
-                port = it->second;
-                break;
-            }
-        }
-    }
-
-    int baudrate = 128000;
-    bool isSingleChannel = false;
-    float frequency = 6.0;
-
-    if(!ydlidar::os_isOk())
-        return 0;
-
-    lidar.setlidaropt(LidarPropSerialPort, port.c_str(), port.size());
-    /// ignore array
-    std::string ignore_array;
-    ignore_array.clear();
-    lidar.setlidaropt(LidarPropIgnoreArray, ignore_array.c_str(),
-                        ignore_array.size());
-
-    //////////////////////int property/////////////////
-    /// lidar baudrate
-    lidar.setlidaropt(LidarPropSerialBaudrate, &baudrate, sizeof(int));
-    int optval = TYPE_TRIANGLE;
-    lidar.setlidaropt(LidarPropLidarType, &optval, sizeof(int));
-    optval = YDLIDAR_TYPE_SERIAL;
-    lidar.setlidaropt(LidarPropDeviceType, &optval, sizeof(int));
-    /// sample rate
-    optval = isSingleChannel ? 3 : 4;
-    optval = 5;
-    lidar.setlidaropt(LidarPropSampleRate, &optval, sizeof(int));
-    /// abnormal count
-    optval = 4;
-    lidar.setlidaropt(LidarPropAbnormalCheckCount, &optval, sizeof(int));
-    /// Intenstiy bit count
-    optval = 10;
-    lidar.setlidaropt(LidarPropIntenstiyBit, &optval, sizeof(int));
-
-    //////////////////////bool property/////////////////
-    /// fixed angle resolution
-    bool b_optvalue = false;
-    lidar.setlidaropt(LidarPropFixedResolution, &b_optvalue, sizeof(bool));
-    /// rotate 180
-    b_optvalue = false;
-    lidar.setlidaropt(LidarPropReversion, &b_optvalue, sizeof(bool));
-    /// Counterclockwise
-    b_optvalue = false;
-    lidar.setlidaropt(LidarPropInverted, &b_optvalue, sizeof(bool));
-    b_optvalue = true;
-    lidar.setlidaropt(LidarPropAutoReconnect, &b_optvalue, sizeof(bool));
-    /// one-way communication
-    b_optvalue = false;
-    lidar.setlidaropt(LidarPropSingleChannel, &isSingleChannel, sizeof(bool));
-    /// intensity
-    b_optvalue = false;
-    lidar.setlidaropt(LidarPropIntenstiy, &b_optvalue, sizeof(bool));
-    /// Motor DTR
-    b_optvalue = true;
-    lidar.setlidaropt(LidarPropSupportMotorDtrCtrl, &b_optvalue, sizeof(bool));
-    /// HeartBeat
-    b_optvalue = false;
-    lidar.setlidaropt(LidarPropSupportHeartBeat, &b_optvalue, sizeof(bool));
-
-    //////////////////////float property/////////////////
-    /// unit: °
-    float f_optvalue = 180.0f;
-    lidar.setlidaropt(LidarPropMaxAngle, &f_optvalue, sizeof(float));
-    f_optvalue = -180.0f;
-    lidar.setlidaropt(LidarPropMinAngle, &f_optvalue, sizeof(float));
-    f_optvalue = 64.f;
-    lidar.setlidaropt(LidarPropMaxRange, &f_optvalue, sizeof(float));
-    f_optvalue = 0.05f;
-    lidar.setlidaropt(LidarPropMinRange, &f_optvalue, sizeof(float));
-    lidar.setlidaropt(LidarPropScanFrequency, &frequency, sizeof(float));
-    lidar.enableGlassNoise(false);
-    lidar.enableSunNoise(false);
-    lidar.setBottomPriority(true);
-
-    uint32_t t = getms();
-    int c=0;
-    bool ret=lidar.initialize();
-    if (!ret)
-    {
-        fprintf(stderr, "Fail to initialize %s\n", lidar.DescribeError());
-        fflush(stderr);
-        return -1;
-    }
-
-    ret = lidar.turnOn();
-    if (!ret)
-    {
-        fprintf(stderr, "Fail to start %s\n", lidar.DescribeError());
-        fflush(stderr);
-        return -1;
-    }
-
-    if (ret)
-    {
-        device_info di;
-        memset(&di, 0, DEVICEINFOSIZE);
-        if (lidar.getDeviceInfo(di, EPT_Module)) {
-            ydlidar::core::common::printfDeviceInfo(di, EPT_Module);
-        }
-        else {
-        printf("Fail to get module device info\n");
-        }
-
-        if (lidar.getDeviceInfo(di, EPT_Base)) {
-            ydlidar::core::common::printfDeviceInfo(di, EPT_Base);
-        }
-        else {
-        printf("Fail to get baseplate device info\n");
-        }
-    }
-    return 0;
-}
-
 float Motor::calculate_dgrspeed(int pwm)
 {
     return maxSpeed / 100.0f * pwm * 6.0f;
@@ -288,8 +124,6 @@ void Motor::motor_setup(int lr_pwmPin, int ll_pwmPin, int rr_pwmPin, int rl_pwmP
     
     digitalWrite(L_RENPin, HIGH);
     digitalWrite(L_LENPin, HIGH);
-
-    lidar_setup();
 }
 
 void Motor::motor_setup()
@@ -314,58 +148,20 @@ bool Motor::pwm_isvalid(int pwm)
 Motor::Motor()
 {
     motor_setup();
-    open_log_file();
 }
 
 Motor::Motor(int lr_pwmPin, int ll_pwmPin,int rr_pwmPin, int rl_pwmPin, int rr_enPin, int rl_enPin, int lr_enPin, int ll_enPin){
-    log_msg("Debug", "Motor constructor called");
     motor_setup(lr_pwmPin, ll_pwmPin, rr_pwmPin, rl_pwmPin, rr_enPin, rl_enPin, lr_enPin, ll_enPin);
     std::cout << "motor set up : user setting\n";
 }
 
 Motor::~Motor(){
-    close_log_file();
-    lidar.disconnecting();
 }
 #pragma endregion
 
 #pragma region Move functions
 
-void Motor::scan_oneCycle(){
-    lidar.turnOn();
-    if(ydlidar::os_isOk()){
-        if(lidar.doProcessSimple(scanData)){
-            usableData.clear();
-            for(size_t i=0; i<scanData.points.size(); i++){
-                const LaserPoint &p = scanData.points.at(i);
-                LaserPoint temp={p.angle*180.0/M_PI, p.range*1000.0, p.intensity};
-                usableData.push_back(temp);
-                
-            }
-        }
-        else{
-            fprintf(stderr, "Failed to get Lidar Data\n");
-            fflush(stderr);
-        }
-    }
-    log_scanData();
-    lidar.turnOff();
-}
 
-std::vector<LaserPoint> Motor::get_scanData(){
-    return usableData;
-}
-
-void Motor::log_scanData(){
-    std::string msg="";
-    for(int i=0; i<usableData.size(); i++){
-        msg+="{"+std::to_string(usableData[i].angle)+", "+std::to_string(usableData[i].range)+"}";
-        if(i<usableData.size()-1){
-            msg+=", ";
-        } 
-    }
-    log_msg("Debug", msg);
-}
 
 void Motor::straight(int pwm)
 {
@@ -519,10 +315,16 @@ void Motor::curve_corner(float connerdistance, int pwm, float degree)
 
 int main() {
     Motor motor;
-    motor.scan_oneCycle();
-    std::vector<LaserPoint> scanpoints = motor.get_scanData();
+    Lidar lidar;
+    lidar.scan_oneCycle();
+    
     float avoid_dgr;
     float avoid_dist=16000.0f;
+
+    std::cout<<lidar.read_last_line();
+
+    
+    /*
     for(int i=0; i<scanpoints.size(); i++){
         
         if(scanpoints[i].angle <20.0f && scanpoints[i].angle > -20.0f && scanpoints[i].range < avoidDistance_trigger){
@@ -533,8 +335,11 @@ int main() {
         }
     }
     log_msg("Debug", "scanpoint near : "+std::to_string(avoid_dgr)+", "+std::to_string(avoid_dist));
+    */
 
-    motor.curve_avoid(avoid_dist, 700, avoid_dgr);
+    
+
+    //motor.curve_avoid(avoid_dist, 700, avoid_dgr);
 
     //scanpoint 자동 업데이트
     //너무 빠른 업데이트를 막기위해 delay넣어야하는지는 실제 테스트해봐야함

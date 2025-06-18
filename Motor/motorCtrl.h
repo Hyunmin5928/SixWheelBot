@@ -1,5 +1,6 @@
 #pragma once
 #include "../LiDAR/YDLidar/YDLidar-SDK/src/CYdLidar.h"
+#include "../LiDAR/Lidar.h"
 #include <wiringPi.h>
 #include <softPwm.h>
 #include <iostream>
@@ -25,68 +26,6 @@
 #include <sstream>
 #include <string>
 
-using json = nlohmann::json;
-
-
-std::string SERVER_IP;
-int         SERVER_PORT;
-std::string CLIENT_IP;
-int         CLIENT_PORT;
-std::string ALLOW_IP;
-double      ACK_TIMEOUT;
-int         RETRY_LIMIT;
-std::string LOG_FILE="Motor/log/motor_log.txt"; // 기본 로그 파일 경로
-
-//const char* PID_FILE = "/var/run/udp_client.pid";
-int log_fd;
-
-
-int sock_fd = -1;
-
-
-void open_log_file() {
-     if (LOG_FILE.empty()) {
-        LOG_FILE = "Motor/log/motor_log.txt";
-    }
-
-    std::filesystem::path log_path(LOG_FILE);
-    std::filesystem::path log_dir = log_path.parent_path();
-
-    try {
-        if (!std::filesystem::exists(log_dir)) {
-            std::filesystem::create_directories(log_dir);
-        }
-    } catch (const std::exception& e) {
-        std::cerr << "Failed to create directory: " << log_dir << "\n"
-                  << e.what() << std::endl;
-        return;
-    }
-
-    log_fd = open(LOG_FILE.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0644);
-    if (log_fd == -1) {
-        std::cerr << "Failed to open log file: " << LOG_FILE << std::endl;
-        perror("open");
-    }
-}
-
-void close_log_file() {
-    if (log_fd != -1) {
-        close(log_fd);
-        log_fd = -1;
-    }
-}
-
-void log_msg(const std::string& level, const std::string& msg) {
-    auto now = std::chrono::system_clock::to_time_t(
-                   std::chrono::system_clock::now());
-    std::ostringstream oss;
-    oss << std::put_time(std::localtime(&now),
-                         "%Y-%m-%d %H:%M:%S")
-        << " [" << level << "] " << msg << "\n";
-    write(log_fd, oss.str().c_str(), oss.str().size());
-}
-
-// ^^^임시 로그^^^
 
 class Motor{
     private:
@@ -100,12 +39,7 @@ class Motor{
         int R_LENPin;
         int L_RENPin;
         int L_LENPin;
-
-        CYdLidar lidar;
-        LaserScan scanData; //스캔 데이터 직접 받는 곳 삭제 절대 XXX
-        std::vector<LaserPoint> usableData; //스캔 데이터  정제하여 받는 곳
         
-        int lidar_setup();
         void motor_setup();
         void motor_setup(int lr_pwmPin, int ll_pwmPin,int rr_pwmPin, int rl_pwmPIn, int rr_enPin, int rl_enPin, int lr_enPin, int ll_enPin);
         bool pwm_isvalid(int pwm);
@@ -126,13 +60,6 @@ class Motor{
         Motor(int lr_pwmPin, int ll_pwmPin,int rr_pwmPin, int rl_pwmPin, int rr_enPin, int rl_enPin, int lr_enPin, int ll_enPin);
         ~Motor();
 
-        
-        void scan_oneCycle();
-
-        std::vector<LaserPoint> get_scanData();
-
-        void log_scanData();
-        
         void straight(int pwm);
 
        // @brief back off

@@ -1,4 +1,3 @@
-// include/SafeQueue.hpp
 #pragma once
 #include <queue>
 #include <mutex>

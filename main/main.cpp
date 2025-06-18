@@ -1,4 +1,3 @@
-// src/main.cpp
 #include <thread>
 #include <atomic>
 #include "SafeQueue.hpp"

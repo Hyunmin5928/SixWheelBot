@@ -13,7 +13,7 @@
 #define R_REN 6
 #define R_LEN 10
 
-#define maxPulse 1024
+#define maxPulse 100
 #define maxSpeed 150.0f
 
 #define avoidDistance_trigger 800.0f //cm
@@ -68,31 +68,29 @@ void Motor::calculate_twin_pwm(float coredistance, int pwm, float degree, int* p
 
 void Motor::lmotor_run(int pwm, bool front=true)
 {
-    std::cout<<"Lmotor_run\n";
     validate_pwm(pwm);
     if (front) {
 
-        pwmWrite(L_RpwmPin, pwm); //positive forward
-        pwmWrite(L_LpwmPin, 0); // must turn off this pin when using L_pwmPin
+        softPwmWrite(L_RpwmPin, pwm); //positive forward
+        softPwmWrite(L_LpwmPin, 0); // must turn off this pin when using L_pwmPin
     }
     else {
-        pwmWrite(L_RpwmPin, 0); //negative backward
-        pwmWrite(L_LpwmPin, pwm);
+        softPwmWrite(L_RpwmPin, 0); //negative backward
+        softPwmWrite(L_LpwmPin, pwm);
     }
 
 }
 
 void Motor::rmotor_run(int pwm, bool front = true)
 {
-    std::cout << "Rmotor_run\n";
     validate_pwm(pwm);
     if (front) {
-        pwmWrite(R_RpwmPin, pwm); //positive forward
-        pwmWrite(R_LpwmPin, 0); // must turn off this pin when using L_pwmPin
+        softPwmWrite(R_RpwmPin, pwm); //positive forward
+        softPwmWrite(R_LpwmPin, 0); // must turn off this pin when using L_pwmPin
     }
     else {
-        pwmWrite(R_RpwmPin, 0); //negative backward
-        pwmWrite(R_LpwmPin, pwm);
+        softPwmWrite(R_RpwmPin, 0); //negative backward
+        softPwmWrite(R_LpwmPin, pwm);
     }
 }
 
@@ -138,22 +136,25 @@ void Motor::motor_setup(int lr_pwmPin, int ll_pwmPin, int rr_pwmPin, int rl_pwmP
     L_RENPin = lrenPin;
     L_LENPin = llenPin;;
 
-    pinMode(L_RpwmPin, PWM_OUTPUT);
-    pinMode(L_LpwmPin, PWM_OUTPUT);
-    pinMode(R_RpwmPin, PWM_OUTPUT);
-    pinMode(R_LpwmPin, PWM_OUTPUT);
+    pinMode(L_RpwmPin, OUTPUT);
+    pinMode(L_LpwmPin, OUTPUT);
+    pinMode(R_RpwmPin, OUTPUT);
+    pinMode(R_LpwmPin, OUTPUT);
+
     pinMode(R_RENPin, OUTPUT);
     pinMode(R_LENPin, OUTPUT);
     pinMode(L_RENPin, OUTPUT);
     pinMode(L_LENPin, OUTPUT);
-
-    pwmSetMode(PWM_MODE_MS);
-    //pwm max pulse
-    pwmSetRange(1024);
-    pwmSetClock(32);
     
+    softPwmCreate(L_RpwmPin,0,maxPulse);
+    softPwmCreate(L_LpwmPin,0,maxPulse);
+    softPwmCreate(R_LpwmPin,0,maxPulse);
+    softPwmCreate(R_RpwmPin,0,maxPulse);
+
     digitalWrite(L_RENPin, HIGH);
     digitalWrite(L_LENPin, HIGH);
+    digitalWrite(R_RENPin,HIGH);
+    digitalWrite(R_LENPin, HIGH);
     open_log_file();
     log_msg("INFO", "Motor setup");
     std::cout << "Motor setup complete.\n";
@@ -202,27 +203,35 @@ Motor::~Motor(){
 void Motor::straight(int pwm)
 {
     validate_pwm(pwm);
-    pwmWrite(R_RpwmPin, pwm);   //positive forward
-    pwmWrite(R_LpwmPin, 0);     // must turn off this pin when using R_pwmPin
-    pwmWrite(L_RpwmPin, pwm);   //positive forward
-    pwmWrite(L_LpwmPin, 0);     //must turn off this pin when using R_pwmPin
+    digitalWrite(L_RENPin, HIGH);
+    digitalWrite(L_LENPin, HIGH);
+    digitalWrite(R_RENPin, HIGH);
+    digitalWrite(R_LENPin, HIGH);
+    softPwmWrite(L_RpwmPin, pwm);   //positive forward
+    softPwmWrite(L_LpwmPin, 0);     //must turn off this pin when using R_pwmPin
+    softPwmWrite(R_RpwmPin, 0);   //positive forward
+    softPwmWrite(R_LpwmPin, pwm);     // must turn off this pin when using R_pwmPin
 }
 
 void Motor::backoff(int pwm)
 {
     validate_pwm(pwm);
-    pwmWrite(R_LpwmPin, pwm);
-    pwmWrite(R_RpwmPin, 0);
-    pwmWrite(L_LpwmPin, pwm);
-    pwmWrite(L_RpwmPin, 0);
+    digitalWrite(L_RENPin, HIGH);
+    digitalWrite(L_LENPin, HIGH);
+    digitalWrite(R_RENPin, HIGH);
+    digitalWrite(R_LENPin, HIGH);
+    softPwmWrite(R_LpwmPin, 0);
+    softPwmWrite(R_RpwmPin, pwm);
+    softPwmWrite(L_LpwmPin, pwm);
+    softPwmWrite(L_RpwmPin, 0);
 }
 
 void Motor::stop(){
-    pwmWrite(R_RpwmPin,0);
-    pwmWrite(R_LpwmPin, 0);
-    pwmWrite(L_RpwmPin,0);
-    pwmWrite(L_LpwmPin, 0);
-    digitalWrite(R_LENPin, LOW);
+    softPwmWrite(R_RpwmPin,0);
+    softPwmWrite(R_LpwmPin, 0);
+    softPwmWrite(L_RpwmPin,0);
+    softPwmWrite(L_LpwmPin, 0);
+    digitalWrite(L_RENPin, LOW);
     digitalWrite(L_LENPin, LOW);
     digitalWrite(R_RENPin, LOW);
     digitalWrite(R_LENPin, LOW);
@@ -344,14 +353,14 @@ void Motor::curve_corner(float connerdistance, int pwm, float degree)
     unsigned int currentTime = millis();
     if(degree>0){
         while(millis()-currentTime <= delaytime){
-            pwmWrite(L_RpwmPin, pwm_1);
-            pwmWrite(R_RpwmPin, pwm_2);
+            softPwmWrite(L_RpwmPin, pwm_1);
+            softPwmWrite(R_RpwmPin, pwm_2);
         }
         
     }else{
         while(millis()-currentTime <= delaytime){
-            pwmWrite(L_RpwmPin, pwm_2);
-            pwmWrite(R_RpwmPin, pwm_1);
+            softPwmWrite(L_RpwmPin, pwm_2);
+            softPwmWrite(R_RpwmPin, pwm_1);
         }
     }
     
@@ -361,14 +370,43 @@ void Motor::curve_corner(float connerdistance, int pwm, float degree)
 
 int main() {
     Motor motor;
-    Lidar lidar;
-    lidar.scan_oneCycle();
-
-    if(lidar.get_nearPoint().angle<20.0f && lidar.get_nearPoint().angle > -20.0f && lidar.get_nearPoint().range < avoidDistance_trigger){
-        motor.curve_avoid(lidar.get_nearPoint().range, 700, lidar.get_nearPoint().angle);
-
+    long long unsigned int time = millis();
+    motor.straight(20);
+    while(millis()-time < 2000){
+        
     }
-    delay(2000);
+    motor.stop();
+
+    time = millis();
+    motor.backoff(20);
+    while(millis()-time < 2000){
+        
+    }
+    motor.stop();
+    Lidar lidar;
+
+    lidar.scan_oneCycle();
+    bool done = false;
+    time=millis();
+    while(1){
+        motor.straight(50);
+        while(millis()-time <1000){
+            lidar.scan_oneCycle();
+    
+            if(lidar.get_nearPoint().angle<60.0f && lidar.get_nearPoint().angle > -60.0f && lidar.get_nearPoint().range < avoidDistance_trigger){
+                motor.curve_avoid(lidar.get_nearPoint().range, 40, lidar.get_nearPoint().angle);
+                std::cout << "Avoiding obstacle at angle: " << lidar.get_nearPoint().angle << ", distance: " << lidar.get_nearPoint().range << "\n";
+                motor.stop();
+                done = true;
+            }
+        }   
+        if(done){
+            break;
+        }
+        time = millis();
+    }
+        
+
     /*
     for(int i=0; i<scanpoints.size(); i++){
         

@@ -32,7 +32,7 @@
   padding:28px 40px;display:flex;align-items:center;gap:20px;
 }
 .profileIcon{width:56px;height:56px;border-radius:12px;
-  background:url("../../assets/logo.png") center/60% no-repeat #6f6f73;}
+  background:url("../../assets/default_image.png") center/100% no-repeat #6f6f73;}
 .profileBox p{margin:0;font-size:20px;font-weight:500;}
 
 /* ---------- Stats ---------- */

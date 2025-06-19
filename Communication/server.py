@@ -23,6 +23,7 @@ SERVER_IP   = srv_conf["IP"]
 SERVER_PORT = int(srv_conf["PORT"])
 CLIENT_IP   = cli_conf["IP"]
 CLIENT_PORT = int(cli_conf["PORT"])
+ALLOW_IP    = net_conf(["ALLOW_IP"])
 ACK_TIMEOUT = float(net_conf["ACK_TIMEOUT"])
 RETRY_LIMIT = int(net_conf["RETRY_LIMIT"])
 LOG_FILE    = log_conf["SERVER_LOG_FILE"]
@@ -83,7 +84,7 @@ def distance_m(a, b):
 def server_loop():
     # 1) 소켓 생성 및 바인드
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.bind((SERVER_IP, SERVER_PORT))
+    sock.bind((ALLOW_IP, SERVER_PORT))
     logger.info(f"서버 바인드 완료: {SERVER_IP}:{SERVER_PORT}")
     sock.settimeout(ACK_TIMEOUT)
 

@@ -1,0 +1,43 @@
+/* ─────────────────────────────────────────
+   다크 테마 베이스 (변수 사용)
+────────────────────────────────────────── */
+.navbar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;                 /* 간격 추가 */
+  padding: 1rem 2rem;        /* 조금 더 여유 있게 */
+  background: var(--panel);  /* #333 → 전역 변수 */
+  box-shadow: 0 1px 4px rgba(0,0,0,0.8);
+}
+
+/* ─────────────────────────────────────────
+   로고 영역
+────────────────────────────────────────── */
+.logo a {
+  color: var(--text);        /* #fff → 변수 */
+  font-size: 1.25rem;
+  text-decoration: none;
+  margin-right: 2rem;
+}
+
+/* ─────────────────────────────────────────
+   메뉴 리스트
+────────────────────────────────────────── */
+.menu {
+  list-style: none;
+  display: flex;
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+}
+.menu li a {
+  color: var(--text-light, #ccc);   /* #ccc → 변수 fallback */
+  text-decoration: none;
+}
+
+/* 호버 & 현재 활성 링크 */
+.menu li a:hover,
+.menu li a.active {
+  color: var(--text);               /* 흰색(또는 변수) */
+  font-weight: 700;                 /* 강조 */
+}

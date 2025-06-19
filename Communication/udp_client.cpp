@@ -7,6 +7,7 @@
 #include <chrono>
 #include <thread>
 #include <csignal>
+#include <cmath>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -18,27 +19,49 @@
 
 using json = nlohmann::json;
 
-// 전역 설정
+/*
+    로그 함수 사용 법
+    // 로그 초기화: 파일 경로, 최소 출력 레벨 지정
+    util::Logger::instance().init("app.log", util::LogLevel::Debug);
+
+    util::Logger::instance().info("프로그램 시작");
+    util::Logger::instance().debug("디버그 메시지");
+    util::Logger::instance().warn("경고 메시지");
+    util::Logger::instance().error("오류 메시지");
+*/
+
+// 전역 설정 변수
 std::string SERVER_IP;
-int SERVER_PORT;
+int         SERVER_PORT;
 std::string CLIENT_IP;
-int CLIENT_PORT;
+int         CLIENT_PORT;
 std::string ALLOW_IP;
-double ACK_TIMEOUT;
-int RETRY_LIMIT;
+double      ACK_TIMEOUT;
+int         RETRY_LIMIT;
 std::string LOG_FILE;
 
 const char* PID_FILE = "/var/run/udp_client.pid";
-int log_fd;
+// int log_fd;
 
-void log_msg(const std::string& level, const std::string& msg) {
-    auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-    std::ostringstream oss;
-    oss << std::put_time(std::localtime(&now), "%Y-%m-%d %H:%M:%S")
-        << " [" << level << "] " << msg << "\n";
-    write(log_fd, oss.str().c_str(), oss.str().size());
-}
+// **전역 소켓 디스크립터**
+int sock_fd = -1;
 
+// 함수 프로토타입 (별도 모듈에서 구현)
+std::vector<double> get_current_gps();
+void                send_to_servo_module(const std::string& cmd);
+
+// 로그 함수
+// void log_msg(const std::string& level, const std::string& msg) {
+//     auto now = std::chrono::system_clock::to_time_t(
+//                    std::chrono::system_clock::now());
+//     std::ostringstream oss;
+//     oss << std::put_time(std::localtime(&now),
+//                          "%Y-%m-%d %H:%M:%S")
+//         << " [" << level << "] " << msg << "\n";
+//     write(log_fd, oss.str().c_str(), oss.str().size());
+// }
+
+// 설정 파일 로드
 void load_config(const std::string& path) {
     std::ifstream ifs(path);
     json cfg; ifs >> cfg;
@@ -52,6 +75,14 @@ void load_config(const std::string& path) {
     LOG_FILE    = cfg["LOG"]["CLIENT_LOG_FILE"].get<std::string>();
 }
 
+// 종료 시그널(SIGTERM) 핸들러
+void cleanup_and_exit(int) {
+    if (sock_fd >= 0) close(sock_fd);
+    unlink(PID_FILE);
+    exit(0);
+}
+
+// 데몬라이즈
 void daemonize() {
     pid_t pid = fork();
     if (pid > 0) exit(0);
@@ -59,20 +90,34 @@ void daemonize() {
     pid = fork();
     if (pid > 0) exit(0);
     umask(0);
-    // pid 파일 작성
+
+    // PID 파일 작성
     std::ofstream pidf(PID_FILE);
     pidf << getpid();
     pidf.close();
-    signal(SIGTERM, [](int){ unlink(PID_FILE); exit(0); });
+
+    // SIGTERM 받으면 cleanup_and_exit 호출
+    signal(SIGTERM, cleanup_and_exit);
 }
 
-void send_and_wait_ack(int sock, const std::string& data, const sockaddr_in& srv_addr,
-                       const std::string& ack_str, std::map<int,std::string>& cache, int key) {
+// ACK 대기 함수 (기존)
+void send_and_wait_ack(int sock, const std::string& data,
+                       const sockaddr_in& srv_addr,
+                       const std::string& ack_str,
+                       std::map<int,std::string>& cache,
+                       int key)
+{
     for (int i = 0; i < RETRY_LIMIT; ++i) {
-        sendto(sock, data.data(), data.size(), 0, (sockaddr*)&srv_addr, sizeof(srv_addr));
+        sendto(sock, data.data(), data.size(), 0,
+               (sockaddr*)&srv_addr, sizeof(srv_addr));
+
         char buf[1024];
-        struct timeval tv{(int)ACK_TIMEOUT, int((ACK_TIMEOUT - int(ACK_TIMEOUT))*1e6)};
+        struct timeval tv{
+            (int)ACK_TIMEOUT,
+            int((ACK_TIMEOUT - int(ACK_TIMEOUT))*1e6)
+        };
         setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+
         ssize_t n = recvfrom(sock, buf, sizeof(buf)-1, 0, nullptr, nullptr);
         if (n > 0) {
             buf[n] = '\0';
@@ -85,118 +130,183 @@ void send_and_wait_ack(int sock, const std::string& data, const sockaddr_in& srv
     }
 }
 
+// 두 GPS 좌표 사이 거리 계산 (m 단위)
+double distance_m(const std::vector<double>& a,
+                  const std::vector<double>& b)
+{
+    double dx = (a[0]-b[0]) * 111000.0;
+    double dy = (a[1]-b[1]) * 111000.0;
+    return std::sqrt(dx*dx + dy*dy);
+}
+
+// 클라이언트 메인 루프
 void client_loop() {
-    int sock = socket(AF_INET, SOCK_DGRAM, 0);
+    // 소켓 생성 및 전역 변수에 저장
+    sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
+
     sockaddr_in cli_addr{}, srv_addr{};
-    cli_addr.sin_family = AF_INET;
-    cli_addr.sin_port = htons(CLIENT_PORT);
-    cli_addr.sin_addr.s_addr = (ALLOW_IP == "0.0.0.0" ? INADDR_ANY : inet_addr(ALLOW_IP.c_str()));
-    bind(sock, (sockaddr*)&cli_addr, sizeof(cli_addr));
+    cli_addr.sin_family      = AF_INET;
+    cli_addr.sin_port        = htons(CLIENT_PORT);
+    cli_addr.sin_addr.s_addr = (CLIENT_IP=="0.0.0.0"
+                                ? INADDR_ANY
+                                : inet_addr(CLIENT_IP.c_str()));
+    bind(sock_fd, (sockaddr*)&cli_addr, sizeof(cli_addr));
+
     srv_addr.sin_family = AF_INET;
-    srv_addr.sin_port = htons(SERVER_PORT);
+    srv_addr.sin_port   = htons(SERVER_PORT);
     inet_pton(AF_INET, SERVER_IP.c_str(), &srv_addr.sin_addr);
 
-    // 로그 메시지 직전에 IP 문자열로 변환
-    char ip_str[INET_ADDRSTRLEN];
-    inet_ntop(AF_INET, &cli_addr.sin_addr, ip_str, sizeof(ip_str));
-    // 리터럴을 std::string으로 감싸기
-    std::string msg = std::string("Client listening on ") + ip_str + ":" + std::to_string(CLIENT_PORT);
-    log_msg("INFO", msg);
-
-    std::map<int,std::string> packet_cache;
-    bool received_map = false;
+    // 1) map 수신 & ACK_MAP
     char buf[65536];
-
+    std::vector<std::vector<double>> route;
     while (true) {
-        ssize_t len = recvfrom(sock, buf, sizeof(buf)-1, 0, nullptr, nullptr);
-        if (len < 0) continue;
+        ssize_t len = recvfrom(sock_fd, buf, sizeof(buf)-1, 0,
+                               nullptr, nullptr);
+        if (len <= 0) continue;
         buf[len] = '\0';
-        std::string msg(buf);
-        // Retrans requests
-        if (msg.rfind("RETRANS_MAP:",0)==0) {
-            sendto(sock, packet_cache[0].data(), packet_cache[0].size(), 0,
+        std::string s(buf);
+        if (s.rfind("{",0)!=0) continue;
+        auto pkt = json::parse(s);
+        if (pkt["type"] == "map") {
+            route = pkt["route"].get<decltype(route)>();
+            sendto(sock_fd, "ACK_MAP:0", 9, 0,
                    (sockaddr*)&cli_addr, sizeof(cli_addr));
-            log_msg("INFO","Retransmitted map"); continue;
-        }
-        if (msg.rfind("RETRANS_LOG:",0)==0) {
-            int num = std::stoi(msg.substr(12));
-            sendto(sock, packet_cache[num].data(), packet_cache[num].size(), 0,
-                   (sockaddr*)&srv_addr, sizeof(srv_addr));
-            log_msg("INFO","Retransmitted log " + std::to_string(num)); continue;
-        }
-        if (msg.rfind("RETRANS_DONE:",0)==0) {
-            int num = std::stoi(msg.substr(12));
-            sendto(sock, packet_cache[num].data(), packet_cache[num].size(), 0,
-                   (sockaddr*)&srv_addr, sizeof(srv_addr));
-            log_msg("INFO","Retransmitted done " + std::to_string(num)); continue;
-        }
-        if (msg.front()!='{') continue;
-        auto pkt = json::parse(msg);
-        std::string ptype = pkt["type"];
-        int num = pkt["packet_number"];
-        if (ptype=="map" && !received_map) {
-            packet_cache[0] = msg;
-            sendto(sock,"ACK_MAP:0",9,0,(sockaddr*)&cli_addr,sizeof(cli_addr));
-            auto route = pkt["route"];
-            received_map = true;
-            log_msg("INFO","Map received: " + std::to_string(route.size()) + " points");
-            // send logs
-            for (size_t i=0;i<route.size();++i) {
-                json log_pkt = { {"packet_number", (int)i}, {"type","log"},
-                    {"robot_state","moving"}, {"gps",route[i]}, {"timestamp",time(nullptr)} };
-                std::string data_log = log_pkt.dump();
-                packet_cache[i] = data_log;
-                send_and_wait_ack(sock, data_log, srv_addr, "ACK_LOG:"+std::to_string(i), packet_cache, i);
-                std::this_thread::sleep_for(std::chrono::seconds(2));
-            }
-            // done
-            int done_num = route.size();
-            json done_pkt = { {"packet_number", done_num}, {"type","done"}, {"timestamp",time(nullptr)} };
-            std::string data_done = done_pkt.dump();
-            packet_cache[done_num] = data_done;
-            send_and_wait_ack(sock, data_done, srv_addr, "ACK_DONE:"+std::to_string(done_num), packet_cache, done_num);
-            log_msg("INFO","Delivery completed");
+            log_msg("INFO", "Map received: " +
+                     std::to_string(route.size()) + " points");
             break;
         }
     }
-    close(sock);
+
+    // 상태 관리
+    enum State{ MOVING, PAUSED, UNLOCKED, RETURNING };
+    State state = MOVING;
+    auto destination = route.back();
+    int packet_num = 0;
+    std::map<int,std::string> cache;
+
+    // 2) 메인 송수신 루프 (절대 소켓 닫지 않음)
+    while (true) {
+        // 로그 전송
+        auto current_gps = get_current_gps();
+        json log_pkt = {
+            {"packet_number", packet_num},
+            {"type",           "log"},
+            {"robot_state",    state==MOVING ? "moving"
+                              : state==RETURNING ? "returning"
+                              : "paused"},
+            {"gps",            current_gps},
+            {"timestamp",      time(nullptr)}
+        };
+        std::string data = log_pkt.dump();
+        cache[packet_num] = data;
+        send_and_wait_ack(sock_fd, data, srv_addr,
+                          "ACK_LOG:"+std::to_string(packet_num),
+                          cache, packet_num);
+        ++packet_num;
+
+        // 서버로부터 명령(non-blocking)
+        struct timeval tv{0,0};
+        setsockopt(sock_fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+        ssize_t n;
+        while ((n = recvfrom(sock_fd, buf, sizeof(buf)-1,
+                             0, nullptr, nullptr)) > 0)
+        {
+            buf[n] = '\0';
+            auto cmd = json::parse(buf);
+            if (cmd["type"] == "cmd") {
+                std::string action = cmd["action"];
+                if (action == "pause") {
+                    state = PAUSED;
+                    log_msg("INFO", "Paused at destination");
+                }
+                else if (action == "unlock") {
+                    state = UNLOCKED;
+                    send_to_servo_module("unlock");
+                    log_msg("INFO", "Unlock command forwarded");
+                }
+                else if (action == "return") {
+                    state = RETURNING;
+                    log_msg("INFO", "Return command received");
+                }
+            }
+        }
+
+        // 도착/복귀 완료 체크
+        if ((state==MOVING || state==RETURNING) &&
+            distance_m(current_gps,
+                       state==MOVING?destination:route.front())
+            <= 0.5)
+        {
+            log_msg("INFO", "Within 0.5m of target, waiting for pause");
+            // 블록킹 모드로 pause 명령 대기
+            while (true) {
+                ssize_t m = recvfrom(sock_fd, buf,
+                                     sizeof(buf)-1, 0,
+                                     nullptr, nullptr);
+                if (m <= 0) continue;
+                buf[m] = '\0';
+                auto cmd = json::parse(buf);
+                if (cmd["type"]=="cmd" &&
+                    cmd["action"]=="pause")
+                {
+                    log_msg("INFO", "Final pause confirmed");
+                    break;
+                }
+            }
+        }
+
+        std::this_thread::sleep_for(
+            std::chrono::seconds(2));
+    }
+
+    // **close(sock_fd); 절대 여기서 호출하지 않습니다.**
 }
 
 int main(int argc, char* argv[]) {
     load_config("config/config.json");
-    // 로그 파일 열기
-    log_fd = open(LOG_FILE.c_str(), O_CREAT|O_APPEND|O_WRONLY, 0644);
+    log_fd = open(LOG_FILE.c_str(),
+                  O_CREAT|O_APPEND|O_WRONLY, 0644);
 
-    if (argc!=2) { std::cout<<"Usage: "<<argv[0]<<" [start|stop|restart|status]\n"; return 1;}  
+    if (argc != 2) {
+        std::cout << "Usage: " << argv[0]
+                  << " [start|stop|restart|status]\n";
+        return 1;
+    }
     std::string cmd = argv[1];
-    if (cmd=="start") {
+
+    if (cmd == "start") {
         log_msg("INFO","Client Daemon start");
         daemonize();
         client_loop();
-    } 
-    else if (cmd=="stop") {
+    }
+    else if (cmd == "stop") {
         log_msg("INFO","Client Daemon stop");
         std::ifstream pidf(PID_FILE);
-        pid_t pid; if (pidf>>pid) kill(pid,SIGTERM);
-    } 
-    else if (cmd=="restart") {
-        log_msg("INFO","Client Daemon start");
-        std::ifstream pidf(PID_FILE);
-        pid_t pid; if (pidf>>pid) kill(pid,SIGTERM);
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-        daemonize(); client_loop();
-    } 
-    else if (cmd=="status") {
-        if (access(PID_FILE,F_OK)==0)  {
-            std::cout<<"UDP Client Daemon ";
-            std::cout<<"Running\n";
-        }
-        else std::cout<<"Stopped\n";
-    } 
-    else {
-        std::cout<<"Unknown command\n";
-        std::cout<<"Usage: "<<argv[0]<<" [start|stop|restart|status]\n";
+        pid_t pid; 
+        if (pidf >> pid) kill(pid, SIGTERM);
     }
+    else if (cmd == "restart") {
+        log_msg("INFO","Client Daemon restart");
+        std::ifstream pidf(PID_FILE);
+        pid_t pid; 
+        if (pidf >> pid) kill(pid, SIGTERM);
+        std::this_thread::sleep_for(
+            std::chrono::seconds(1));
+        daemonize();
+        client_loop();
+    }
+    else if (cmd == "status") {
+        if (access(PID_FILE, F_OK) == 0)
+            std::cout << "UDP Client Daemon Running\n";
+        else
+            std::cout << "Stopped\n";
+    }
+    else {
+        std::cout << "Unknown command\n"
+                  << "Usage: " << argv[0]
+                  << " [start|stop|restart|status]\n";
+    }
+
     close(log_fd);
     return 0;
 }

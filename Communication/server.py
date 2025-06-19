@@ -64,12 +64,13 @@ def load_map_data(path):
             line = line.strip()
             if not line or line.startswith('#'):
                 continue
-            lat_str, lon_str = line.split(',', 1)
+            lat_str, lon_str, dir_str = line.split(',', 2)
             try:
-                lat = float(lat_str); lon = float(lon_str)
+                lat = float(lat_str); lon = float(lon_str); dir = int(dir_str)
+                logger.info(f"lat : {lat}, lon : {lon}, dir : {dir}")
             except ValueError:
                 continue
-            route.append({'lat': lat, 'lon': lon})
+            route.append({'lat': lat, 'lon': lon, 'dir' : dir})
     return route
 
 

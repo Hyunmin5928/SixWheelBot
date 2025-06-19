@@ -324,6 +324,7 @@ app.get('/api/return', async (_req, res) => {
 });
 
 /* ── 배송 요청 수락 ─────────────────────── */
+const TMAP_API_KEY = '6uHPB650j41F9NmAfTKjs5DxEZ0eBcTC77dm55iX';
 app.post('/api/order/:id/accept', async (req, res) => {
   try {
     const db = await dbPromise;
@@ -332,6 +333,7 @@ app.post('/api/order/:id/accept', async (req, res) => {
       [req.params.id]
     );
     if (changes === 0) return res.status(404).send('해당 주문이 없습니다.');
+    
     //주문 정보 조회
     const order = await db.get(`
     SELECT REC_ADDR, REC_DETAIL FROM ORDER_REQ WHERE ORD_ID = ?
@@ -343,6 +345,14 @@ app.post('/api/order/:id/accept', async (req, res) => {
     const address = order.REC_ADDR + ' ' + (order.REC_DETAIL || '');
     const [city_do, gu_gun, dong, bunji, ...detail] = address.split(' ');
     const detailAddress = detail.join(' ');  // 나머지는 상세주소로
+
+    console.log('=== 파싱된 주소 정보 ===');
+    console.log('city_do      :', city_do);
+    console.log('gu_gun       :', gu_gun);
+    console.log('dong         :', dong);
+    console.log('bunji        :', bunji);
+    console.log('detailAddress:', detailAddress);
+
  
     const geoRes = await axios.get('https://apis.openapi.sk.com/tmap/geo/geocoding', {
     params: {
@@ -351,19 +361,28 @@ app.post('/api/order/:id/accept', async (req, res) => {
       gu_gun: gu_gun,
       dong: dong,
       bunji: bunji,
-      detailAddress: detailAddress,
+      //detailAddress: detailAddress,
       addressFlag: 'F00',       // 지번/도로명 자동
       coordType: 'WGS84GEO',
       appKey: TMAP_API_KEY
     }
   });
 
+  console.log('=== Geocoding 응답 전체 ===');
+  console.log(geoRes.data);
 
-    const coord = geoRes.data.addressInfo.coordinate;
+
+
+    const coord = geoRes.data.coordinateInfo;
+    //const startX = 127.1090;
+    //const startY = 37.3397;
+    const endX = Number(coord.lon);
+    const endY = Number(coord.lat);
+   // const endX = 126.910656;
+    //const endY = 37.557907;
     const startX = 127.1090;
     const startY = 37.3397;
-    const endX = coord.lon;
-    const endY = coord.lat;
+ 
 
     // 디버깅용 콘솔 출력
     console.log('==== Geocoding 결과 ====');
@@ -373,10 +392,13 @@ app.post('/api/order/:id/accept', async (req, res) => {
 
     // 2. T map API 호출 
     
-    const tmapRes = await axios.post(
+    
+      const tmapRes = await axios.post(
       'https://apis.openapi.sk.com/tmap/routes/pedestrian?version=1',
       {
         startX, startY, endX, endY,
+        startName: "출발지",
+        endName:"도착지",
         reqCoordType: "WGS84GEO",
         resCoordType: "WGS84GEO",
         // ...필요한 옵션 추가
@@ -388,6 +410,10 @@ app.post('/api/order/:id/accept', async (req, res) => {
         }
       }
     );
+      console.log('=== 경로 응답 전체 ===');
+      console.log(tmapRes.data);
+   
+
 
     // 1. 결과에서 features 배열 뽑기
     const features = tmapRes.data.features;

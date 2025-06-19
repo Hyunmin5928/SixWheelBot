@@ -87,7 +87,7 @@ void comm_thread(
     SafeQueue<int>&                                        cmd_q,
     SafeQueue<std::string>&                                log_q)
 {
-    Logger::instance().init("app.log", LogLevel::Debug);
+    Logger::instance().init(CLI_LOG_FILE, static_cast<util::LogLevel>(LOG_LEVEL));
     // 1) 소켓 생성·바인드
     sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
     sockaddr_in cli{}, srv{};

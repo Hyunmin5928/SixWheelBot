@@ -5,6 +5,23 @@
 #include <fstream>
 #include <mutex>
 
+/* 사용방법
+using util::Logger;
+using util::LogLevel;
+상단부에 선언
+
+Logger::instance().init("CLI_LOG_FILE 경로", LogLevel::Debug);
+또는
+Logger::instance().init(CLI_LOG_FILE, static_cast<util::LogLevel>(LOG_LEVEL)); -> LOG_LEVEL을 config파일에서 불러올 때, INT형이므로 convert 필요
+
+이후
+
+Logger::instance().info("Map data received and ACK sent");
+Logger::instance().warn(ack_str + " retry " + std::to_string(i+1));
+
+이런식으로 활용 가능!
+*/
+
 namespace util {
 
 enum class LogLevel {

@@ -34,8 +34,8 @@ std::string SERVER_IP;
 int         SERVER_PORT;
 std::string CLIENT_IP;
 int         CLIENT_PORT;
+int         LOG_LEVEL;
 std::string CLI_LOG_FILE;
-int         cli_log_fd;
 int         RETRY_LIMIT;
 double      ACK_TIMEOUT;
 int         sock_fd = -1;
@@ -58,6 +58,7 @@ void load_config(const std::string& path) {
     SERVER_PORT  = cfg["SERVER"]["PORT"];
     CLIENT_IP    = cfg["CLIENT"]["IP"];
     CLIENT_PORT  = cfg["CLIENT"]["PORT"];
+    LOG_LEVEL    = cfg["LOG"]["LOG_LEVEL"];
     CLI_LOG_FILE = cfg["LOG"]["CLIENT_LOG_FILE"];
     RETRY_LIMIT  = cfg["NETWORK"]["RETRY_LIMIT"];
     ACK_TIMEOUT  = cfg["NETWORK"]["ACK_TIMEOUT"];
@@ -107,6 +108,5 @@ int main(){
     t_comm.join();
     t_gps.join();
     t_run.join();
-    close(cli_log_fd);
     return 0;
 }

@@ -25,7 +25,8 @@ extern std::string SERVER_IP;
 extern int         SERVER_PORT;
 extern std::string CLIENT_IP;
 extern int         CLIENT_PORT;
-extern int         cli_log_fd;
+extern int         LOG_LEVEL;
+extern std::string CLI_LOG_FILE;
 extern int         RETRY_LIMIT;
 extern double      ACK_TIMEOUT;
 

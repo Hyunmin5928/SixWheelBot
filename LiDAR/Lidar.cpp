@@ -28,7 +28,6 @@ std::vector<LaserScan> Lidar::read_log(const std::string& log_file) {
     }
 }
 
-
 std::string Lidar::read_last_line() {
     std::ifstream file(LOG_FILE);
     std::string line, last_line;
@@ -40,7 +39,6 @@ std::string Lidar::read_last_line() {
     return last_line;
 }
 
-
 void Lidar::log_msg(const std::string& level, const std::string& msg) {
     auto now = std::chrono::system_clock::to_time_t(
                    std::chrono::system_clock::now());
@@ -50,7 +48,6 @@ void Lidar::log_msg(const std::string& level, const std::string& msg) {
         << " [" << level << "] " << msg << "\n";
     write(log_fd, oss.str().c_str(), oss.str().size());
 }
-
 
 Lidar::Lidar(){
     open_log_file();

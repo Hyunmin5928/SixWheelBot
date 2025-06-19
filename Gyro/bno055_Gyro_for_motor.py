@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import serial
 import time
+import re
 
 # 1) 포트와 Baud Rate 설정
 SERIAL_PORT = '/dev/ttyUSB0'   # 라즈베리파이에서 확인된 포트
@@ -18,13 +19,24 @@ def main():
 
     # 3) 무한 루프: 들어오는 데이터 그대로 출력
     try:
-        while True:
-            line_bytes = ser.readline()          # 한 줄 읽기
-            if not line_bytes:
-                continue                         # 빈 줄이면 재시도
-            # 디코딩·개행 제거
-            line_str = line_bytes.decode('utf-8', errors='ignore').strip()
-            print(line_str)                      # 터미널에 출력
+        with open('../Motor/yaw_pipe','w') as fifo:
+
+            while True:
+                line_bytes = ser.readline()          # 한 줄 읽기
+                if not line_bytes:
+                    continue                         # 빈 줄이면 재시도
+                # 디코딩·개행 제거
+                
+                line_str = line_bytes.decode('utf-8', errors='ignore').strip()
+
+                #print(line_str)                      # 터미널에 출력
+                if line_str.startswith("Corrected Euler"):
+                    match = re.search(r"Yaw:\s*([0-9.]+)", line_str)
+                    if match:
+                        yaw = float(match.group(1))
+                        fifo.write(f"{yaw:.2f}\n")
+                        fifo.flush()
+                        print(f"[Yaw] Sent Yaw = {yaw:.2f}")
     except KeyboardInterrupt:
         print("\n프로그램 종료 요청 (Ctrl+C)")
     finally:

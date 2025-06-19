@@ -21,6 +21,10 @@
     "LOG_LEVEL"       : 0,
     "SERVER_LOG_FILE": "log/srv_comm_log.txt",
     "CLIENT_LOG_FILE": "log/cli_comm_log.txt",
-    "GPS_LOG_FILE"   : "log/gps_log.txt"
+    "GPS_LOG_FILE"   : "log/gps_log.txt",
+    "LIDAR_LOG_FILE" : "log/lidar_log.txt",
+    "MOTOR_LOG_FILE" : "log/motor_log.txt",
+    "IMU_LOG_FILE"   : "log/imu_log.txt",
+    "VISION_LOG_FILE": "log/vision_log.txt"
   }
 }

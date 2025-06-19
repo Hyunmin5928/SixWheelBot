@@ -356,11 +356,18 @@ app.post('/api/order/:id/accept', async (req, res) => {
     }
   });
 
+
     const coord = geoRes.data.addressInfo.coordinate;
-    const startX = 127.1058;
-    const startY = 36.3744;
+    const startX = 127.1090;
+    const startY = 37.3397;
     const endX = coord.lon;
     const endY = coord.lat;
+
+    // 디버깅용 콘솔 출력
+    console.log('==== Geocoding 결과 ====');
+    console.log('coord:', coord);
+    console.log('endX(경도):', coord.lon);
+    console.log('endY(위도):', coord.lat);
 
     // 2. T map API 호출 
     
@@ -406,6 +413,13 @@ app.post('/api/order/:id/accept', async (req, res) => {
     const routeCoords = Object.entries(coordMap).map(([key, turnType]) => {
       const [lat, lon] = key.split(',').map(Number);
       return [lat, lon, turnType];
+    });
+
+    // 디버깅용 터미널 출력
+    console.log('==== 경로 좌표 배열 (lat, lon, turnType) ====');
+    routeCoords.forEach((item, idx) => {
+      const [lat, lon, turnType] = item;
+      console.log(`${idx + 1}: lat=${lat}, lon=${lon}, turnType=${turnType === null ? '없음' : turnType}`);
     });
 
     const fs = require('fs');

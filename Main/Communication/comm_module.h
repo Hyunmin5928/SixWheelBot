@@ -36,10 +36,10 @@ void comm_thread(
     SafeQueue<int>&                                        cmd_q,
     SafeQueue<std::string>&                                log_q);
 
-void log_sender_thread(
-    SafeQueue<std::string>& log_q);
+void log_sender_thread(SafeQueue<std::string>& log_q);
 
-void cmd_receiver_thread(
-    SafeQueue<int>& cmd_q);
+void cmd_receiver_thread(SafeQueue<int>& cmd_q);
+
+void gps_sender_thread(SafeQueue<std::pair<double,double>>& gps_q);
 
 void send_and_wait_ack(int sock,const std::string& data,const sockaddr_in& srv_addr,const std::string& ack_str,std::map<int,std::string>& cache,int key);

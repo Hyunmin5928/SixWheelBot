@@ -1,3 +1,4 @@
+// #include "logger.h"
 #include "GPS_parse.h"
 #include <stdio.h>
 #include <string.h>
@@ -10,11 +11,8 @@
 
 
 GPS::GPS()
-{
-   
+{  
     memset(&_gps, 0, sizeof(_gps));
-
-
     _count = 0;
 
     // [✅] GPS UART 초기화
@@ -34,9 +32,8 @@ GPS::GPS()
         tty.c_cc[VTIME] = 1;
         tcsetattr(_gps_fd, TCSANOW, &tty);
     } else {
-        printf("❌ GPS UART open failed\n");
+        // printf("❌ GPS UART open failed\n");
     }
-
     _gps_buff[0] = 0;
     _gps_len = 0;
     _utc_prev = 0.;
@@ -58,7 +55,7 @@ bool GPS::GetGPSdata(sGPS* gps)
 
     if (_gps_len > 2 && (_gps_buff[_gps_len - 1] == '\n' || _gps_buff[_gps_len - 1] == '\r')) {
         _gps_buff[_gps_len] = '\0';
-        printf("📡 수신된 NMEA 문장: %s\n", _gps_buff);
+        // printf("📡 수신된 NMEA 문장: %s\n", _gps_buff);
 
         char* line = strtok(_gps_buff, "\n");
         bool gngga_parsed = false;
@@ -91,19 +88,16 @@ bool GPS::GetGPSdata(sGPS* gps)
                     gps->hdop = hdop;
                     gps->altitude = altitude;
 
-                    printf("✅ GNGGA 파싱 완료\n");
-                    log_msg("INFO", "위도 : " + std::to_string(gps->latitude));
-                    log_msg("INFO", "경도 : " + std::to_string(gps->longitude));
+                    // printf("✅ GNGGA 파싱 완료\n");
+                    // log_msg("INFO", "위도 : " + std::to_string(gps->latitude));
+                    // log_msg("INFO", "경도 : " + std::to_string(gps->longitude));
                     gngga_parsed = true;
                 } else {
-                    printf("❌ GNGGA 파싱 실패 (matched=%d)\n", matched);
+                    // printf("❌ GNGGA 파싱 실패 (matched=%d)\n", matched);
                 }
             }
-            
-            
             line = strtok(NULL, "\n");
         }
-
         _gps_len = 0;
         return gngga_parsed ;
     }

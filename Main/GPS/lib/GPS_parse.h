@@ -2,7 +2,6 @@
 
 #include <vector>
 #include "SerialPort.h"
-#include "../../logger.h"
 
 using namespace std;
 
@@ -38,6 +37,6 @@ private:
     char _gps_buff[_gps_buff_size + 1];
     int _gps_len;
     double _utc_prev;
-	int _gps_fd;             // ← 라즈베리 UART로 GPS 읽기용 파일 디스크립터
+   int _gps_fd;             // ← 라즈베리 UART로 GPS 읽기용 파일 디스크립터
     CSerialPort* _rc;        // ← 아두이노 자이로 측정값 수신용 시리얼 포트 객체
 };

@@ -1,4 +1,4 @@
-#include "logger.h"
+// #include "logger.h"
 #include "GPS_parse.h"
 #include <stdio.h>
 #include <string.h>
@@ -17,6 +17,9 @@ GPS::GPS()
 
 
     _count = 0;
+
+
+    
 
     // [✅] GPS UART 초기화
     _gps_fd = open("/dev/serial0", O_RDWR | O_NOCTTY | O_SYNC);
@@ -93,8 +96,8 @@ bool GPS::GetGPSdata(sGPS* gps)
                     gps->altitude = altitude;
 
                     printf("✅ GNGGA 파싱 완료\n");
-                    log_msg("INFO", "위도 : " + std::to_string(gps->latitude));
-                    log_msg("INFO", "경도 : " + std::to_string(gps->longitude));
+                    // log_msg("INFO", "위도 : " + std::to_string(gps->latitude));
+                    // log_msg("INFO", "경도 : " + std::to_string(gps->longitude));
                     gngga_parsed = true;
                 } else {
                     printf("❌ GNGGA 파싱 실패 (matched=%d)\n", matched);

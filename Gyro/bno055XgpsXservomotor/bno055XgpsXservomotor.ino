@@ -19,9 +19,6 @@ static const float      THRESHOLD_PITCH_DEG = 2.0;
 // BNO055 I²C 주소
 Adafruit_BNO055 bno(55, 0x29);
 
-// GPS (SoftwareSerial) 핀
-SoftwareSerial gpsSerial(11 /*RX*/, 12 /*TX*/);
-
 // 서보 핀 & 가동 범위 (±75°)
 static const uint8_t PIN_SERVO_ROLL   =  9;
 static const uint8_t PIN_SERVO_PITCH  = 10;
@@ -48,7 +45,6 @@ unsigned long lastIMU = 0;
 
 void setup() {
   Serial.begin(115200);
-  gpsSerial.begin(9600);
 
   // 1) BNO055 초기화
   if (!bno.begin(OPERATION_MODE_NDOF)) {
@@ -71,73 +67,48 @@ void setup() {
 }
 
 void loop() {
-  // ─ GPS NMEA 데이터 실시간 출력 ─
-  while (gpsSerial.available()) {
-    String nmea = gpsSerial.readStringUntil('\n');
-    nmea.trim();
-    if (nmea.length()) {
-      Serial.print("GPS: ");
-      Serial.println(nmea);
-    }
-  }
-
-  // ─ IMU 샘플링 주기 체크 ─
+  // IMU 샘플링 주기 체크
   unsigned long now = millis();
   if (now - lastIMU < IMU_INTERVAL_MS) return;
   lastIMU = now;
 
-  // ─ Euler 읽기 & 영점 보정 ─
+  // Euler 읽기 & 영점 보정
   imu::Vector<3> e = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
-  float roll  = e.y() - offRoll;
-  float pitch = e.z() - offPitch;
+  float rawYaw   = e.x();
+  float rawRoll  = e.y();
+  float rawPitch = e.z();
 
-  // ─ 데드밴드 적용 ─
-  if (fabs(roll)  < THRESHOLD_ROLL_DEG)  roll  = 0;
-  if (fabs(pitch) < THRESHOLD_PITCH_DEG) pitch = 0;
+  // 보정값 적용
+  float corrRoll  = rawRoll  - offRoll;
+  float corrPitch = rawPitch - offPitch;
+  float corrYaw   = rawYaw;  // yaw는 영점 보정 없음
 
-  // ─ PID 제어 계산 (목표 = 0°) ─
-  float uRoll  = pidControl(roll,  prevErrRoll,  iAccRoll);
-  float uPitch = pidControl(pitch, prevErrPitch, iAccPitch);
+  // Dead-band 적용 (roll, pitch만)
+  if (fabs(corrRoll)  < THRESHOLD_ROLL_DEG)  corrRoll  = 0;
+  if (fabs(corrPitch) < THRESHOLD_PITCH_DEG) corrPitch = 0;
 
-  // ─ 서보 구동 (Roll은 반대 방향으로) ─
+  // PID 제어 (서보 동작용) — 원한다면 남겨두거나 제거하세요
+  float uRoll  = pidControl(corrRoll,  prevErrRoll,  iAccRoll);
+  float uPitch = pidControl(corrPitch, prevErrPitch, iAccPitch);
   updateServo(servoRoll,  -uRoll);
   updateServo(servoPitch, uPitch);
 
-  // =================================================================
+  // 시리얼 출력: 원데이터와 보정된 값만
+  Serial.print("Raw Euler [deg]    -> "); 
+    Serial.print("Roll: ");  Serial.print(rawRoll,  2);
+    Serial.print("  Pitch: "); Serial.print(rawPitch, 2);
+    Serial.print("  Yaw: ");   Serial.println(rawYaw,   2);
 
-  // ─ EKF용 센서 값 읽기 ─
-  imu::Vector<3> gyro   = bno.getVector(Adafruit_BNO055::VECTOR_GYROSCOPE);
-  imu::Vector<3> linacc = bno.getVector(Adafruit_BNO055::VECTOR_LINEARACCEL);
-  imu::Vector<3> mag    = bno.getVector(Adafruit_BNO055::VECTOR_MAGNETOMETER);
-  float          temp   = bno.getTemp();
+  Serial.print("Corrected Euler -> ");
+    Serial.print("Roll: ");  Serial.print(corrRoll,  2);
+    Serial.print("  Pitch: "); Serial.print(corrPitch, 2);
+    Serial.print("  Yaw: ");   Serial.println(corrYaw,   2);
 
-  // ─ EKF용 시리얼 출력 ─
-  Serial.print("GYRO [dps]: ");
-    Serial.print(gyro.x(), 2); Serial.print(", ");
-    Serial.print(gyro.y(), 2); Serial.print(", ");
-    Serial.println(gyro.z(), 2);
-
-  Serial.print("ACCL [m/s²]: ");
-    Serial.print(linacc.x(), 2); Serial.print(", ");
-    Serial.print(linacc.y(), 2); Serial.print(", ");
-    Serial.println(linacc.z(), 2);
-
-  Serial.print("MAG  [µT]: ");
-    Serial.print(mag.x(), 2); Serial.print(", ");
-    Serial.print(mag.y(), 2); Serial.print(", ");
-    Serial.println(mag.z(), 2);
-
-  Serial.print("TEMP [°C]: ");
-    Serial.println(temp, 1);
-
-  Serial.println("-----------------------------------------------");
+  Serial.println("---------------------------------");
 
   delay(1000);
 }
 
-//==============================================================================
-// 영점 캘리브레이션: 50샘플 평균 (약 1초)
-//==============================================================================
 void calibrateZero() {
   const int N = 50;
   float sumR = 0, sumP = 0;
@@ -155,9 +126,6 @@ void calibrateZero() {
   Serial.print("  offPitch="); Serial.println(offPitch, 2);
 }
 
-//==============================================================================
-// 단일 채널 PID 제어 (목표 = 0°)
-//==============================================================================
 float pidControl(float measured, float &prevErr, float &iAcc) {
   float err = -measured;
   iAcc += err * (IMU_INTERVAL_MS / 1000.0);
@@ -169,9 +137,6 @@ float pidControl(float measured, float &prevErr, float &iAcc) {
   return u;
 }
 
-//==============================================================================
-// u (–75°…+75°) → 서보 각도(0…180) 매핑 & 쓰기
-//==============================================================================
 void updateServo(Servo &sv, float u) {
   int angle = constrain(90 + (int)u,
                         90 - SERVO_LIMIT_DEG,

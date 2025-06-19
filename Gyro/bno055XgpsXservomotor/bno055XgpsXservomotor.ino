@@ -87,13 +87,13 @@ void loop() {
   if (fabs(corrRoll)  < THRESHOLD_ROLL_DEG)  corrRoll  = 0;
   if (fabs(corrPitch) < THRESHOLD_PITCH_DEG) corrPitch = 0;
 
-  // PID 제어 (서보 동작용) — 원한다면 남겨두거나 제거하세요
+  // PID 제어 (서보 동작용) 
   float uRoll  = pidControl(corrRoll,  prevErrRoll,  iAccRoll);
   float uPitch = pidControl(corrPitch, prevErrPitch, iAccPitch);
   updateServo(servoRoll,  -uRoll);
   updateServo(servoPitch, uPitch);
 
-  // 시리얼 출력: 원데이터와 보정된 값만
+  // 시리얼 출력: 원데이터와 보정된 값
   Serial.print("Raw Euler [deg]    -> "); 
     Serial.print("Roll: ");  Serial.print(rawRoll,  2);
     Serial.print("  Pitch: "); Serial.print(rawPitch, 2);
@@ -112,8 +112,8 @@ void loop() {
 void calibrateZero() {
   const int N = 50;
   float sumR = 0, sumP = 0;
-  Serial.println("== 수평에 센서 올려놓고 2초 대기 ==");
-  delay(2000);
+  Serial.println("== 수평에 센서 올려놓고 3초 대기 ==");
+  delay(3000);
   for (int i = 0; i < N; i++) {
     imu::Vector<3> e = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
     sumR += e.y();

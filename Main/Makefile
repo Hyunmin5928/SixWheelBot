@@ -14,7 +14,7 @@ LDFLAGS  := -pthread
 CPP_SRCS := main.cpp \
             Communication/comm_module.cpp \
             GPS/gps_module.cpp \
-            GPS/runGPS.cpp  \
+            GPS/lib/GPS_parse.cpp \
             logger.cpp
 # C_SRCS   := logger.c
 

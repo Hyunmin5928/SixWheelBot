@@ -13,9 +13,9 @@
 #include "SafeQueue.hpp"
 #include "Communication/comm_module.h"
 #include "GPS/gps_module.h"
-#include "GPS/runGPS.h"
 #include "logger.h"
-
+using util::Logger;
+using util::LogLevel;
 /*
     로그 함수 사용 법
     // 로그 초기화: 파일 경로, 최소 출력 레벨 지정
@@ -36,6 +36,7 @@ std::string CLIENT_IP;
 int         CLIENT_PORT;
 int         LOG_LEVEL;
 std::string CLI_LOG_FILE;
+std::string GPS_LOG_FILE;
 int         RETRY_LIMIT;
 double      ACK_TIMEOUT;
 int         sock_fd = -1;
@@ -58,8 +59,11 @@ void load_config(const std::string& path) {
     SERVER_PORT  = cfg["SERVER"]["PORT"];
     CLIENT_IP    = cfg["CLIENT"]["IP"];
     CLIENT_PORT  = cfg["CLIENT"]["PORT"];
+    
     LOG_LEVEL    = cfg["LOG"]["LOG_LEVEL"];
     CLI_LOG_FILE = cfg["LOG"]["CLIENT_LOG_FILE"];
+    GPS_LOG_FILE = cfg["LOG"]["GPS_LOG_FILE"];
+
     RETRY_LIMIT  = cfg["NETWORK"]["RETRY_LIMIT"];
     ACK_TIMEOUT  = cfg["NETWORK"]["ACK_TIMEOUT"];
 }
@@ -68,7 +72,15 @@ int main(){
     std::signal(SIGINT, handle_sigint);
 
     load_config("config/config.json");
+    
+    Logger::instance().addFile("comm",  CLI_LOG_FILE,  static_cast<LogLevel>(LOG_LEVEL));
+    Logger::instance().addFile("gps",   GPS_LOG_FILE,   static_cast<LogLevel>(LOG_LEVEL));
+    // Logger::instance().addFile("motor", "motor.log", LogLevel::Debug);
+    // Logger::instance().addFile("lidar", "lidar.log", LogLevel::Info);
 
+
+    // Logger::instance().init(CLI_LOG_FILE, static_cast<util::LogLevel>(LOG_LEVEL));
+    // Logger::instance().init(GPS_LOG_FILE, static_cast<util::LogLevel>(LOG_LEVEL));
     // 1) 경로(map) → Route 리스트
     SafeQueue<std::vector<std::tuple<double,double,int>>> map_queue;
     // 2) 현재 위치 (필요시 로깅용)
@@ -78,6 +90,7 @@ int main(){
     // 4) (선택) 통신 명령용, 로그용 큐
     SafeQueue<int> cmd_queue;
     SafeQueue<std::string> log_queue;
+    SafeQueue<int> m_cmd_queue;
 
     // 통신 스레드: map_queue, cmd_queue, log_queue
     std::thread t_comm(
@@ -86,27 +99,39 @@ int main(){
         std::ref(cmd_queue),
         std::ref(log_queue));
 
-    // GPS 스레드: gps_queue, map_queue, dir_queue
-    std::thread t_gps(
-        gps_thread,
-        std::ref(gps_queue),
-        std::ref(map_queue),
-        std::ref(dir_queue),
-        std::ref(running));
+    // // GPS 스레드: gps_queue, map_queue, dir_queue
+    // std::thread t_gps(
+    //     gps_thread,
+    //     std::ref(gps_queue),
+    //     std::ref(map_queue),
+    //     std::ref(dir_queue),
+    //     std::ref(running));
 
-    // runGPS 스레드: dir_queue
-    std::thread t_run(
-        runGPS,
-        std::ref(dir_queue),
-        std::ref(gps_queue),
-        std::ref(running));
+    // GPS 읽기 스레드 : gps_queue
+    std::thread t_gps(
+        gps_reader_thread,
+        std::ref(gps_queue)
+    );
+
+    // 통신 모듈에서 GPS 데이터를 서버로 전송하는 스레드 : gps_queue
+    std::thread t_gps_sender(
+        gps_sender_thread,
+        std::ref(gps_queue)
+    );
+
+    std::thread t_nav(
+        navigation_thread,
+        std::ref(map_queue),
+        std::ref(m_cmd_queue)
+    );
 
     // running==false 될 때까지 대기
     while (running) std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     // 종료
     t_comm.join();
+    t_gps_sender.join();
     t_gps.join();
-    t_run.join();
+    t_nav.join();
     return 0;
 }

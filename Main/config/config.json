@@ -17,29 +17,10 @@
     "RETRY_LIMIT": 5
   },
   "LOG":{
-    "_comment"       : "로그 레벨(0 : Trece, 1 : Debug, 2 : Info, 3 : Warn, 4 : Error, 5 : Fatal, 파일 위치 지정",
-    "LOG_LEVEL"       : 1,
+    "_comment"       : "로그 레벨(0 : Debug, 1 : Info, 2 : Warn, 3 : Error 파일 위치 지정",
+    "LOG_LEVEL"       : 0,
     "SERVER_LOG_FILE": "log/srv_comm_log.txt",
-    "CLIENT_LOG_FILE": "log/cli_comm_log.txt"
-  },
-  "DB":{
-    "_comment"      : "DB 파일 위치",
-    "ROBOT_DB_FILE" : "log/robot_log.db"
-  },
-  "MAP":{
-    "_comment" : "이동 경로 파일 위치",
-    "MAP_FILE" : "../GPS/map_data.txt"
-  },
-  "WIN_LOG":{
-    "_comment"       : "WINDOW 환경",
-    "LOG_MODE"       : "debug",
-    "SERVER_LOG_FILE": "log\\srv_comm_log.txt",
-    "CLIENT_LOG_FILE": "log\\cli_comm_log.txt"
-  },
-  "WIN_DB":{
-    "ROBOT_DB_FILE" : "log\\robot_log.db"
-  },
-  "WIN_MAP":{
-    "MAP_FILE" : "..\\GPS\\map_data.txt"
+    "CLIENT_LOG_FILE": "log/cli_comm_log.txt",
+    "GPS_LOG_FILE"   : "log/gps_log.txt"
   }
 }

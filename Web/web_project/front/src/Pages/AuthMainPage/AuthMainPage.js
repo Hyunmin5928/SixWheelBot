@@ -15,7 +15,11 @@ export default function AuthMainPage() {
 
   /* 토큰이 없으면 게스트 메인(/)으로 돌려보냄 */
   useEffect(() => {
-    if (!localStorage.getItem('TOKEN')) nav('/');
+    const role  = localStorage.getItem('ROLE');
+    const token = localStorage.getItem('TOKEN');
+
+  /* TOKEN 이 있거나, ROLE 이 USER/ADMIN 이면 통과 */
+    if (!token && !role) nav('/');
   }, [nav]);
 
   /* 로그아웃 → 토큰 삭제 후 / 로 이동 */

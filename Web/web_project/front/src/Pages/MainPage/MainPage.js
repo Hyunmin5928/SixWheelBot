@@ -1,3 +1,4 @@
+// src/Pages/MainPage/MainPage.js
 import React from 'react';
 import { useNavigate, NavLink } from 'react-router-dom';
 
@@ -12,15 +13,23 @@ import styles from './MainPage.module.css';
 export default function MainPage() {
   const nav = useNavigate();
 
+  /* 로그인 여부: localStorage에 TOKEN이 있으면 true */
+  const isAuth = !!localStorage.getItem('TOKEN');
+
+  /* 버튼별 라우팅 분기 */
+  const handleOrderClick  = () => nav(isAuth ? '/order/new'  : '/login');
+  const handleReturnClick = () => nav(isAuth ? '/return/new' : '/login');
+
+  /* 카드 메타데이터 */
   const cards = [
-    { title: '배송 요청', imgSrc: orderIcon,  path: '/order/new' },
-    { title: '반품 신청', imgSrc: returnIcon, path: '/return/new' },
-    { title: '배송 조회', imgSrc: searchIcon, path: '/order' },
+    { title: '배송 요청', imgSrc: orderIcon,  onClick: handleOrderClick },
+    { title: '반품 신청', imgSrc: returnIcon, onClick: handleReturnClick },
+    { title: '배송 조회', imgSrc: searchIcon, onClick: () => nav('/order') },
   ];
 
   return (
     <div className={styles.wrapper}>
-      {/* ── 헤더 ───────────────────────────── */}
+      {/* ---------- Header ---------- */}
       <header className={styles.header}>
         <div className={styles.logoArea} onClick={() => nav('/')}>
           <img src={logoImg} alt="로고" />
@@ -34,7 +43,7 @@ export default function MainPage() {
         </nav>
       </header>
 
-      {/* ── 히어로 ─────────────────────────── */}
+      {/* ---------- Hero ---------- */}
       <section className={styles.hero}>
         <h1>배달의 육륜</h1>
         <p className={styles.copy}>
@@ -45,18 +54,18 @@ export default function MainPage() {
         </p>
       </section>
 
-      {/* ── 운송장 검색 ───────────────────── */}
+      {/* ---------- 운송장 검색 ---------- */}
       <div className={styles.trackingBox}>
         <input placeholder="운송장 번호를 입력하시고 배송 정보를 확인하세요." />
         <button><span className="material-icons">search</span></button>
       </div>
 
-      {/* ── 배송 옵션 ─────────────────────── */}
+      {/* ---------- 배송 옵션 카드 ---------- */}
       <section className={styles.service}>
         <h2>배송 옵션</h2>
         <div className={styles.circleWrap}>
-          {cards.map(({ title, imgSrc, path }) => (
-            <button key={title} onClick={() => nav(path)}>
+          {cards.map(({ title, imgSrc, onClick }) => (
+            <button key={title} onClick={onClick}>
               <img src={imgSrc} alt={title} />
               <span>{title}</span>
             </button>
@@ -64,12 +73,12 @@ export default function MainPage() {
         </div>
       </section>
 
-      {/* ── 배너 ───────────────────────────── */}
+      {/* ---------- 배너 ---------- */}
       <section className={styles.banner}>
         <img src={serviceBanner} alt="SixWheel Delivery Services" />
       </section>
 
-      {/* ── 푸터 (Site name) ───────────────── */}
+      {/* ---------- Footer ---------- */}
       <footer className={styles.footer}>
         <div className={styles.footerInner}>
           <div className={styles.sns}>
@@ -77,7 +86,6 @@ export default function MainPage() {
             <i className="ri-instagram-line" />
             <i className="ri-youtube-fill" />
           </div>
-
           <div className={styles.footerLinks}>
             <strong>Site name</strong>
             <ul><li>Topic</li><li>Page</li><li>Page</li></ul>

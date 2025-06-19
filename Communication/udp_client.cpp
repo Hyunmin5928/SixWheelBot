@@ -19,6 +19,17 @@
 
 using json = nlohmann::json;
 
+/*
+    로그 함수 사용 법
+    // 로그 초기화: 파일 경로, 최소 출력 레벨 지정
+    util::Logger::instance().init("app.log", util::LogLevel::Debug);
+
+    util::Logger::instance().info("프로그램 시작");
+    util::Logger::instance().debug("디버그 메시지");
+    util::Logger::instance().warn("경고 메시지");
+    util::Logger::instance().error("오류 메시지");
+*/
+
 // 전역 설정 변수
 std::string SERVER_IP;
 int         SERVER_PORT;
@@ -30,7 +41,7 @@ int         RETRY_LIMIT;
 std::string LOG_FILE;
 
 const char* PID_FILE = "/var/run/udp_client.pid";
-int log_fd;
+// int log_fd;
 
 // **전역 소켓 디스크립터**
 int sock_fd = -1;
@@ -40,15 +51,15 @@ std::vector<double> get_current_gps();
 void                send_to_servo_module(const std::string& cmd);
 
 // 로그 함수
-void log_msg(const std::string& level, const std::string& msg) {
-    auto now = std::chrono::system_clock::to_time_t(
-                   std::chrono::system_clock::now());
-    std::ostringstream oss;
-    oss << std::put_time(std::localtime(&now),
-                         "%Y-%m-%d %H:%M:%S")
-        << " [" << level << "] " << msg << "\n";
-    write(log_fd, oss.str().c_str(), oss.str().size());
-}
+// void log_msg(const std::string& level, const std::string& msg) {
+//     auto now = std::chrono::system_clock::to_time_t(
+//                    std::chrono::system_clock::now());
+//     std::ostringstream oss;
+//     oss << std::put_time(std::localtime(&now),
+//                          "%Y-%m-%d %H:%M:%S")
+//         << " [" << level << "] " << msg << "\n";
+//     write(log_fd, oss.str().c_str(), oss.str().size());
+// }
 
 // 설정 파일 로드
 void load_config(const std::string& path) {

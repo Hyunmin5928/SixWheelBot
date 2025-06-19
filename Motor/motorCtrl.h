@@ -106,4 +106,6 @@ class Motor{
         void curve_avoid(float distance, int pwm, float degree, bool recover);
         //@brief this function is not depend on time, only whether is degree reach
         void curve_corner(float connerdistance, int pwm, float degree);
+
+        void motor_test(int pwm);
 };

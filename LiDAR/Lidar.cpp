@@ -276,3 +276,8 @@ LaserPoint Lidar::get_nearPoint(){
 
     return nearPoint;
 }
+
+void run_Lidar(){
+    Lidar lidar;
+    lidar.scan_oneCycle();
+}

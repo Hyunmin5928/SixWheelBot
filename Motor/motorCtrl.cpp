@@ -83,7 +83,6 @@ void Motor::lmotor_run(int pwm, bool front=true)
 {
     validate_pwm(pwm);
     if (front) {
-
         softPwmWrite(L_RpwmPin, pwm); //positive forward
         softPwmWrite(L_LpwmPin, 0); // must turn off this pin when using L_pwmPin
     }
@@ -254,31 +253,58 @@ void Motor::rotate(int pwm, float degree)
 {
     validate_pwm(pwm);
 
-    /*
-    float dgrspeed = calculate_dgrspeed(pwm);
-    std::cout<<dgrspeed<<"\n";
-    //abs_dgr : 절대값 각도
-    float abs_dgr = degree;
-    if(abs_dgr <0){
-        abs_dgr *= -1.0f;
+    digitalWrite(L_RENPin, HIGH);
+    digitalWrite(L_LENPin, HIGH);
+    digitalWrite(R_RENPin, HIGH);
+    digitalWrite(R_LENPin, HIGH);
+
+    std::cout<<"[ROTATE] degree = "<<degree;
+    std::cout<<" pwm = "<<pwm<<"\n"; 
+    if (degree > 0) {
+        std::cout<<"Direction: CLOCKWISE";\
+        rmotor_run(pwm, false);
+        lmotor_run(pwm, true);
+    } else {
+        std::cout<<"Direction: COUNTERCLOCKWISE";
+        lmotor_run(pwm, false);
+        rmotor_run(pwm, true);
     }
-    float delaytime = abs_dgr / dgrspeed;
-    std::cout<<delaytime;
-    */
-    unsigned int currentTime = millis();
-    while(millis()-currentTime < 3000){
+    delay(10000);
+    stop();
+
+
+
+    // validate_pwm(pwm);
+
+    // digitalWrite(L_RENPin, HIGH);
+    // digitalWrite(L_LENPin, HIGH);
+    // digitalWrite(R_RENPin, HIGH);
+    // digitalWrite(R_LENPin, HIGH);
+    // /*
+    // float dgrspeed = calculate_dgrspeed(pwm);
+    // std::cout<<dgrspeed<<"\n";
+    // //abs_dgr : 절대값 각도
+    // float abs_dgr = degree;
+    // if(abs_dgr <0){
+    //     abs_dgr *= -1.0f;
+    // }
+    // float delaytime = abs_dgr / dgrspeed;
+    // std::cout<<delaytime;
+    // */
+    // unsigned int currentTime = millis();
+    // while(millis()-currentTime < 3000){
         
-        if (degree > 0) 
-        {
-            rmotor_run(pwm, false); // 오른쪽 바퀴는 뒤로 회전
-            lmotor_run(pwm); // 왼쪽 바퀴는 앞으로 회전
-        }
-        else {
-            rmotor_run(pwm); // 오른쪽 바퀴는 앞으로 회전
-            lmotor_run(pwm, false); // 왼쪽 바퀴는 뒤로 회전
-        }
-            // 모터 최대 150rpm, 설정 최대 pwm 100, 6.0f는 초당 각속도 계산을 위한 상수
-    }
+    //     if (degree > 0) 
+    //     {
+    //         rmotor_run(pwm, false); // 오른쪽 바퀴는 뒤로 회전
+    //         lmotor_run(pwm, true); // 왼쪽 바퀴는 앞으로 회전
+    //     }
+    //     else {
+    //         rmotor_run(pwm, true); // 오른쪽 바퀴는 앞으로 회전
+    //         lmotor_run(pwm, false); // 왼쪽 바퀴는 뒤로 회전
+    //     }
+    //         // 모터 최대 150rpm, 설정 최대 pwm 100, 6.0f는 초당 각속도 계산을 위한 상수
+    // }
 }
 
 //동작 중에 추가로 피해야할 대상이 나타나면 유연하게 회피하도록 해야함
@@ -375,79 +401,81 @@ void Motor::curve_corner(float connerdistance, int pwm, float degree)
 
 #pragma endregion
 
+void run_Motor(){
+    Motor motor;
+}
+
+
 int main() {
     Motor motor;
     long long unsigned int time = millis();
-    Lidar lidar;
+    //Lidar lidar;
 
-    lidar.scan_oneCycle();
+    //lidar.scan_oneCycle();
     bool done = false;
     time=millis();
+    //motor.rotate(40,90)
+    
+    motor.rotate(40,90);
+    motor.rotate(40,-90);
+    
+    
+    
+    //motor.stop();
+
+    delay(2000);
+    //motor.rotate(40, 90);
+    //motor.stop();
+
+    //motor.rotate(40, 90);
+
+    /*
     while(1){
         motor.straight(40);
-        while(millis()-time <5000){
+        while(millis()-time <100){
             lidar.scan_oneCycle();
-    
+
             if(lidar.get_nearPoint().angle<60.0f && lidar.get_nearPoint().angle > -60.0f && lidar.get_nearPoint().range < avoidDistance_trigger && lidar.get_nearPoint().range>0.0f){
                 std::cout << "Avoiding obstacle at angle: " << lidar.get_nearPoint().angle << ", distance: " << lidar.get_nearPoint().range << "\n";
                 done = true;
             }
             if(done){
+                std::cout<<"Rotate\n";
                 delay(100);
                 motor.stop();
                 delay(100);
                 //로테이트 함수가 안돌음
-                motor.rotate(50, 30);
                 break;
             }
-            
+         
         }   
         if(done){
             //여기 위치에서도 로테이트 함수가 안돌음
+            
+            std::cout<<"Straight\n";
+            motor.straight(30);
+            lidar.log_msg("Debug","Rotate done - Go Straight");
             break;
         }
         time = millis();
     }
-    //motor.curve_avoid(lidar.get_nearPoint().range, 30, lidar.get_nearPoint().angle);
-    
-    motor.stop();
-
-    /*
-    for(int i=0; i<scanpoints.size(); i++){
-        
-        if(scanpoints[i].angle <20.0f && scanpoints[i].angle > -20.0f && scanpoints[i].range < avoidDistance_trigger){
-            if(scanpoints[i].range < avoid_dist && scanpoints[i].range != 0.0f){
-                avoid_dgr=scanpoints[i].angle;
-                avoid_dist = scanpoints[i].range;
-            }
-        }
+    lidar.log_msg("Debug", "Rotate now");
+    motor.rotate(40,90);
+    long long unsigned curTime = millis();
+    while(millis()-curTime<1500){
+        motor.straight(40);
     }
-    log_msg("Debug", "scanpoint near : "+std::to_string(avoid_dgr)+", "+std::to_string(avoid_dist));
-    */
-
-    
-
-    //motor.curve_avoid(avoid_dist, 700, avoid_dgr);
-
-    //scanpoint 자동 업데이트
-    //너무 빠른 업데이트를 막기위해 delay넣어야하는지는 실제 테스트해봐야함
-    /*
-    unsigned int time = millis();
-    while(millis()-time <5000){
-        motor.scan_OneCycle();
-        motor.straight(1024);
+    delay(100);
+    motor.rotate(40,-90);
+    curTime = millis();
+    delay(100);
+    while(millis()-curTime<1500){
+        motor.straight(40);
     }
-    time=millis();
-    while(millis()-time <3000){
 
-        motor.backoff(1024);
-    }
-    time=millis();
-    motor.get_scanpoints()
-    while(millis()-time <3000){
-        motor.curve_corner(100.0f, 500, 90);
-    }
-    */
+    lidar.log_msg("Debug", "Rotate done");
+
     motor.stop();
     return 0;
+    */
 }

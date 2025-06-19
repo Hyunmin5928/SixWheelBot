@@ -165,6 +165,7 @@ Motor::~Motor(){
 
 void Motor::straight(int pwm)
 {
+    Logger::instance().debug("motor", "[MotorCtrl] Straight");
     validate_pwm(pwm);
     pwmWrite(R_RpwmPin, pwm);   //positive forward
     pwmWrite(R_LpwmPin, 0);     // must turn off this pin when using R_pwmPin
@@ -174,6 +175,7 @@ void Motor::straight(int pwm)
 
 void Motor::backoff(int pwm)
 {
+    Logger::instance().debug("motor", "[MotorCtrl] backoff");
     validate_pwm(pwm);
     pwmWrite(R_LpwmPin, pwm);
     pwmWrite(R_RpwmPin, 0);
@@ -182,6 +184,7 @@ void Motor::backoff(int pwm)
 }
 
 void Motor::stop(){
+    Logger::instance().debug("motor", "[MotorCtrl] stop");
     pwmWrite(R_RpwmPin,0);
     pwmWrite(R_LpwmPin, 0);
     pwmWrite(L_RpwmPin,0);
@@ -194,6 +197,7 @@ void Motor::stop(){
 
 void Motor::rotate(int pwm, float degree)
 {
+    Logger::instance().debug("motor", "[MotorCtrl] rotate");
     validate_pwm(pwm);
 
     float dgrspeed = calculate_dgrspeed(pwm);
@@ -228,27 +232,27 @@ void Motor::curve_avoid(float distance, int pwm, float degree, bool recover = fa
         
         if(degree > 0){ //왼쪽 회피
             rotate(pwm, avoid_degree);
-            log_msg("Debug", "rotate left for avoid : avoid angle");
+            Logger::instance().debug("motor", "[MotorCtrl] rotate left for avoid : avoid angle");
         }
         else{ //오른쪽 회피
             rotate(pwm, -avoid_degree);
-            log_msg("Debug", "rotate right for avoid : avoid angle");
+            Logger::instance().debug("motor", "[MotorCtrl] rotate right for avoid : avoid angle");
         }
     }
     long long unsigned int currentTime = millis();
     straight(pwm);
-    log_msg("Debug", "straight for avoid");
+    Logger::instance().debug("motor", "[MotorCtrl] straight for avoid");
     while(millis() - currentTime < 500) {
 
     }
     stop();
     if(degree > 0){ //왼쪽 회피
         rotate(pwm, -avoid_degree);
-        log_msg("Debug", "rotate left for avoid : recover angle");
+        Logger::instance().debug("motor", "[MotorCtrl] rotate left for avoid : recover angle");
     }
     else {
         rotate(pwm, avoid_degree);
-        log_msg("Debug", "rotate right for avoid : recover angle");
+        Logger::instance().debug("motor", "[MotorCtrl] rotate right for avoid : recover angle");
     }
 
     /*

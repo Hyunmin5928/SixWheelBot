@@ -11,22 +11,15 @@
 #include <fstream>
 #include <ctime>
 #include <string>
-
-// 임시 로그
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <nlohmann/json.hpp>
-#include <iomanip>
-#include <chrono>
-#include <sstream>
-#include <string>
+#include <../logger.h>
 
 using json = nlohmann::json;
+extern int         LOG_LEVEL;
+extern std::atomic<bool> running;
+
+using util::Logger;
+using util::LogLevel;
+
 
 class Motor{
     private:
@@ -73,36 +66,7 @@ class Motor{
         Motor();
         Motor(int lr_pwmPin, int ll_pwmPin,int rr_pwmPin, int rl_pwmPin, int rr_enPin, int rl_enPin, int lr_enPin, int ll_enPin);
         ~Motor();
-
-        void log_msg(const std::string& level, const std::string& msg) {
-            auto now = std::chrono::system_clock::to_time_t(
-                        std::chrono::system_clock::now());
-            std::ostringstream oss;
-            oss << std::put_time(std::localtime(&now),
-                                "%Y-%m-%d %H:%M:%S")
-                << " [" << level << "] " << msg << "\n";
-            write(log_fd, oss.str().c_str(), oss.str().size());
-        }
-
-        void open_log_file() {
-            log_fd = open(LOG_FILE.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0644);
-            if (log_fd < 0) {
-                std::cerr << "Failed to open log file: " << LOG_FILE << std::endl;
-            } else {
-                log_msg("INFO", "Log file opened successfully.");
-            }
-        }
-
-        void close_log_file() {
-            if (log_fd >= 0) {
-                close(log_fd);
-                log_fd = -1;
-                log_msg("INFO", "Log file closed successfully.");
-            } else {
-                std::cerr << "Log file is not open." << std::endl;
-            }
-        }
-
+        
         void straight(int pwm);
 
        // @brief back off

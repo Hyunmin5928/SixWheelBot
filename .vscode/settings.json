@@ -68,6 +68,8 @@
         "optional": "cpp",
         "ranges": "cpp",
         "span": "cpp",
-        "valarray": "cpp"
+        "valarray": "cpp",
+        "logger.h": "c",
+        "fcntl.h": "c"
     }
 }

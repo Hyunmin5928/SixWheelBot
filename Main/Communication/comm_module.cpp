@@ -1,7 +1,44 @@
 #include "comm_module.h"
+/*
+    로그 함수 사용 법
+    // 로그 초기화: 파일 경로, 최소 출력 레벨 지정
+    util::Logger::instance().init("app.log", util::LogLevel::Debug);
 
-void log_msg(const std::string&, const std::string&);
-void send_and_wait_ack(int sock,const std::string& data,const sockaddr_in& srv,const std::string& ack_str,std::map<int,std::string>& cache,int key);
+    util::Logger::instance().info("프로그램 시작");
+    util::Logger::instance().debug("디버그 메시지");
+    util::Logger::instance().warn("경고 메시지");
+    util::Logger::instance().error("오류 메시지");
+*/
+void send_and_wait_ack(int sock, 
+                       const std::string& data,
+                       const sockaddr_in& srv_addr,
+                       const std::string& ack_str,
+                       std::map<int,std::string>& cache,
+                       int key)
+{
+    for (int i = 0; i < RETRY_LIMIT; ++i) {
+        sendto(sock, data.data(), data.size(), 0,
+               (sockaddr*)&srv_addr, sizeof(srv_addr));
+
+        char buf[1024];
+        struct timeval tv{
+            (int)ACK_TIMEOUT,
+            int((ACK_TIMEOUT - int(ACK_TIMEOUT))*1e6)
+        };
+        setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+
+        ssize_t n = recvfrom(sock, buf, sizeof(buf)-1, 0, nullptr, nullptr);
+        if (n > 0) {
+            buf[n] = '\0';
+            if (std::string(buf) == ack_str) {
+                cache.erase(key);
+                return;
+            }
+        }
+        // log_msg("WARNING", ack_str + " retry " + std::to_string(i+1));
+        Logger::instance().warn(ack_str + " retry " + std::to_string(i+1));
+    }
+}
 
 void log_sender_thread(SafeQueue<std::string>& log_q) {
     sockaddr_in srv{};
@@ -15,10 +52,12 @@ void log_sender_thread(SafeQueue<std::string>& log_q) {
     while (running && log_q.ConsumeSync(data)) {
         cache[packet_num] = data;
         send_and_wait_ack(
-            sock_fd, data,
+            sock_fd, 
+            data,
             srv,
             "ACK_LOG:" + std::to_string(packet_num),
-            cache, packet_num);
+            cache, 
+            packet_num);
         ++packet_num;
     }
 }
@@ -48,6 +87,7 @@ void comm_thread(
     SafeQueue<int>&                                        cmd_q,
     SafeQueue<std::string>&                                log_q)
 {
+    Logger::instance().init("app.log", LogLevel::Debug);
     // 1) 소켓 생성·바인드
     sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
     sockaddr_in cli{}, srv{};
@@ -99,7 +139,8 @@ void comm_thread(
                   0,
                   (sockaddr*)&srv, sizeof(srv)
                 );
-                log_msg("INFO", "Map data received and ACK sent");
+                // log_msg("INFO", "Map data received and ACK sent");
+                Logger::instance().info("Map data received and ACK sent");
                 break;
             }
         }

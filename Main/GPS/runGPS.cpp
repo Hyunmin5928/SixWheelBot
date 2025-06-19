@@ -3,30 +3,26 @@
 #include <unistd.h>
 
 void runGPS(
-    SafeQueue<std::vector<std::tuple<double,double,int>>>& dir_q,
+    SafeQueue<int>&                                       dir_q,
     SafeQueue<std::pair<double,double>>&                  gps_q,
     std::atomic<bool>&                                    running)
 {
-    std::vector<std::tuple<double,double,int>> waypoints;
     while (running) {
-        // map data 수신 시 업데이트
-        std::vector<std::tuple<double,double,int>> newwp;
-        if (dir_q.ConsumeSync(newwp)) {
-            waypoints = std::move(newwp);
-            std::cout<<"🚀 경로 업데이트: "<<waypoints.size()<<"개 지점"<<std::endl;
+        // 1) dir_queue 에서 정수 코드만 꺼내 쓰기
+        int code;
+        if (dir_q.ConsumeSync(code)) {
+            std::cout << "▶ RunGPS: direction code = "
+                      << code << std::endl;
         }
-        // 현재 GPS 위치 확인
+
+        // 2) gps_queue 에서 현재 위치 꺼내서 출력
         std::pair<double,double> pos;
         if (gps_q.ConsumeSync(pos)) {
-            // pos.first, pos.second 가 현재 위도/경도
-            auto [lat, lon, turn] = waypoints.front();
-            double angle = GeoUtils::bearing(
-                pos.first, pos.second, lat, lon);
-            std::cout << "🧭 현재 위/경도: "
-                    << pos.first << ", " << pos.second
-                    << " → 다음 방위: " << angle
-                    << "°, 턴: " << turn << "\n";
+            std::cout << "🗺️ Current GPS: lat=" 
+                      << pos.first << ", lon="
+                      << pos.second << std::endl;
         }
+
         sleep(1);
     }
 }

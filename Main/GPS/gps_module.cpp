@@ -4,9 +4,6 @@
 #include <cmath>
 #include <iostream>
 
-// 실제 GPS 장치에서 위도·경도 반환
-extern std::vector<double> get_current_gps();
-
 void gps_thread(
     SafeQueue<std::pair<double,double>>& gps_q,
     SafeQueue<Route>&                    map_q,
@@ -22,8 +19,11 @@ void gps_thread(
 
     // 2) 메인 루프: 현재 위치 읽고, 각 웨이포인트 근처면 dir_q에 코드만
     while (running) {
-        auto v = get_current_gps();
-        std::pair<double,double> pos{v[0], v[1]};
+        std::pair<double,double> pos;
+        if (!gps_q.ConsumeSync(pos)) {
+            // running==false로 Finish된 경우 루프 탈출
+            break;
+        }
         gps_q.Produce(std::move(pos));
 
         for (auto& wp : route) {

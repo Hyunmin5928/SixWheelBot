@@ -1,37 +1,49 @@
 # Makefile
 
-CXX        := g++
-CXXFLAGS   := -std=c++17 -Wall -pthread -I. $(shell pkg-config --cflags opencv4)
-LDFLAGS    := $(shell pkg-config --libs opencv4) -lwiringPi
+# 1. 컴파일러 설정
+CXX      := g++
+CC       := gcc
+CXXFLAGS := -std=c++17 -Wall -pthread \
+             -I. \
+             -I./Communication \
+             -I./GPS \
+             -I./GPS/lib
+LDFLAGS  := -pthread
 
-# 소스 디렉터리 목록
-SRCDIRS    := . Communication GPS LiDAR Motor Vision
+# 2. 소스 파일 리스트
+CPP_SRCS := main.cpp \
+            Communication/comm_module.cpp \
+            GPS/gps_module.cpp \
+            GPS/runGPS.cpp  \
+            logger.cpp
+# C_SRCS   := logger.c
 
-# 각 디렉터리의 .cpp 파일을 모두 수집
-SOURCES    := $(wildcard *.cpp) \
-              $(wildcard Communication/*.cpp) \
-              $(wildcard GPS/*.cpp) 
-            #   $(wildcard LiDAR/*.cpp) \
-              $(wildcard Motor/*.cpp) \
-              $(wildcard Vision/*.cpp)
+# 3. 오브젝트 파일 리스트
+OBJ_CPP  := $(CPP_SRCS:.cpp=.o)
+OBJ_C    := $(C_SRCS:.c=.o)
+OBJS     := $(OBJ_CPP) $(OBJ_C)
 
-# .cpp → .o
-OBJECTS    := $(SOURCES:.cpp=.o)
+# 4. 최종 바이너리 이름
+TARGET   := app   # 원하는 실행 파일 이름으로 변경 가능
 
-# 최종 실행 파일 이름
-TARGET     := main
-
-.PHONY: all clean
-
+# =================================
+# 기본 타겟: all
 all: $(TARGET)
 
-# 링크
-$(TARGET): $(OBJECTS)
-	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+# 링크 단계
+$(TARGET): $(OBJS)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $(OBJS)
 
-# 컴파일 규칙: foo.cpp → foo.o
+# C++ 컴파일 규칙
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
+# C 컴파일 규칙
+%.o: %.c
+	$(CC) -Wall -c $< -o $@
+
+# 청소 타겟
 clean:
-	rm -f $(OBJECTS) $(TARGET)
+	rm -f $(OBJS) $(TARGET)
+
+.PHONY: all clean

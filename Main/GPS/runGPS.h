@@ -8,4 +8,5 @@
 
 void runGPS(
     SafeQueue<int>& dir_q,
+    SafeQueue<std::pair<double,double>>& gps_q,
     std::atomic<bool>& running);

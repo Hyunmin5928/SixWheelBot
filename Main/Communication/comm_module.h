@@ -14,7 +14,10 @@
 #include <cmath>
 #include <chrono>
 #include "../SafeQueue.hpp"
+#include "../logger.h"
 using json = nlohmann::json;
+using util::Logger;
+using util::LogLevel;
 
 extern std::atomic<bool> running;
 extern int         sock_fd;
@@ -22,7 +25,7 @@ extern std::string SERVER_IP;
 extern int         SERVER_PORT;
 extern std::string CLIENT_IP;
 extern int         CLIENT_PORT;
-extern int         log_fd;
+extern int         cli_log_fd;
 extern int         RETRY_LIMIT;
 extern double      ACK_TIMEOUT;
 
@@ -37,3 +40,5 @@ void log_sender_thread(
 
 void cmd_receiver_thread(
     SafeQueue<int>& cmd_q);
+
+void send_and_wait_ack(int sock,const std::string& data,const sockaddr_in& srv_addr,const std::string& ack_str,std::map<int,std::string>& cache,int key);

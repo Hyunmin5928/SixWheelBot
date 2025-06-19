@@ -336,20 +336,26 @@ app.post('/api/order/:id/accept', async (req, res) => {
     `, [req.params.id]);
     const TMAP_API_KEY = '6uHPB650j41F9NmAfTKjs5DxEZ0eBcTC77dm55iX';
     //주소-> 좌표 API 호출
-      
+
     // 좌표 -> 경로 API 호출
     const address = order.REC_ADDR + ' ' + (order.REC_DETAIL || '');
-
-    // 2. 주소 → 좌표 변환 (Geocoding)
+    const [city_do, gu_gun, dong, bunji, ...detail] = address.split(' ');
+    const detailAddress = detail.join(' ');  // 나머지는 상세주소로
+ 
     const geoRes = await axios.get('https://apis.openapi.sk.com/tmap/geo/geocoding', {
-      params: {
-        version: 1,
-        addressFlag: 'F00',          // 지번/도로명 자동 (공식문서 참고)
-        fullAddress: address,        // 풀 주소 (예: "서울 강남구 역삼동 123-45 502호")
-        coordType: 'WGS84GEO',
-        appKey: TMAP_API_KEY
-      }
-    });
+    params: {
+      version: 1,
+      city_do: city_do,
+      gu_gun: gu_gun,
+      dong: dong,
+      bunji: bunji,
+      detailAddress: detailAddress,
+      addressFlag: 'F00',       // 지번/도로명 자동
+      coordType: 'WGS84GEO',
+      appKey: TMAP_API_KEY
+    }
+  });
+
     const coord = geoRes.data.addressInfo.coordinate;
     const startX = 127.1058;
     const startY = 36.3744;

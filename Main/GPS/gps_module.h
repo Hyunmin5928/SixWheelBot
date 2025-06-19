@@ -1,9 +1,12 @@
 #pragma once
-#include "../SafeQueue.hpp"
 #include <atomic>
-#include <utility>
+#include <vector>
+#include <tuple>
+#include "../SafeQueue.hpp"
+using Route = std::vector<std::tuple<double,double,int>>;
 
 void gps_thread(
     SafeQueue<std::pair<double,double>>& gps_q,
-    std::atomic<bool>&                    running);
-
+    SafeQueue<Route>&                    map_q,
+    SafeQueue<int>&                      dir_q,
+    std::atomic<bool>&                   running);

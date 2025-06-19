@@ -1,8 +1,5 @@
 #include "motor_module.h"
 
-// 외부에서 선언된 전역 플래그
-extern std::atomic<bool> running;
-
 // 모듈 진입점
 void motor_thread(SafeQueue<std::tuple<int, float, float>>& m_cmd_q)
 {

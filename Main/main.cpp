@@ -34,9 +34,16 @@ std::string SERVER_IP;
 int         SERVER_PORT;
 std::string CLIENT_IP;
 int         CLIENT_PORT;
+std::string ALLOW_IP;
+
 int         LOG_LEVEL;
 std::string CLI_LOG_FILE;
 std::string GPS_LOG_FILE;
+std::string LIDAR_LOG_FILE;
+std::string MOTOR_LOG_FILE;
+std::string IMU_LOG_FILE;
+std::string VISION_LOG_FILE;
+
 int         RETRY_LIMIT;
 double      ACK_TIMEOUT;
 int         sock_fd = -1;
@@ -60,12 +67,19 @@ void load_config(const std::string& path) {
     CLIENT_IP    = cfg["CLIENT"]["IP"];
     CLIENT_PORT  = cfg["CLIENT"]["PORT"];
     
-    LOG_LEVEL    = cfg["LOG"]["LOG_LEVEL"];
-    CLI_LOG_FILE = cfg["LOG"]["CLIENT_LOG_FILE"];
-    GPS_LOG_FILE = cfg["LOG"]["GPS_LOG_FILE"];
+    // log 파일 경로 지정
+    LOG_LEVEL       = cfg["LOG"]["LOG_LEVEL"];
+    CLI_LOG_FILE    = cfg["LOG"]["CLIENT_LOG_FILE"];
+    GPS_LOG_FILE    = cfg["LOG"]["GPS_LOG_FILE"];
+    LIDAR_LOG_FILE  = cfg["LOG"]["LIDAR_LOG_FILE"];
+    MOTOR_LOG_FILE  = cfg["LOG"]["MOTOR_LOG_FILE"];
+    IMU_LOG_FILE    = cfg["LOG"]["IMU_LOG_FILE"];
+    VISION_LOG_FILE = cfg["LOG"]["VISION_LOG_FILE"];
 
+    // 통신 패킷 관련 설정
     RETRY_LIMIT  = cfg["NETWORK"]["RETRY_LIMIT"];
     ACK_TIMEOUT  = cfg["NETWORK"]["ACK_TIMEOUT"];
+    ALLOW_IP     = cfg["NETWORK"]["ALLOW_IP"];
 }
 
 int main(){
@@ -74,13 +88,13 @@ int main(){
     load_config("config/config.json");
     
     Logger::instance().addFile("comm",  CLI_LOG_FILE,  static_cast<LogLevel>(LOG_LEVEL));
-    Logger::instance().addFile("gps",   GPS_LOG_FILE,   static_cast<LogLevel>(LOG_LEVEL));
-    // Logger::instance().addFile("motor", "motor.log", LogLevel::Debug);
-    // Logger::instance().addFile("lidar", "lidar.log", LogLevel::Info);
+    Logger::instance().addFile("gps",   GPS_LOG_FILE,  static_cast<LogLevel>(LOG_LEVEL));
+    Logger::instance().addFile("lidar",   LIDAR_LOG_FILE,  static_cast<LogLevel>(LOG_LEVEL));
+    Logger::instance().addFile("motor",   MOTOR_LOG_FILE,  static_cast<LogLevel>(LOG_LEVEL));
+    Logger::instance().addFile("imu",   IMU_LOG_FILE,  static_cast<LogLevel>(LOG_LEVEL));
+    Logger::instance().addFile("vision",   VISION_LOG_FILE,  static_cast<LogLevel>(LOG_LEVEL));
 
 
-    // Logger::instance().init(CLI_LOG_FILE, static_cast<util::LogLevel>(LOG_LEVEL));
-    // Logger::instance().init(GPS_LOG_FILE, static_cast<util::LogLevel>(LOG_LEVEL));
     // 1) 경로(map) → Route 리스트
     SafeQueue<std::vector<std::tuple<double,double,int>>> map_queue;
     // 2) 현재 위치 (필요시 로깅용)

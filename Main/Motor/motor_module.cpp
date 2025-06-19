@@ -1,19 +1,15 @@
 #include "motor_module.h"
 
-// 외부에서 선언된 전역 플래그
-extern std::atomic<bool> running;
-
 // 모듈 진입점
-void motor_thread(SafeQueue<std::pair<int, double>>& m_cmd_q)
+void motor_thread(SafeQueue<std::tuple<int, float, float>>& m_cmd_q)
 {
     Motor motor;
-    std::pair<int,double> cmdPair;
+    std::tuple<int, float, float> cmdPair;
     while (running) {
         int cmd = 0;
         double dist = 0.0;
         if (m_cmd_q.Consume(cmdPair)) {
-            cmd = cmdPair.first;
-            dist = cmdPair.second;
+
             switch (cmd) {
                 case 0:  // pause
                     motor.stop();

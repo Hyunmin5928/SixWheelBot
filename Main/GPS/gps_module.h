@@ -3,6 +3,7 @@
 #include <vector>
 #include <tuple>
 #include "../SafeQueue.hpp"
+#include "../logger.h"
 using Route = std::vector<std::tuple<double,double,int>>;
 
 void gps_thread(

@@ -117,19 +117,28 @@ void comm_thread(
             buf[len] = '\0';
             auto pkt = json::parse(buf);
             if (pkt["type"] == "map") {
-                raw_route = pkt["route"]
-                              .get<decltype(raw_route)>();
-                // [lat, lon, dirCode] → 튜플 벡터로 변환
+                // 객체 배열 파싱
                 std::vector<std::tuple<double,double,int>> route;
-                for (auto &pt : raw_route) {
-                    if (pt.size() >= 3) {
-                        route.emplace_back(
-                          pt[0], pt[1], int(pt[2])
-                        );
-                    }
+                for (auto& elem : pkt["route"]) {
+                    double lat = elem.at("lat").get<double>();
+                    double lon = elem.at("lon").get<double>();
+                    int    dir = elem.at("dir").get<int>();
+                    route.emplace_back(lat, lon, dir);
                 }
-                // 공유 큐에 전달
                 map_q.Produce(std::move(route));
+                // raw_route = pkt["route"]
+                //               .get<decltype(raw_route)>();
+                // // [lat, lon, dirCode] → 튜플 벡터로 변환
+                // std::vector<std::tuple<double,double,int>> route;
+                // for (auto &pt : raw_route) {
+                //     if (pt.size() >= 3) {
+                //         route.emplace_back(
+                //           pt[0], pt[1], int(pt[2])
+                //         );
+                //     }
+                // }
+                // // 공유 큐에 전달
+                // map_q.Produce(std::move(route));
 
                 // ACK_MAP 전송
                 const char* ack = "ACK_MAP:0";
@@ -137,7 +146,8 @@ void comm_thread(
                   sock_fd,
                   ack, strlen(ack),
                   0,
-                  (sockaddr*)&srv, sizeof(srv)
+                  (sockaddr*)&srv, 
+                  sizeof(srv)
                 );
                 // log_msg("INFO", "Map data received and ACK sent");
                 Logger::instance().info("Map data received and ACK sent");

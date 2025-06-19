@@ -50,8 +50,9 @@ export default function ReturnRequestPage() {
     if (!ready) return;
     try {
       await createReturn({
-        sender:   { address: addr, detail },
-        itemType: item,
+        userId,                              
+        sender: { address: addr, detail },
+        itemType: item
       });
       alert('반품 신청이 완료되었습니다.');
       setAddr('');

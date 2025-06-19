@@ -1,34 +1,28 @@
 // src/Services/return.js
-// 서버 준비가 끝나면 ★ 표시된 부분을 axios.post 로 되돌리면 됩니다.
 import axios from 'axios';
 
-/* ① 반품 목록 */
-export const getReturns = async () => {
-  // 서버가 준비돼 있으면 아래 axios 사용
-  // const res = await axios.get('/api/return');
-  // return res.data;
+/* ------------------------------------------------------------------
+   반품 요청 목록 조회
+   ------------------------------------------------------------------ */
+export const getReturns = () =>
+  axios
+    .get('/api/return', { withCredentials: true }) // 세션 쿠키 포함
+    .then((res) => res.data);
 
-  /* ★ 서버 미구현 시 → 더미 데이터 */
-  return [];                         // 통계 0,0,0 으로 표시
-};
+/* ------------------------------------------------------------------
+   새 반품 요청 생성
+   payload 예시)
+   {
+     userId:  'ymh',
+     sender:  { address:'부산 …', detail:'2층' },
+     itemType:'전자제품'
+   }
+   ------------------------------------------------------------------ */
+export const createReturn = (payload) =>
+  axios
+    .post('/api/return', payload, { withCredentials: true })
+    .then((res) => res.data);
 
-/* ② 반품 생성 — MOCK 버전 */
-export const createReturn = async (payload) => {
-  // payload 예: { sender: { address:'...', detail:'...' } }
-
-  /* ★ 서버 미구현 시 → 0.8초 후 가짜 성공 응답 */
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        id:       Date.now(),        // 더미 return ID
-        status:   'IN_PROGRESS',
-        ...payload,
-      });
-    }, 800);
-  });
-
-  /* ▼ 실제 서버가 준비되면 주석 해제 ↓
-  const res = await axios.post('/api/return', payload);
-  return res.data;            // { id, status, ... }
-  */
-};
+export const acceptReturn = (id) =>
+  axios.post(`/api/return/${id}/accept`, {}, { withCredentials:true })
+       .then(r => r.data);    

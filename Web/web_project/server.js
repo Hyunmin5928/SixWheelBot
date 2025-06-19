@@ -330,6 +330,90 @@ app.post('/api/order/:id/accept', async (req, res) => {
       [req.params.id]
     );
     if (changes === 0) return res.status(404).send('해당 주문이 없습니다.');
+    //주문 정보 조회
+    const order = await db.get(`
+    SELECT REC_ADDR, REC_DETAIL FROM ORDER_REQ WHERE ORD_ID = ?
+    `, [req.params.id]);
+    const TMAP_API_KEY = '6uHPB650j41F9NmAfTKjs5DxEZ0eBcTC77dm55iX';
+    //주소-> 좌표 API 호출
+      
+    // 좌표 -> 경로 API 호출
+    const address = order.REC_ADDR + ' ' + (order.REC_DETAIL || '');
+
+    // 2. 주소 → 좌표 변환 (Geocoding)
+    const geoRes = await axios.get('https://apis.openapi.sk.com/tmap/geo/geocoding', {
+      params: {
+        version: 1,
+        addressFlag: 'F00',          // 지번/도로명 자동 (공식문서 참고)
+        fullAddress: address,        // 풀 주소 (예: "서울 강남구 역삼동 123-45 502호")
+        coordType: 'WGS84GEO',
+        appKey: TMAP_API_KEY
+      }
+    });
+    const coord = geoRes.data.addressInfo.coordinate;
+    const startX = 127.1058;
+    const startY = 36.3744;
+    const endX = coord.lon;
+    const endY = coord.lat;
+
+    // 2. T map API 호출 
+    
+    const tmapRes = await axios.post(
+      'https://apis.openapi.sk.com/tmap/routes/pedestrian?version=1',
+      {
+        startX, startY, endX, endY,
+        reqCoordType: "WGS84GEO",
+        resCoordType: "WGS84GEO",
+        // ...필요한 옵션 추가
+      },
+      {
+        headers: {
+          appKey: TMAP_API_KEY,
+          "Content-Type": "application/json",
+        }
+      }
+    );
+
+    // 1. 결과에서 features 배열 뽑기
+    const features = tmapRes.data.features;
+
+    // 2. 좌표 추출
+    const coordMap = {}; // { 'lat,lon' : turnType }
+    features.forEach(feature => {
+      const { geometry, properties } = feature;
+      if (geometry.type === "LineString") {
+        geometry.coordinates.forEach(([lon, lat]) => {
+          const key = `${lat},${lon}`;
+          if (!(key in coordMap)) {
+            coordMap[key] = null; // 기본값
+          }
+        });
+      } else if (geometry.type === "Point") {
+        const [lon, lat] = geometry.coordinates;
+        const turnType = properties.turnType;
+        const key = `${lat},${lon}`;
+        coordMap[key] = turnType; // turnType 등록
+      }
+    });
+
+    // 3. (lat, lon, turnType) 배열 만들기
+    const routeCoords = Object.entries(coordMap).map(([key, turnType]) => {
+      const [lat, lon] = key.split(',').map(Number);
+      return [lat, lon, turnType];
+    });
+
+    const fs = require('fs');
+
+    // 파일로 저장 (예: route.txt)
+    fs.writeFileSync(
+      'route.txt',
+      routeCoords.map(([lat, lon, turnType]) =>
+        `${lat},${lon},${turnType === null ? '' : turnType}`
+      ).join('\n'),
+      { encoding: 'utf8' }
+    );
+
+
     res.json({ ok: true });
   } catch (e) {
     console.error('order accept 오류', e);

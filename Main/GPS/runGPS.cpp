@@ -1,6 +1,7 @@
 #include "runGPS.h"
 #include <iostream>
 #include <unistd.h>
+#include "../logger.h"
 
 void runGPS(
     SafeQueue<int>&                                       dir_q,

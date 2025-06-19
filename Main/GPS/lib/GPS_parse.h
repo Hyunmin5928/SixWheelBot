@@ -2,6 +2,7 @@
 
 #include <vector>
 #include "SerialPort.h"
+#include "../../logger.h"
 
 using namespace std;
 

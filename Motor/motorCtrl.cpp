@@ -269,7 +269,6 @@ void Motor::rotate(int pwm, float degree)
         lmotor_run(pwm, false);
         rmotor_run(pwm, true);
     }
-    delay(10000);
     stop();
 
 

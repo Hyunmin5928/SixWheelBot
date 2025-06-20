@@ -1,16 +1,41 @@
 #pragma once
-#define DISABLE_WIRINGPI_DELAY
+#include "../LiDAR/YDLidar/YDLidar-SDK/src/CYdLidar.h"
+#include "../LiDAR/Lidar.h"
 #include <wiringPi.h>
 #include <softPwm.h>
 #include <iostream>
 #include <cmath>
 #include <vector>
 #include <functional>
+#include <core/common/ydlidar_help.h>
 #include <fstream>
 #include <ctime>
+#include <string>
+#include <../logger.h>
+
+using json = nlohmann::json;
+extern int         LOG_LEVEL;
+extern std::atomic<bool> running;
+
+using util::Logger;
+using util::LogLevel;
+
 
 class Motor{
     private:
+        std::string SERVER_IP;
+        int         SERVER_PORT;
+        std::string CLIENT_IP;
+        int         CLIENT_PORT;
+        std::string ALLOW_IP;
+        double      ACK_TIMEOUT;
+        int         RETRY_LIMIT;
+        std::string LOG_FILE="Motor/log/motor_log.txt"; // 기본 로그 파일 경로
+
+        int log_fd;
+        int sock_fd = -1;
+
+
         int L_RpwmPin; //LEFT WHEEL. direction: FRONT
         int L_LpwmPin; //LEFT WHEEL. direction: BACK
         int R_RpwmPin; //RIGHT WHEEL. direction: FRONT
@@ -21,7 +46,7 @@ class Motor{
         int R_LENPin;
         int L_RENPin;
         int L_LENPin;
-
+        
         void motor_setup();
         void motor_setup(int lr_pwmPin, int ll_pwmPin,int rr_pwmPin, int rl_pwmPIn, int rr_enPin, int rl_enPin, int lr_enPin, int ll_enPin);
         bool pwm_isvalid(int pwm);

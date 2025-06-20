@@ -1,33 +1,56 @@
 #include "motor_module.h"
 
-// 모듈 진입점
-void motor_thread(SafeQueue<std::tuple<int, float, float>>& m_cmd_q)
-{
+void motor_thread(
+    SafeQueue<GpsDir>&    dir_queue,
+    SafeQueue<LidarObs>&  lidar_queue
+) {
     Motor motor;
-    std::tuple<int, float, float> cmdPair;
-    while (running) {
-        int cmd = 0;
-        double dist = 0.0;
-        if (m_cmd_q.Consume(cmdPair)) {
+    Logger::instance().info("motor", "[motor_module] Motor Thread start");
 
-            switch (cmd) {
-                case 0:  // pause
-                    motor.stop();
-                    std::cout << "[motor] PAUSE\n";
-                    break;
-                case 1:  // unlock (예시)
-                    motor.curve_avoid(dist, 300, 0.0f );
-                    std::cout << "[motor] UNLOCK 행동\n";
-                    break;
-                case 2:  // return
-                    motor.backoff(400);
-                    std::cout << "[motor] RETURN 행동\n";
-                    break;
-                default:
-                    break;
+    while (running) {
+        LidarObs obs;
+        if (lidar_queue.ConsumeSync(obs)) {
+            float dist  = obs.first;
+            float angle = obs.second
+            if (dist > 0 
+             && dist <= OBSTACLE_DISTANCE_THRESHOLD
+             && std::fabs(angle) <= OBSTACLE_ANGLE_LIMIT)
+            {
+                std::ostringstream oss;
+                oss << "[motor_module] Obstacle detected: dist="  << std::to_string(dist)
+                << "cm, angle=" << std::to_string(angle));
+                Logger::instance().warn("motor", oss.str());
+                motor.curve_avoid(dist, DEFAULT_PWM, angle, false);
+                continue; // 장애물 처리 후 다음 루프
             }
         }
-
+        // 2) 내비게이션 방향 처리
+        GpsDir dir;
+        if (dir_queue.ConsumeSync(dir)) {
+            switch (dir) {
+                case 0:  // pause
+                    Logger::instance().info("motor", "[motor_module] stop");
+                    motor.stop();
+                    break;
+                case 1:  // forward
+                    Logger::instance().info("motor", "[motor_module] straight");
+                    motor.straight(DEFAULT_PWM);
+                    break;
+                case 2:  // rotate right (예시)
+                    Logger::instance().info("motor", "[motor_module] rotate +90deg");
+                    motor.rotate(DEFAULT_PWM,  90.0f);
+                    break;
+                case 3:  // rotate left (예시)
+                    Logger::instance().info("motor", "[motor_module] rotate -90deg");
+                    motor.rotate(DEFAULT_PWM, -90.0f);
+                    break;
+                default:
+                    std::ostringstream oss;
+                    oss << "[motor_module] Unknown dir code: "  << std::to_string(dir);
+                    Logger::instance().info("motor", oss.str());
+                    motor.stop();
+            }
+        }
         // 10Hz 루프
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }

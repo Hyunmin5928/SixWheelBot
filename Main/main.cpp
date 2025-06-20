@@ -8,14 +8,18 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+
 #include <nlohmann/json.hpp>
 
 #include "SafeQueue.hpp"
 #include "Communication/comm_module.h"
 #include "GPS/gps_module.h"
+#include "IMU/imu_module.h"
 #include "logger.h"
+
 using util::Logger;
 using util::LogLevel;
+
 /*
     로그 함수 사용 법
     // 로그 초기화: 파일 경로, 최소 출력 레벨 지정
@@ -50,14 +54,11 @@ int         sock_fd = -1;
 
 std::atomic<bool> running{true};
 
-// SIGINT 핸들러
-
+// SIGINT 핸들러: Ctrl+C 시 running 플래그만 false 로 전환
 void handle_sigint(int) {
-    // 디폴트 동작(SIG_DFL)으로 복원
-    std::signal(SIGINT, SIG_DFL);
-    // 자기 자신에게 다시 SIGINT 발생 → 디폴트(강제종료) 수행
-    std::raise(SIGINT);
+    running.store(false);
 }
+
 void load_config(const std::string& path) {
     std::ifstream ifs(path);
     if (!ifs) { std::cerr<<"설정 파일 열기 실패\n"; std::exit(1); }
@@ -86,14 +87,17 @@ int main(){
     std::signal(SIGINT, handle_sigint);
 
     load_config("config/config.json");
-    
-    Logger::instance().addFile("comm",  CLI_LOG_FILE,  static_cast<LogLevel>(LOG_LEVEL));
-    Logger::instance().addFile("gps",   GPS_LOG_FILE,  static_cast<LogLevel>(LOG_LEVEL));
-    Logger::instance().addFile("lidar",   LIDAR_LOG_FILE,  static_cast<LogLevel>(LOG_LEVEL));
-    Logger::instance().addFile("motor",   MOTOR_LOG_FILE,  static_cast<LogLevel>(LOG_LEVEL));
-    Logger::instance().addFile("imu",   IMU_LOG_FILE,  static_cast<LogLevel>(LOG_LEVEL));
-    Logger::instance().addFile("vision",   VISION_LOG_FILE,  static_cast<LogLevel>(LOG_LEVEL));
 
+    Logger::instance().addFile("comm",   CLI_LOG_FILE,   static_cast<LogLevel>(LOG_LEVEL));
+    Logger::instance().addFile("gps",    GPS_LOG_FILE,   static_cast<LogLevel>(LOG_LEVEL));
+    Logger::instance().addFile("lidar",  LIDAR_LOG_FILE, static_cast<LogLevel>(LOG_LEVEL));
+    Logger::instance().addFile("motor",  MOTOR_LOG_FILE, static_cast<LogLevel>(LOG_LEVEL));
+    Logger::instance().addFile("imu",    IMU_LOG_FILE,   static_cast<LogLevel>(LOG_LEVEL));
+    Logger::instance().addFile("vision", VISION_LOG_FILE,static_cast<LogLevel>(LOG_LEVEL));
+
+    // IMU 로그 파일 등록
+    Logger::instance().addFile("imu",    "imu.log",      static_cast<LogLevel>(LOG_LEVEL));
+    Logger::instance().info("app","IMU integration start");
 
     // 1) 경로(map) → Route 리스트
     SafeQueue<std::vector<std::tuple<double,double,int>>> map_queue;
@@ -106,20 +110,15 @@ int main(){
     SafeQueue<std::string> log_queue;
     SafeQueue<int> m_cmd_queue;
 
+    SafeQueue<IMU::Data>    imu_queue;
+    SafeQueue<IMU::Command> imu_cmd_queue;
+
     // 통신 스레드: map_queue, cmd_queue, log_queue
     std::thread t_comm(
         comm_thread,
         std::ref(map_queue),
         std::ref(cmd_queue),
         std::ref(log_queue));
-
-    // // GPS 스레드: gps_queue, map_queue, dir_queue
-    // std::thread t_gps(
-    //     gps_thread,
-    //     std::ref(gps_queue),
-    //     std::ref(map_queue),
-    //     std::ref(dir_queue),
-    //     std::ref(running));
 
     // GPS 읽기 스레드 : gps_queue
     std::thread t_gps(
@@ -133,19 +132,35 @@ int main(){
         std::ref(gps_queue)
     );
 
+    // 네비게이션 스레드
     std::thread t_nav(
         navigation_thread,
         std::ref(map_queue),
         std::ref(m_cmd_queue)
     );
 
+    // Gyro 스레드 시작
+    std::thread t_imu(
+        IMU::readerThread,
+        std::ref(imu_queue), 
+        std::ref(imu_cmd_queue)
+    );
+
+    // IMU START/STOP 예시
+    imu_cmd_queue.Produce(IMU::IMU_CMD_START);
+    std::this_thread::sleep_for(std::chrono::seconds(10));
+    imu_cmd_queue.Produce(IMU::IMU_CMD_STOP);
+
     // running==false 될 때까지 대기
-    while (running) std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    while (running.load()) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
 
     // 종료
     t_comm.join();
     t_gps_sender.join();
     t_gps.join();
     t_nav.join();
+    t_imu.join();
     return 0;
 }

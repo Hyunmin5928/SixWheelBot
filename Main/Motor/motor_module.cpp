@@ -1,10 +1,8 @@
 #include "motor_module.h"
 
-// 모듈 진입점
 void motor_thread(
     SafeQueue<GpsDir>&    dir_queue,
-    SafeQueue<LidarObs>&  lidar_queue,
-    std::atomic<bool>&    running
+    SafeQueue<LidarObs>&  lidar_queue
 ) {
     Motor motor;
     Logger::instance().info("motor", "[motor_module] Motor Thread start");

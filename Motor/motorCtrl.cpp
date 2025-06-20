@@ -251,6 +251,7 @@ void Motor::stop(){
 
 void Motor::rotate(int pwm, float degree)
 {
+    //degree는 돌고 싶은 각도 (상대각도)
     validate_pwm(pwm);
 
     digitalWrite(L_RENPin, HIGH);
@@ -258,52 +259,29 @@ void Motor::rotate(int pwm, float degree)
     digitalWrite(R_RENPin, HIGH);
     digitalWrite(R_LENPin, HIGH);
 
-    std::cout<<"[ROTATE] degree = "<<degree;
-    std::cout<<" pwm = "<<pwm<<"\n"; 
-    if (degree > 0) {
-        std::cout<<"Direction: CLOCKWISE";\
-        rmotor_run(pwm, false);
-        lmotor_run(pwm, true);
-    } else {
-        std::cout<<"Direction: COUNTERCLOCKWISE";
-        lmotor_run(pwm, false);
-        rmotor_run(pwm, true);
+    //curDgr 받아와야해요
+    float curDgr; 
+    float targetDgr; 
+    //curDgr = 회전하기 이전 yaw 값
+    //target degree = yaw에서 얻은 값 + 원하는 값(회전 결과)
+    float targetDgr = fmod((curDgr + degree), 360.0f);
+    if (targetDgr < 0.0f) targetDgr += 360.0f;
+
+    if(degree<0.0f){
+        while(curDgr > targetDgr){
+            //curDgr 업데이트 코드 넣어주세요
+            lmotor_run(pwm, false);
+            rmotor_run(pwm, true);
+        }
+    }
+    else{
+        while(curDgr<targetDgr){
+            //curDgr 업데이트 코드 넣어주세요
+            rmotor_run(pwm, false);
+            lmotor_run(pwm, true);
+        }
     }
     stop();
-
-
-
-    // validate_pwm(pwm);
-
-    // digitalWrite(L_RENPin, HIGH);
-    // digitalWrite(L_LENPin, HIGH);
-    // digitalWrite(R_RENPin, HIGH);
-    // digitalWrite(R_LENPin, HIGH);
-    // /*
-    // float dgrspeed = calculate_dgrspeed(pwm);
-    // std::cout<<dgrspeed<<"\n";
-    // //abs_dgr : 절대값 각도
-    // float abs_dgr = degree;
-    // if(abs_dgr <0){
-    //     abs_dgr *= -1.0f;
-    // }
-    // float delaytime = abs_dgr / dgrspeed;
-    // std::cout<<delaytime;
-    // */
-    // unsigned int currentTime = millis();
-    // while(millis()-currentTime < 3000){
-        
-    //     if (degree > 0) 
-    //     {
-    //         rmotor_run(pwm, false); // 오른쪽 바퀴는 뒤로 회전
-    //         lmotor_run(pwm, true); // 왼쪽 바퀴는 앞으로 회전
-    //     }
-    //     else {
-    //         rmotor_run(pwm, true); // 오른쪽 바퀴는 앞으로 회전
-    //         lmotor_run(pwm, false); // 왼쪽 바퀴는 뒤로 회전
-    //     }
-    //         // 모터 최대 150rpm, 설정 최대 pwm 100, 6.0f는 초당 각속도 계산을 위한 상수
-    // }
 }
 
 //동작 중에 추가로 피해야할 대상이 나타나면 유연하게 회피하도록 해야함

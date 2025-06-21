@@ -2,9 +2,9 @@ CXX = g++
 CXXFLAGS = -std=c++17 -Wall -O2
 
 INCLUDES = \
-  -ISixWheelBot/Motor \
-  -ISixWheelBot/LiDAR \
-  -ISixWheelBot/LiDAR/YDLidar/YDLidar-SDK/src
+  -ISixWheelBot/Main/LiDAR/YDLidar/YDLidar-SDK/src \
+  -ISixWheelBot/Main/Motor \
+  -ISixWheelBot/Main/LiDAR \
 
 SRC = \
   Motor/motorCtrl.cpp \

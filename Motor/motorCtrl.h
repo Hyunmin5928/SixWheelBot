@@ -60,6 +60,8 @@ class Motor{
 
         float calculate_dgrspeed(int pwm);
 
+        float calculate_delaytime(int pwm, float degree);
+
         float average_pwm(int l_pwm, int r_pwm);
 
         float calculate_tan(float degree) ;
@@ -74,34 +76,11 @@ class Motor{
         Motor(int lr_pwmPin, int ll_pwmPin,int rr_pwmPin, int rl_pwmPin, int rr_enPin, int rl_enPin, int lr_enPin, int ll_enPin);
         ~Motor();
 
-        void log_msg(const std::string& level, const std::string& msg) {
-            auto now = std::chrono::system_clock::to_time_t(
-                        std::chrono::system_clock::now());
-            std::ostringstream oss;
-            oss << std::put_time(std::localtime(&now),
-                                "%Y-%m-%d %H:%M:%S")
-                << " [" << level << "] " << msg << "\n";
-            write(log_fd, oss.str().c_str(), oss.str().size());
-        }
+        void log_msg(const std::string& level, const std::string& msg);
 
-        void open_log_file() {
-            log_fd = open(LOG_FILE.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0644);
-            if (log_fd < 0) {
-                std::cerr << "Failed to open log file: " << LOG_FILE << std::endl;
-            } else {
-                log_msg("INFO", "Log file opened successfully.");
-            }
-        }
+        void open_log_file();
 
-        void close_log_file() {
-            if (log_fd >= 0) {
-                close(log_fd);
-                log_fd = -1;
-                log_msg("INFO", "Log file closed successfully.");
-            } else {
-                std::cerr << "Log file is not open." << std::endl;
-            }
-        }
+        void close_log_file();
 
         void straight(int pwm);
 
@@ -127,4 +106,6 @@ class Motor{
         void curve_avoid(float distance, int pwm, float degree, bool recover);
         //@brief this function is not depend on time, only whether is degree reach
         void curve_corner(float connerdistance, int pwm, float degree);
+
+        void motor_test(int pwm);
 };

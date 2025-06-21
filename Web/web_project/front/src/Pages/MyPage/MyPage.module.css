@@ -32,7 +32,7 @@
 .avatarSection{text-align:center;margin:60px 0 40px;}
 .avatar{
   width:140px;height:140px;border-radius:50%;
-  background:#6f6f73 url("../../assets/logo.png") center/60% no-repeat;
+  background:#6f6f73 url("../../assets/default_image.png") center/100% no-repeat;
   margin:0 auto 16px;
 }
 .changeBtn{

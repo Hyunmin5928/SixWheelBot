@@ -23,6 +23,7 @@ SERVER_IP   = srv_conf["IP"]
 SERVER_PORT = int(srv_conf["PORT"])
 CLIENT_IP   = cli_conf["IP"]
 CLIENT_PORT = int(cli_conf["PORT"])
+ALLOW_IP    = net_conf["ALLOW_IP"]
 ACK_TIMEOUT = float(net_conf["ACK_TIMEOUT"])
 RETRY_LIMIT = int(net_conf["RETRY_LIMIT"])
 LOG_FILE    = log_conf["SERVER_LOG_FILE"]
@@ -39,20 +40,20 @@ logger.addHandler(fh)
 def save_to_db(data):
     conn = sqlite3.connect(DB_FILE)
     cur  = conn.cursor()
-    cur.execute('''
-        CREATE TABLE IF NOT EXISTS robot_logs (
-            id        INTEGER PRIMARY KEY AUTOINCREMENT,
-            timestamp REAL,
-            state     TEXT,
-            lat       REAL,
-            lon       REAL
-        )
-    ''')
-    cur.execute(
-        'INSERT INTO robot_logs (timestamp, state, lat, lon) VALUES (?, ?, ?, ?)',
-        (data['timestamp'], data['robot_state'],
-         data['gps']['lat'], data['gps']['lon'])
-    )
+    # cur.execute('''
+    #     CREATE TABLE IF NOT EXISTS robot_logs (
+    #         id        INTEGER PRIMARY KEY AUTOINCREMENT,
+    #         timestamp REAL,
+    #         state     TEXT,
+    #         lat       REAL,
+    #         lon       REAL
+    #     )
+    # ''')
+    # cur.execute(
+    #     'INSERT INTO robot_logs (timestamp, state, lat, lon) VALUES (?, ?, ?, ?)',
+    #     (data['timestamp'], data['robot_state'],
+    #      data['gps']['lat'], data['gps']['lon'])
+    # )
     conn.commit()
     conn.close()
 
@@ -83,8 +84,8 @@ def distance_m(a, b):
 def server_loop():
     # 1) 소켓 생성 및 바인드
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.bind((SERVER_IP, SERVER_PORT))
-    logger.info(f"서버 바인드 완료: {SERVER_IP}:{SERVER_PORT}")
+    sock.bind((ALLOW_IP, SERVER_PORT))
+    logger.info(f"서버 바인드 완료: {ALLOW_IP}:{SERVER_PORT}")
     sock.settimeout(ACK_TIMEOUT)
 
     # 2) Map 전송 & ACK_MAP
@@ -120,7 +121,7 @@ def server_loop():
             data, addr = sock.recvfrom(65536)
         except socket.timeout:
             continue
-
+        logger.info(f"Raw from {addr}: {data!r}")
         msg = data.decode(errors='ignore').strip()
 
         # Retrans 요청 처리

@@ -1,6 +1,6 @@
 #pragma once
-#include "../LiDAR/YDLidar/YDLidar-SDK/src/CYdLidar.h"
-#include "../LiDAR/Lidar.h"
+#include "../../Main/LiDAR/Lidar.h"
+#include "../../Main/LiDAR/YDLidar/YDLidar-SDK/src/CYdLidar.h"
 #include <wiringPi.h>
 #include <softPwm.h>
 #include <iostream>

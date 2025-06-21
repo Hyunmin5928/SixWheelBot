@@ -1,5 +1,5 @@
 #pragma once
-#include "../LiDAR/YDLidar/YDLidar-SDK/src/CYdLidar.h"
+#include "../Main/LiDAR/YDLidar/YDLidar-SDK/src/CYdLidar.h"
 #include "../LiDAR/Lidar.h"
 #include <wiringPi.h>
 #include <softPwm.h>

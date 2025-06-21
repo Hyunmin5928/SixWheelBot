@@ -22,7 +22,7 @@ using GpsDir   = int;                        // 예: 0=정지, 1=직진, 2=회�
 using LidarObs = std::pair<float,float>;     // {range_cm, angle_deg}
 
 // 임계거리 / 각도 범위는 필요에 따라 조정하세요
-constexpr float OBSTACLE_DISTANCE_THRESHOLD = 800.0f; // cm
+constexpr float OBSTACLE_DISTANCE_THRESHOLD = 500.0f; // cm
 constexpr float OBSTACLE_ANGLE_LIMIT        = 20.0f;  // deg
 constexpr int   DEFAULT_PWM                 = 700;
 

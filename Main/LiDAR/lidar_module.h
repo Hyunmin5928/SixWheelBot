@@ -17,5 +17,4 @@ using util::LogLevel;
 
 void lidar_thread(SafeQueue<std::vector<LaserPoint>>& lidar_q);
 
-void lidar_thread(
-    SafeQueue<std::vector<LaserScan>>& lidar_q);
+void lidar_test_producer(SafeQueue<LaserPoint>& lidar_q);

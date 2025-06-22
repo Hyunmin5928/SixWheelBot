@@ -265,7 +265,11 @@ LaserPoint Lidar::get_nearPoint(){
     float minRange = get_scanData()[0].range;
 
     for (const auto& point : usableData) {
-        if (point.range < minRange && point.range > 0.0f && point.angle < 60.0f && point.angle>-60.0f) {
+        if (point.range < minRange && 
+            point.range > 0.0f && 
+            point.angle < 60.0f && 
+            point.angle>-60.0f) 
+        {
             minRange = point.range;
             nearPoint = point;
         }

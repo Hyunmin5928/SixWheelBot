@@ -5,14 +5,13 @@ extern std::atomic<bool> running;
 // LiDAR 결과를 전달하는 큐
 // SafeQueue<std::vector<ScanPoint>>& lidar_q
 void lidar_thread(
-    SafeQueue<std::vector<LaserScan>>& lidar_q)
+    SafeQueue<std::vector<LaserPoint>>& lidar_q)
 {
     Lidar lidar;
     // 초기화 등 필요시 수행
-
     while (running) {
         lidar.scan_oneCycle();
-        auto scans = lidar.get_scanpoints();
+        auto scans = lidar.get_scanData();
         lidar_q.Produce(std::move(scans));
 
         std::this_thread::sleep_for(std::chrono::milliseconds(50));

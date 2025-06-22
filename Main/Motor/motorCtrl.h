@@ -1,6 +1,6 @@
 #pragma once
-#include "../LiDAR/YDLidar/YDLidar-SDK/src/CYdLidar.h"
-#include "../LiDAR/Lidar.h"
+#include "../../Main/LiDAR/Lidar.h"
+#include "../../Main/LiDAR/YDLidar/YDLidar-SDK/src/CYdLidar.h"
 #include <wiringPi.h>
 #include <softPwm.h>
 #include <iostream>
@@ -35,7 +35,6 @@ class Motor{
         int log_fd;
         int sock_fd = -1;
 
-
         int L_RpwmPin; //LEFT WHEEL. direction: FRONT
         int L_LpwmPin; //LEFT WHEEL. direction: BACK
         int R_RpwmPin; //RIGHT WHEEL. direction: FRONT
@@ -63,10 +62,12 @@ class Motor{
         void rmotor_run(int pwm, bool front) ;
 
     public:
+        float curDgr;
+        
         Motor();
         Motor(int lr_pwmPin, int ll_pwmPin,int rr_pwmPin, int rl_pwmPin, int rr_enPin, int rl_enPin, int lr_enPin, int ll_enPin);
         ~Motor();
-        
+
         void straight(int pwm);
 
        // @brief back off

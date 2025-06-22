@@ -2,13 +2,15 @@
 
 void motor_thread(
     SafeQueue<GpsDir>&    dir_queue,
-    SafeQueue<LaserPoint>& point_queue
+    SafeQueue<LaserPoint>& point_queue,
+    SafeQueue<float>& m_yaw_q
 ) {
     Motor motor;
     Logger::instance().info("motor", "[motor_module] Motor Thread start");
 
     while (running) {
         LaserPoint pnt;
+        m_yaw_q.Consume(motor.curDgr);
         if (point_queue.ConsumeSync(pnt)) {
             float dist  = pnt.range;
             float angle = pnt.angle;
@@ -60,4 +62,5 @@ void motor_thread(
     // 큐에 더 이상 값이 들어오지 않음을 알림;
     dir_queue.Finish();
     point_queue.Finish();
+    m_yaw_q.Finish();
 }

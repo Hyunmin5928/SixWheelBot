@@ -13,12 +13,12 @@
 #define R_REN 6
 #define R_LEN 10
 
-#define maxPulse 1024
+#define maxPulse 100
 #define maxSpeed 150.0f
 
 #define avoidDistance_trigger 800.0f //cm
-#define avoidDistance_step1 1000.0f
-#define avoidDistance_step2 800.0f
+#define avoidDistance_step1 500.0f
+#define avoidDistance_step2 300.0f
 #define wheelInterval 31.0f //cm
 
 
@@ -125,6 +125,9 @@ void Motor::motor_setup(int lr_pwmPin, int ll_pwmPin, int rr_pwmPin, int rl_pwmP
     
     digitalWrite(L_RENPin, HIGH);
     digitalWrite(L_LENPin, HIGH);
+}
+
+void Motor::motor_setup()
 {
     motor_setup(L_RPWM, L_LPWM, R_RPWM, R_LPWM, R_REN, R_LEN, L_REN, L_LEN);
 }

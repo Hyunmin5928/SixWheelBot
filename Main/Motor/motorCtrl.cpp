@@ -203,7 +203,6 @@ void Motor::rotate(int pwm, float degree)
     digitalWrite(R_RENPin, HIGH);
     digitalWrite(R_LENPin, HIGH);
 
-    float curDgr;
     float targetDgr = fmod((curDgr+degree), 360.0f);
     if(targetDgr < 0.0f) targetDgr += 360.0f;
 
@@ -241,7 +240,7 @@ void Motor::curve_avoid(float distance, int pwm, float degree, bool recover = fa
     long long unsigned int currentTime = millis();
     straight(pwm);
     Logger::instance().debug("motor", "[MotorCtrl] straight for avoid");
-    while(millis() - currentTime < 500) {
+    while(millis() - currentTime < 2500) {
 
     }
     stop();
@@ -259,33 +258,29 @@ void Motor::curve_avoid(float distance, int pwm, float degree, bool recover = fa
 void Motor::curve_corner(float connerdistance, int pwm, float degree)
 {
     validate_pwm(pwm);
-    float dgrspeed = calculate_dgrspeed(pwm);
-    float abs_dgr = degree;
-    if(degree < 0){
-        abs_dgr *= -1.0f;
-    }
-    float delaytime = abs_dgr / dgrspeed;
-
-    int pwm_1, pwm_2;
+    const int pwm_1, pwm_2;
     calculate_twin_pwm(connerdistance, pwm, degree, &pwm_1, &pwm_2);
 
-    unsigned int currentTime = millis();
-    if(degree>0){
-        while(millis()-currentTime <= delaytime){
-            softPwmWrite(L_RpwmPin, pwm_1);
-            softPwmWrite(R_RpwmPin, pwm_2);
-        }
-        
-    }else{
-        while(millis()-currentTime <= delaytime){
+    float targetDgr = fmod((curDgr+degree), 360.0f);
+    if(targetDgr < 0.0f) targetDgr += 360.0f;
+
+    if(degree < 0.0f){
+        while(curDgr>targetDgr){
             softPwmWrite(L_RpwmPin, pwm_2);
             softPwmWrite(R_RpwmPin, pwm_1);
         }
     }
-    
+    else{
+        while(curDgr<targetDgr){
+            softPwmWrite(L_RpwmPin, pwm_1);
+            softPwmWrite(R_RpwmPin, pwm_2);
+        }
+    }
+
 }
 
 #pragma endregion
+
 
 int Operation() {
     Motor motor;

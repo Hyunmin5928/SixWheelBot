@@ -1,64 +1,10 @@
 #include "Lidar.h"
 
-void Lidar::open_log_file() {
-    log_fd = open(LOG_FILE.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0644);
-    if (log_fd < 0) {
-        std::cerr << "Failed to open log file: " << LOG_FILE << std::endl;
-    } else {
-        log_msg("INFO", "Log file opened successfully.");
-    }
-}
-
-void Lidar::close_log_file() {
-    if (log_fd >= 0) {
-        close(log_fd);
-        log_fd = -1;
-        log_msg("INFO", "Log file closed successfully.");
-    } else {
-        std::cerr << "Log file is not open." << std::endl;
-    }
-}
-
-std::vector<LaserScan> Lidar::read_log(const std::string& log_file) {
-    std::vector<LaserScan> scans;
-    std::ifstream file(log_file);
-    if (!file.is_open()) {
-        std::cerr << "Failed to open log file: " << log_file << std::endl;
-        return scans;
-    }
-}
-
-
-std::string Lidar::read_last_line() {
-    std::ifstream file(LOG_FILE);
-    std::string line, last_line;
-
-    while (std::getline(file, line)) {
-        last_line = line;
-    }
-
-    return last_line;
-}
-
-
-void Lidar::log_msg(const std::string& level, const std::string& msg) {
-    auto now = std::chrono::system_clock::to_time_t(
-                   std::chrono::system_clock::now());
-    std::ostringstream oss;
-    oss << std::put_time(std::localtime(&now),
-                         "%Y-%m-%d %H:%M:%S")
-        << " [" << level << "] " << msg << "\n";
-    write(log_fd, oss.str().c_str(), oss.str().size());
-}
-
-
 Lidar::Lidar(){
-    open_log_file();
     lidar_setup();
 }
 
 Lidar::~Lidar(){
-    close_log_file();
     lidar.turnOff();
     lidar.disconnecting();
 }
@@ -244,20 +190,9 @@ void Lidar::scan_oneCycle(){
             fflush(stderr);
         }
     }
-    log_scanData();
     lidar.turnOff();
 }
 
-void Lidar::log_scanData(){
-    std::string msg="";
-    for(int i=0; i<usableData.size(); i++){
-        msg+="{"+std::to_string(usableData[i].angle)+", "+std::to_string(usableData[i].range)+"}";
-        if(i<usableData.size()-1){
-            msg+=", ";
-        }
-    }
-    log_msg("Debug", msg);
-}
 
 std::vector<LaserPoint> Lidar::get_scanData(){
     return usableData;

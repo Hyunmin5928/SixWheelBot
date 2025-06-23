@@ -11,14 +11,31 @@
     "PORT"    : 5001
   },
   "NETWORK":{
-    "_comment"   : "UDP 통신 설정",
+    "_comment"   : "UDP 통신 모듈 설정",
     "ALLOW_IP"   : "0.0.0.0",
     "ACK_TIMEOUT": 1.0,
     "RETRY_LIMIT": 5
   },
+  "IMU":{
+    "_comment"       : "IMU 모듈 설정",
+    "INTERVAL_MS"    : 20,
+    "THRESH_ROLL"    : 2.0,
+    "THRESH_PITCH"   : 2.0,
+    "SERVO_LIMIT"    : 75
+  },
+  "MOTOR":{
+    "_comment"       : "MOTOR 모듈 설정"
+    
+  },
+  "GPS":{
+    "_comment"       : "GPS 모듈 설정"
+  },
+  "VISION":{
+    "_comment"       : "AI 모델 설정"
+  },
   "LOG":{
     "_comment"       : "로그 레벨(0 : Debug, 1 : Info, 2 : Warn, 3 : Error 파일 위치 지정",
-    "LOG_LEVEL"       : 0,
+    "LOG_LEVEL"      : 0,
     "SERVER_LOG_FILE": "log/srv_comm_log.txt",
     "CLIENT_LOG_FILE": "log/cli_comm_log.txt",
     "GPS_LOG_FILE"   : "log/gps_log.txt",

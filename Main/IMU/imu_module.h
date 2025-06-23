@@ -5,11 +5,20 @@
 #include "../SafeQueue.hpp"
 #include "../logger.h"
 
+/*
+    // IMU START/STOP 예시
+    imu_cmd_queue.Produce(IMU::IMU_CMD_START);
+    std::this_thread::sleep_for(std::chrono::seconds(10));
+    imu_cmd_queue.Produce(IMU::IMU_CMD_STOP);
+*/
+
 namespace IMU {
 
 // 외부에서 정의하는 실행 플래그
 extern std::atomic<bool> running;
 
+using util::Logger;
+using util::LogLevel;
 // START / STOP 명령
 enum Command : int {
     IMU_CMD_STOP  = 0,
@@ -39,8 +48,8 @@ struct Data {
  *   - STOP 수신 또는 running=false 시 data_q.Finish() 후 종료
  */
 void readerThread(
-    SafeQueue<Data>&    data_q,
-    SafeQueue<Command>& cmd_q
+    SafeQueue<Data>&    imu_queue,
+    SafeQueue<Command>& imu_cmd_queue
 );
 
 } // namespace IMU

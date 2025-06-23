@@ -105,6 +105,7 @@ class DeliveryDaemon(Daemon):
         received = set()
         returned = False
         while True:
+            logger.info(f"Log recv sock activate")
             try:
                 data, addr = robot_sock.recvfrom(65536)
             except socket.timeout:
@@ -113,7 +114,8 @@ class DeliveryDaemon(Daemon):
             logger.debug(f"RAW UDP from {addr}: {raw!r}")
             if not raw.startswith('{'):
                 continue
-
+            
+            logger.info(f"Log recv sock recieved")
             pkt = json.loads(raw)
             ptype, num = pkt.get('type'), pkt.get('packet_number')
             if ptype == 'log':

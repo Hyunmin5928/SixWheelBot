@@ -20,6 +20,23 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(requestIp.mw());
 
+/* ─── ✅ ① 여기!  static 미들웨어보다 위 ───── */
+app.get('/api/v1/orders/:id/coords/stream', (req, res) => {
+  res.set({
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    Connection: 'keep-alive',
+  });
+  res.flushHeaders();
+
+  // -- 테스트용 좌표 2초마다 전송
+  const timer = setInterval(() => {
+    res.write(`data: {"lat":37.339775,"lng":127.108942}\n\n`);
+  }, 2000);
+
+  req.on('close', () => clearInterval(timer));
+});
+
 app.use(session({
   secret: process.env.SESSION_SECRET || 'secret',
   resave: false,
@@ -392,8 +409,8 @@ app.post('/api/order/:id/accept', async (req, res) => {
     }
   });
 
-  console.log('=== Geocoding 응답 전체 ===');
-  console.log(geoRes.data);
+ // console.log('=== Geocoding 응답 전체 ===');
+ // console.log(geoRes.data);
 
 
 
@@ -434,8 +451,8 @@ app.post('/api/order/:id/accept', async (req, res) => {
         }
       }
     );
-      console.log('=== 경로 응답 전체 ===');
-      console.log(tmapRes.data);
+      //console.log('=== 경로 응답 전체 ===');
+     // console.log(tmapRes.data);
    
 
 
@@ -468,11 +485,11 @@ app.post('/api/order/:id/accept', async (req, res) => {
     });
 
     // 디버깅용 터미널 출력
-    console.log('==== 경로 좌표 배열 (lat, lon, turnType) ====');
+  /*  console.log('==== 경로 좌표 배열 (lat, lon, turnType) ====');
     routeCoords.forEach((item, idx) => {
       const [lat, lon, turnType] = item;
       console.log(`${idx + 1}: lat=${lat}, lon=${lon}, turnType=${turnType === null ? '없음' : turnType}`);
-    });
+    });*/
 
     const fs = require('fs');
 

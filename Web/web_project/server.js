@@ -32,6 +32,21 @@ app.use(passport.session());
 const buildPath = path.resolve(__dirname, 'front', 'build');
 app.use(express.static(buildPath));
 
+// server.js 맨 위
+const dgram = require('dgram');
+const PYTHON_IP        = '127.0.0.1';  // server.py가 띄워진 호스트
+const PYTHON_CTRL_PORT = 6001;         // server.py 데몬의 CONTROL_PORT
+
+function sendControl(type, payload = {}) {
+  const client = dgram.createSocket('udp4');
+  const msg    = Buffer.from(JSON.stringify({ type, ...payload }));
+  client.send(msg, PYTHON_CTRL_PORT, PYTHON_IP, err => {
+    if (err) console.error('Control UDP 전송 에러:', err);
+    client.close();
+  });
+}
+
+
 // ── Passport LocalStrategy ────────────────────────────
 passport.use(new LocalStrategy({
     usernameField: 'userId',

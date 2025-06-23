@@ -3,22 +3,41 @@
 std::atomic<bool> running{true};
 
 void motor_test_thread(
-    SafeQueue<string>& cmd_queue,
+    SafeQueue<std::string>& cmd_queue,
     SafeQueue<LaserPoint>& point_queue,
-    SafeQueue<float>& yaw_queue
+    SafeQueue<float>& imu_queue
 ){
     Motor motor;
     Logger::instance().info("motor", "[motor_module] Motor Thread start");
 
+    std::string cmd;
     while(running){
-        
+        if(cmd_queue.ConsumeSync(cmd)){
+            if(cmd == "straight"){
+                motor.straight(30);
+                motor.motor_delay(3000);
+                motor.stop();
+            }
+            else if(cmd=="rotate"){
+                motor.rotate(30, 30);
+                motor.rotate(30, -30);
+            }
+            else if(cmd=="backoff"){
+                motor.backoff(30);
+                motor.motor_delay(3000);
+                motor.stop();
+            }
+            else{
+                motor.stop();
+            }
+        }
     }
 }
 
 void motor_thread(
     SafeQueue<float>&    dir_queue,
     SafeQueue<LaserPoint>& point_queue,
-    SafeQueue<float>& yaw_queue,
+    SafeQueue<ImuData>& imu_queue,
     SafeQueue<bool>& arrive_queue
 ) {
     Motor motor;
@@ -27,13 +46,19 @@ void motor_thread(
     // 이 스레드가 돌아가는 중이고, 아직 도착하지 않았다면
     while (running && !is_arrive) {
         LaserPoint pnt;
+        ImuData imu;
         //  도착 여부 확인
         arrive_queue.ConsumeSync(is_arrive);
         //  yaw값은 항상 motor.curDgr로 업데이트하도록 
         //  (non blocking 방식인 consume을 사용하여 rotate함수가 도는 와중에도 지속적으로 업데이트가 되도록 함)
-        yaw_queue.Consume(motor.curDgr);
+        if(!imu_queue.Consume(imu)){
+            Logger::instance().info("motor","[motor_module] Imu data didn't arrive");
+        }else{
+            motor.curDgr=imu.yaw;
+        }
+        
         //도착했으면 스레드 종료
-        if(is_arrvie) break;
+        if(is_arrive) break;
 
         // 1순위 : 장애물 회피
         if (point_queue.ConsumeSync(pnt)) {
@@ -64,11 +89,11 @@ void motor_thread(
             if(dir==0.0f)
             {
                 Logger::instance().info("motor", "[motor_module] straight");
-                motor.straight(DEFALUT_PWM);
+                motor.straight(DEFAULT_PWM);
             }
             else
             {
-                string msg = "[motor_module] rotate ";
+                std::string msg = "[motor_module] rotate ";
                 msg+=dir;
                 Logger::instance().info("motor", msg);
                 motor.rotate(DEFAULT_PWM, dir);
@@ -107,19 +132,11 @@ void motor_thread(
     // 큐에 더 이상 값이 들어오지 않음을 알림;
     dir_queue.Finish();
     point_queue.Finish();
-    yaw_queue.Finish();
-}
-
-void only_motorRotate_thread(){
-    Motor motor;
-    while(running){
-        motor.rotate(30, 45);
-        motor.rotate(30,-45);
-    }
+    imu_queue.Finish();
 }
 
 void testCmd_thread(
-    SafeQueue<string>& string_queue
+    SafeQueue<std::string>& cmd_queue
 ){
     std::string cmd;
     while(running){
@@ -127,6 +144,6 @@ void testCmd_thread(
         std::getline(std::cin, cmd);
         std::string msg = "[testCmd] get "+cmd;
         Logger::instance().info("motor",msg);
-        string_queue.Produce(cmd);
+        cmd_queue.Produce(std::move(cmd));
     }
 }

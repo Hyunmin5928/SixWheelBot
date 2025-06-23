@@ -1,4 +1,5 @@
 #include "motorCtrl.h"
+#include "../LiDAR/lidar_module.h"
 #include "../SafeQueue.hpp"
 #include "../logger.h"
 #include <atomic>

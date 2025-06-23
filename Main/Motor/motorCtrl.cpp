@@ -13,12 +13,12 @@
 #define R_REN 6
 #define R_LEN 10
 
-#define maxPulse 1024
+#define maxPulse 100
 #define maxSpeed 150.0f
 
 #define avoidDistance_trigger 800.0f //cm
-#define avoidDistance_step1 1000.0f
-#define avoidDistance_step2 800.0f
+#define avoidDistance_step1 500.0f
+#define avoidDistance_step2 300.0f
 #define wheelInterval 31.0f //cm
 
 
@@ -125,6 +125,9 @@ void Motor::motor_setup(int lr_pwmPin, int ll_pwmPin, int rr_pwmPin, int rl_pwmP
     
     digitalWrite(L_RENPin, HIGH);
     digitalWrite(L_LENPin, HIGH);
+}
+
+void Motor::motor_setup()
 {
     motor_setup(L_RPWM, L_LPWM, R_RPWM, R_LPWM, R_REN, R_LEN, L_REN, L_LEN);
 }
@@ -258,7 +261,7 @@ void Motor::curve_avoid(float distance, int pwm, float degree, bool recover = fa
 void Motor::curve_corner(float connerdistance, int pwm, float degree)
 {
     validate_pwm(pwm);
-    const int pwm_1, pwm_2;
+    int pwm_1, pwm_2;
     calculate_twin_pwm(connerdistance, pwm, degree, &pwm_1, &pwm_2);
 
     float targetDgr = fmod((curDgr+degree), 360.0f);
@@ -286,47 +289,12 @@ int Operation() {
     Motor motor;
     Lidar lidar;
     lidar.scan_oneCycle();
-
+    const LaserPoint lsp = lidar.get_nearPoint();
     if(lidar.get_nearPoint().angle<20.0f && lidar.get_nearPoint().angle > -20.0f && lidar.get_nearPoint().range < avoidDistance_trigger){
         motor.curve_avoid(lidar.get_nearPoint().range, 700, lidar.get_nearPoint().angle);
     }
     delay(2000);
-    /*
-    for(int i=0; i<scanpoints.size(); i++){
-        
-        if(scanpoints[i].angle <20.0f && scanpoints[i].angle > -20.0f && scanpoints[i].range < avoidDistance_trigger){
-            if(scanpoints[i].range < avoid_dist && scanpoints[i].range != 0.0f){
-                avoid_dgr=scanpoints[i].angle;
-                avoid_dist = scanpoints[i].range;
-            }
-        }
-    }
-    log_msg("Debug", "scanpoint near : "+std::to_string(avoid_dgr)+", "+std::to_string(avoid_dist));
-    */
 
-    
-
-    //motor.curve_avoid(avoid_dist, 700, avoid_dgr);
-
-    //scanpoint 자동 업데이트
-    //너무 빠른 업데이트를 막기위해 delay넣어야하는지는 실제 테스트해봐야함
-    /*
-    unsigned int time = millis();
-    while(millis()-time <5000){
-        motor.scan_OneCycle();
-        motor.straight(1024);
-    }
-    time=millis();
-    while(millis()-time <3000){
-
-        motor.backoff(1024);
-    }
-    time=millis();
-    motor.get_scanpoints()
-    while(millis()-time <3000){
-        motor.curve_corner(100.0f, 500, 90);
-    }
-    */
     motor.stop();
     return 0;
 }

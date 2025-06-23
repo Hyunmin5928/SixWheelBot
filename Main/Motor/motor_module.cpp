@@ -3,6 +3,7 @@
 std::atomic<bool> running{true};
 
 void motor_test_thread(
+    SafeQueue<string>& cmd_queue,
     SafeQueue<LaserPoint>& point_queue,
     SafeQueue<float>& yaw_queue
 ){
@@ -10,7 +11,7 @@ void motor_test_thread(
     Logger::instance().info("motor", "[motor_module] Motor Thread start");
 
     while(running){
-
+        
     }
 }
 
@@ -107,4 +108,25 @@ void motor_thread(
     dir_queue.Finish();
     point_queue.Finish();
     yaw_queue.Finish();
+}
+
+void only_motorRotate_thread(){
+    Motor motor;
+    while(running){
+        motor.rotate(30, 45);
+        motor.rotate(30,-45);
+    }
+}
+
+void testCmd_thread(
+    SafeQueue<string>& string_queue
+){
+    std::string cmd;
+    while(running){
+        std::cout << ">>> ";
+        std::getline(std::cin, cmd);
+        std::string msg = "[testCmd] get "+cmd;
+        Logger::instance().info("motor",msg);
+        string_queue.Produce(cmd);
+    }
 }

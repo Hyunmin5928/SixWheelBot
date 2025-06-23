@@ -78,7 +78,6 @@ class Motor{
         // @brief rotate by degree : R positive, L negative
         //@brief this function is not depend on time, only whether is degree reach
         void rotate(int pwm, float degree);
-        
         // @brief default curve (30 degree)
         void left_curve(bool recover, int pwm);
         // @brief default curve (30 degree)

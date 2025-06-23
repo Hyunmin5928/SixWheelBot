@@ -29,7 +29,16 @@ constexpr int   DEFAULT_PWM                 = 50;
 // 모듈 진입점
 
 void motor_thread(
-    SafeQueue<GpsDir>&    dir_queue,
+    SafeQueue<float>&    dir_queue,
     SafeQueue<LaserPoint>& point_queue,
-    SafeQueue<float>& m_yaw_q
+    SafeQueue<float>& yaw_queue,
+    SafeQueue<bool>& arrive_queue
 );
+
+void motor_test_thread(
+    SafeQueue<string>& cmd_queue,
+    SafeQueue<LaserPoint>& point_queue,
+    SafeQueue<float>& yaw_queue
+);
+
+void only_motorRotate_thread();

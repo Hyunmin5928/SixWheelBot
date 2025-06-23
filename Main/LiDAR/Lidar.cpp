@@ -158,6 +158,7 @@ int Lidar::lidar_setup(){
         device_info di;
         memset(&di, 0, DEVICEINFOSIZE);
         if (lidar.getDeviceInfo(di, EPT_Module)) {
+            // ydlidar::core::common::printfDeviceInfo(di, EPT_Module);
             ydlidar::core::common::printfDeviceInfo(di, EPT_Module);
         }
         else {

@@ -1,4 +1,5 @@
 import socket, json, time, threading, logging, os, sys
+from daemon_base import Daemon
 
 # ── 설정 로드 ────────────────────────────────────────────────────────────────
 BASE_DIR    = os.path.dirname(os.path.abspath(__file__))
@@ -36,7 +37,6 @@ robot_sock.settimeout(ACK_TIMEOUT)
 control_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 control_sock.bind((SERVER_IP, CONTROL_PORT))
 
-
 # ── 맵 데이터 로드 함수 ───────────────────────────────────────────────────────
 def load_map_data(path):
     route = []
@@ -52,7 +52,6 @@ def load_map_data(path):
             except ValueError:
                 continue
     return route
-
 
 # ── 실제 map 전송·로그 수신·명령 전송 루프 ───────────────────────────────────────
 def server_loop():
@@ -99,18 +98,14 @@ def server_loop():
         num   = pkt.get('packet_number')
 
         if ptype == 'log':
-            # ACK_LOG 처리
             if num not in received:
-                # save_to_db(pkt)  # 필요 시 DB 저장
                 received.add(num)
                 logger.info(f"Log {num} processed")
             robot_sock.sendto(f"ACK_LOG:{num}".encode(), addr)
 
-            # 위치 확인
             lat, lon = pkt['gps']['lat'], pkt['gps']['lon']
             dist = ((lat-destination[0])**2 + (lon-destination[1])**2)**0.5 * 111000
             if not returned and dist <= 0.5:
-                # 자동 명령
                 for action in ('pause','unlock','return'):
                     cmd = json.dumps({'type':'cmd','action':action}).encode()
                     robot_sock.sendto(cmd, addr)
@@ -130,13 +125,11 @@ def server_loop():
     robot_sock.close()
     logger.info("Robot socket closed, server_loop 종료")
 
-
-# ── Python 서버에게 보내진 “unlock” / “return” 제어 메시지를 그대로 로봇에 전송 ──
+# ── Python 서버에게 보내진 제어 메시지를 로봇에 전송 ──
 def send_command(action):
     pkt = json.dumps({'type':'cmd','action':action}).encode()
     robot_sock.sendto(pkt, (CLIENT_IP, CLIENT_PORT))
     logger.info(f'Control -> Robot: {action}')
-
 
 # ── 제어 메시지 수신 리스너 ───────────────────────────────────────────────────
 def control_listener():
@@ -152,16 +145,35 @@ def control_listener():
         elif t in ('unlock','return','pause'):
             logger.info(f"Control command received: {t}")
             send_command(t)
-        # 필요시 order_id 활용 로직 추가 가능
+
+
+# ── Daemon 클래스 상속 ─────────────────────────────────────────────────────
+class DeliveryDaemon(Daemon):
+    def run(self):
+        threading.Thread(target=control_listener, daemon=True).start()
+        # 메인 쓰레드는 idle 상태로 유지
+        while True:
+            time.sleep(1)
 
 
 if __name__ == '__main__':
-    # 제어 리스너 스레드 기동
-    threading.Thread(target=control_listener, daemon=True).start()
+    pid_file = os.path.join(BASE_DIR, 'server.pid')
+    daemon = DeliveryDaemon(pid_file,
+                              stdin='/dev/null',
+                              stdout=log_conf['SERVER_LOG_FILE'],
+                              stderr=log_conf['SERVER_LOG_FILE'])
 
-    # 메인 스레드는 idle 상태로 대기
-    try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        logger.info("Server terminated by user")
+    if len(sys.argv) == 2:
+        cmd = sys.argv[1]
+        if cmd == 'start':
+            daemon.start()
+        elif cmd == 'stop':
+            daemon.stop()
+        elif cmd == 'restart':
+            daemon.restart()
+        elif cmd == 'status':
+            daemon.status()
+        else:
+            print('Usage: server.py [start|stop|restart|status]')
+    else:
+        print('Usage: server.py [start|stop|restart|status]')

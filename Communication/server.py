@@ -12,13 +12,16 @@ cli_conf   = config["CLIENT"]
 net_conf   = config["NETWORK"]
 log_conf   = config["LOG"]
 db_conf    = config["DB"]
+DB_FILE    = db_conf["DB_FILE"]
 MAP_FILE   = config["MAP"]["MAP_FILE"]
 
 SERVER_IP    = srv_conf["IP"]
 SERVER_PORT  = int(srv_conf["PORT"])
 CLIENT_IP    = cli_conf["IP"]
 CLIENT_PORT  = int(cli_conf["PORT"])
+LOCAL_HOST   = net_conf["LOCAL_HOST"]
 CONTROL_PORT = 6001               # Node.js 제어 메시지 수신용 포트
+ALLOW_IP     = net_conf["ALLOW_IP"]
 ACK_TIMEOUT  = float(net_conf["ACK_TIMEOUT"])
 RETRY_LIMIT  = int(net_conf["RETRY_LIMIT"])
 
@@ -50,11 +53,11 @@ class DeliveryDaemon(Daemon):
     def run(self):
         # 소켓 생성 및 바인드 (run 시점에만 실행)
         self.robot_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.robot_sock.bind((SERVER_IP, SERVER_PORT))
+        self.robot_sock.bind((ALLOW_IP, SERVER_PORT))
         self.robot_sock.settimeout(ACK_TIMEOUT)
 
         self.control_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.control_sock.bind((SERVER_IP, CONTROL_PORT))
+        self.control_sock.bind((LOCAL_HOST, CONTROL_PORT))
 
         # 제어 리스너 시작
         threading.Thread(target=self.control_listener, daemon=True).start()

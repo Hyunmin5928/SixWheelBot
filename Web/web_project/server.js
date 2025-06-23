@@ -522,10 +522,10 @@ app.post('/api/order/:id/complete', (req, res) => {
   res.json({ ok: true });
 });
 
-app.post('/api/order/:id/return', (req, res)) => {
-  sendControl('return', { order_id: req.params.id });
-  res.json({ ok: true });
-});
+// app.post('/api/order/:id/return', (req, res)) => {
+//   sendControl('return', { order_id: req.params.id });
+//   res.json({ ok: true });
+// });
 
 
 // ── React SPA 라우팅 ───────────────────────────────────
@@ -538,5 +538,5 @@ new Server(server, {
   cors: { origin: "http://localhost:3000", methods: ["GET","POST"] }
 });
 server.listen(process.env.PORT || 4000, () =>
-  console.log("🚀 서버 실행 중: http://localhost:4000")
+  console.log("🚀 서버 실행 중: http://localhost:4000 http://192.168.0.215:4000")
 );

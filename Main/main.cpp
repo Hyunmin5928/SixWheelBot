@@ -58,6 +58,8 @@ std::atomic<bool> run_imu{false};
 std::atomic<bool> run_lidar{false};
 std::atomic<bool> run_gps{false};
 
+static constexpr const char cmd_stop1 [] = "stop\n";
+
 // SIGINT 핸들러: Ctrl+C 시 running 플래그만 false 로 전환
 void handle_sigint(int) {
     run_lidar.store(false);
@@ -161,7 +163,7 @@ int main(){
     while (running.load()) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
-
+    g_serial.Write(cmd_stop1, sizeof(cmd_stop1) - 1);
     // 종료
     t_comm.join();
     t_gps_sender.join();

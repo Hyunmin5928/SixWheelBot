@@ -57,9 +57,9 @@ void navigation_thread(
 
     // 2) 네비게이션 루프
     while (running.load()) {
-        Logger::instance().info("gps", "[navigation_thread] Running True");
+        // Logger::instance().info("gps", "[navigation_thread] Running True");
         if(run_gps.load()){
-            Logger::instance().info("gps", "[navigation_thread] run_gps True");
+            // Logger::instance().info("gps", "[navigation_thread] run_gps True");
             int dir2=0;
             if(finish){
                 break;
@@ -176,9 +176,9 @@ void gps_reader_thread(
 
     // 읽기 루프
     while (running.load()) {
-        Logger::instance().info("gps", "[gps_reader_thread] Running True");
+        // Logger::instance().info("gps", "[gps_reader_thread] Running True");
         if(run_gps.load()){
-            Logger::instance().info("gps", "[gps_reader_thread] run_GPS Ture");
+            // Logger::instance().info("gps", "[gps_reader_thread] run_GPS True");
             // 하드웨어에서 유효한 GNGGA 메시지 하나 읽어들이면 true 반환
             Logger::instance().info("gps", "[gps_reader_thread] GPS reader thread start");
             if (gpsSensor.GetGPSdata(&raw)) {

@@ -19,4 +19,4 @@ extern std::atomic<bool>    run_lidar;
 using util::Logger;                             
 using util::LogLevel;
 
-void lidar_thread(SafeQueue<std::vector<LaserPoint>>& lidar_q);
+void lidar_thread(SafeQueue<LaserPoint>& lidar_q);

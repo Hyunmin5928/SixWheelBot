@@ -110,7 +110,7 @@ int main(){
     // 2) 현재 위치 (필요시 로깅용)
     SafeQueue<std::pair<double,double>> gps_queue;
     // 3) 방향 코드만
-    SafeQueue<int> dir_queue;
+    SafeQueue<float> dir_queue;
     // 4) (선택) 통신 명령용, 로그용 큐
     SafeQueue<int> cmd_queue;
     SafeQueue<std::string> log_queue;
@@ -120,10 +120,9 @@ int main(){
 
     // 5) LiDAR 센서 큐
     SafeQueue<LaserPoint> lidar_queue;
-    // SafeQueue<bool> lidar_switch;
 
     // 6) Motor 큐
-    
+    SafeQueue<bool> arrive_queue;    //네비게이션 도착여부에 대한 bool값
     // 통신 스레드: map_queue, cmd_queue, log_queue
     std::thread t_comm(
         comm_thread,
@@ -163,12 +162,15 @@ int main(){
         std::ref(lidar_queue)
     };
 
-    // std::thread t_motor{
-    //     motor_thread,
-    //     std::ref(gps_queue),
-    //     std::ref(lidar_queue),
-    //     std::ref(imu_queue)
-    // }
+    
+    std::thread t_motor{
+        motor_thread,
+        std::ref(dir_queue),
+        std::ref(lidar_queue),
+        std::ref(imu_queue),
+        std::ref(arrive_queue)
+    };
+    
 
     // running==false 될 때까지 대기
     while (running.load()) {
@@ -182,6 +184,93 @@ int main(){
     t_nav.join();
     t_imu.join();
     t_lidar.join();
-    
+
+    t_motor.join();
+
     return 0;
 }
+
+
+/* motor test용으로 사용중임
+int main(){
+    std::signal(SIGINT, handle_sigint);
+
+    load_config("config/config.json");
+
+    Logger::instance().addFile("comm",   CLI_LOG_FILE,   static_cast<LogLevel>(LOG_LEVEL));
+    Logger::instance().addFile("gps",    GPS_LOG_FILE,   static_cast<LogLevel>(LOG_LEVEL));
+    Logger::instance().addFile("lidar",  LIDAR_LOG_FILE, static_cast<LogLevel>(LOG_LEVEL));
+    Logger::instance().addFile("motor",  MOTOR_LOG_FILE, static_cast<LogLevel>(LOG_LEVEL));
+    Logger::instance().addFile("imu",    IMU_LOG_FILE,   static_cast<LogLevel>(LOG_LEVEL));
+
+    
+        // 1) 경로(map) → Route 리스트
+    SafeQueue<std::vector<std::tuple<double,double,int>>> map_queue;
+    // 2) 현재 위치 (필요시 로깅용)
+    SafeQueue<std::pair<double,double>> gps_queue;
+    // 3) 방향 코드만
+    SafeQueue<int> dir_queue;
+    // 4) (선택) 통신 명령용, 로그용 큐
+    SafeQueue<int> cmd_queue;
+    SafeQueue<std::string> log_queue;
+    SafeQueue<int> m_cmd_queue;
+
+    SafeQueue<ImuData>    imu_queue;
+    // SafeQueue<IMU::Command> imu_cmd_queue;
+    SafeQueue<float> yaw_queue;     // imu에서 yaw값만을 받아 motor로 전송하는 큐
+
+    // 5) LiDAR 센서 큐
+    SafeQueue<LaserPoint> lidar_queue;
+    SafeQueue<bool> lidar_switch;
+
+    // 6) Motor 큐
+    
+    // 통신 스레드: map_queue, cmd_queue, log_queue
+    std::thread t_comm(
+        comm_thread,
+        std::ref(map_queue),
+        std::ref(cmd_queue),
+        std::ref(log_queue));
+
+    // GPS 읽기 스레드 : gps_queue
+    std::thread t_gps(
+        gps_reader_thread,
+        std::ref(gps_queue)
+    );
+
+    // 통신 모듈에서 GPS 데이터를 서버로 전송하는 스레드 : gps_queue
+    std::thread t_gps_sender(
+        gps_sender_thread,
+        std::ref(gps_queue)
+    );
+
+    // 네비게이션 스레드
+    std::thread t_nav(
+        navigation_thread,
+        std::ref(map_queue),
+        std::ref(m_cmd_queue)
+    );
+
+    // Gyro 스레드 시작
+    std::thread t_imu(
+        imureader_thread,
+        "/dev/ttyUSB0",
+        115200u,
+        std::ref(imu_queue)
+    );
+
+    std::thread t_lidar{
+        lidar_thread,
+        std::ref(lidar_switch),
+        std::ref(lidar_queue)
+    };
+
+    std::thread t_motor{
+        motor_thread,
+        std::ref(gps_queue),
+        std::ref(lidar_queue),
+        std::ref(yaw_queue)
+    };
+}
+
+*/

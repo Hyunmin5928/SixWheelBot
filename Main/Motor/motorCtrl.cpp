@@ -224,6 +224,29 @@ void Motor::rotate(int pwm, float degree)
     }
 }
 
+void Motor::rotate_without_imu(int pwm, float degree){
+    Logger::instance().debug("motor", "[MotorCtrl] rotate");
+    validate_pwm(pwm);
+
+    digitalWrite(L_RENPin, HIGH);
+    digitalWrite(L_LENPin, HIGH);
+    digitalWrite(R_RENPin, HIGH);
+    digitalWrite(R_LENPin, HIGH);
+
+    float targetDgr = fmod((curDgr+degree), 360.0f);
+    if(targetDgr < 0.0f) targetDgr += 360.0f;
+
+    if(degree < 0.0f){
+        lmotor_run(pwm,false);
+        rmotor_run(pwm);
+    }
+    else{
+        lmotor_run(pwm);
+        rmotor_run(pwm, false);
+    }
+    motor_delay(1500);
+    stop();
+}
 //동작 중에 추가로 피해야할 대상이 나타나면 유연하게 회피하도록 해야함
 void Motor::curve_avoid(float distance, int pwm, float degree, bool recover = false)
 {
@@ -280,6 +303,11 @@ void Motor::curve_corner(float connerdistance, int pwm, float degree)
         }
     }
 
+}
+
+void Motor::motor_delay(int time){
+    unsigned long long tm = millis();
+        while(millis()-tm < time){}
 }
 
 #pragma endregion

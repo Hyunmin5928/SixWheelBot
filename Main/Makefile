@@ -8,6 +8,7 @@ SDK_INC_COMMON:= $(SDK_ROOT)/core/common     # ydlidar_help.h 등
 SDK_LIB       := $(SDK_ROOT)/build/libydlidar_sdk.a
 
 CXXFLAGS := -std=c++17 -Wall -pthread \
+            -I$(SDK_ROOT)       \
             -I$(SDK_INC_SRC)    \
             -I$(SDK_INC_COMMON) \
             -I.                  \
@@ -16,9 +17,10 @@ CXXFLAGS := -std=c++17 -Wall -pthread \
             -I./GPS/lib          \
             -I./IMU             \
             -I./IMU/lib         \
-            -I./LiDAR
+            -I./LiDAR           \
+            -I./Motor
 
-LDFLAGS  := -pthread
+LDFLAGS  := -pthread -lwiringPi
 
 # 2. 소스 파일 리스트
 CPP_SRCS := main.cpp \
@@ -29,6 +31,8 @@ CPP_SRCS := main.cpp \
             LiDAR/lidar_module.cpp \
             IMU/imu_module.cpp \
             IMU/lib/SerialPort.cpp \
+            Motor/motor_module.cpp  \
+            Motor/motorCtrl.cpp     \
             logger.cpp
 # C_SRCS   := logger.c
 

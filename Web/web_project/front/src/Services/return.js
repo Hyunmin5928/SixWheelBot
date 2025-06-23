@@ -6,7 +6,7 @@ import axios from 'axios';
    ------------------------------------------------------------------ */
 export const getReturns = () =>
   axios
-    .get('/api/return', { withCredentials: true }) // 세션 쿠키 포함
+    .get('/api/return', { withCredentials: true })
     .then((res) => res.data);
 
 /* ------------------------------------------------------------------
@@ -23,6 +23,22 @@ export const createReturn = (payload) =>
     .post('/api/return', payload, { withCredentials: true })
     .then((res) => res.data);
 
+/* ------------------------------------------------------------------
+   반품 요청 수락 (PENDING → ACCEPTED)
+   ------------------------------------------------------------------ */
 export const acceptReturn = (id) =>
-  axios.post(`/api/return/${id}/accept`, {}, { withCredentials:true })
-       .then(r => r.data);    
+  axios
+    .post(`/api/return/${id}/accept`, {}, { withCredentials: true })
+    .then((r) => r.data);
+
+/** 로봇 “정지” 명령 전송 (unlock) */
+export const stopReturn = (id) =>
+  axios
+    .post(`/api/return/${id}/unlock`, {}, { withCredentials: true })
+    .then((r) => r.data);
+
+/** 반품 완료 → “복귀” 명령 전송 (complete) */
+export const returnReturn = (id) =>
+  axios
+    .post(`/api/return/${id}/complete`, {}, { withCredentials: true })
+    .then((r) => r.data);

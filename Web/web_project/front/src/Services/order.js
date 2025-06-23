@@ -23,6 +23,22 @@ export const createOrder = (payload) =>
     .post('/api/order', payload, { withCredentials: true })
     .then((res) => res.data);
 
+/* ------------------------------------------------------------------
+   배송 요청 수락 (PENDING → ACCEPTED)
+   ------------------------------------------------------------------ */
 export const acceptOrder = (id) =>
-  axios.post(`/api/order/${id}/accept`, {}, { withCredentials:true })
-       .then(r => r.data);
+  axios
+    .post(`/api/order/${id}/accept`, {}, { withCredentials: true })
+    .then((r) => r.data);
+
+/** 로봇 “정지” 명령 전송 (unlock) */
+export const stopOrder = (id) =>
+  axios
+    .post(`/api/order/${id}/unlock`, {}, { withCredentials: true })
+    .then((r) => r.data);
+
+/** 배송 완료 → “복귀” 명령 전송 (complete) */
+export const returnOrder = (id) =>
+  axios
+    .post(`/api/order/${id}/complete`, {}, { withCredentials: true })
+    .then((r) => r.data);

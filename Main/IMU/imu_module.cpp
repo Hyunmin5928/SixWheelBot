@@ -1,11 +1,5 @@
 #include "imu_module.h"
 
-// Arduino/Adafruit 헤더 (빌드 환경에 맞게 -I 옵션 추가 필요)
-#include <Adafruit_Sensor.h>
-#include <Adafruit_BNO055.h>
-#include <utility/imumaths.h>
-#include <Servo.h>
-
 #include <thread>
 #include <sstream>
 #include <cmath>
@@ -78,7 +72,26 @@ void IMU::readerThread(
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
     bno.setExtCrystalUse(true);
 
+    
     // 서보 초기화
+    // 아두이노 -> bno -> 센서 값만 읽어오면 -> 구현 된거 쓰레드가 지 큐에 저장하게 ino start stop(계속 값을 받아오는게 아니라 -> 해당 쓰레드가 동작 제어
+    /* 
+    void loop()
+        if(flag == true){
+            기존 로직 타고 동작
+            Serial.println("센서 값");
+        }
+        else{
+            동작 안하게
+            Serial.println("Not Running");
+        }
+    
+        쓰레드 ->
+        1. start -> 센서 값 읽어오고 -> 센서 값 로그 작성
+        2. stop  -> Not Running -> 아니면 다시 stop 재전송 -> Not Running -> 로그 동작 x중
+    */
+
+
     servoRoll.attach(9,500,2500);
     servoPitch.attach(10,500,2500);
     servoRoll.write(90);

@@ -3,28 +3,27 @@
 #include <Adafruit_BNO055.h>
 #include <utility/imumaths.h>
 #include <Servo.h>
-#include <SoftwareSerial.h>
+#include <math.h>  // fabs 사용을 위해 추가
 
 /*==============================================================================
  1) 설정 파라미터
 ==============================================================================*/
 
-// IMU 샘플링 주기 (ms 단위, 20ms → 50Hz)
-static const uint16_t IMU_INTERVAL_MS      = 20;
+// IMU 샘플링 주기 (20 ms → 50 Hz)
+static const uint16_t IMU_INTERVAL_MS = 20;
 
-// 작은 흔들림(±°) 범위: 이내에서는 서보 동작 억제 (Dead-band)
-static const float      THRESHOLD_ROLL_DEG  = 2.0;
-static const float      THRESHOLD_PITCH_DEG = 2.0;
-
-// BNO055 I²C 주소
-Adafruit_BNO055 bno(55, 0x29);
+// BNO055 I²C 주소 (스캐너로 확인한 0x28 또는 0x29)
+Adafruit_BNO055 bno = Adafruit_BNO055(55, 0x29);
 
 // 서보 핀 & 가동 범위 (±75°)
-static const uint8_t PIN_SERVO_ROLL   =  9;
-static const uint8_t PIN_SERVO_PITCH  = 10;
+static const uint8_t PIN_SERVO_ROLL  =  9;
+static const uint8_t PIN_SERVO_PITCH = 10;
 static const int     SERVO_LIMIT_DEG  = 75;
 
-// PID 파라미터 (Roll/Pitch 공통)
+// 동작 임계치 (±10° 이내는 무시)
+static const float ACTIVATE_THRESHOLD_DEG = 10.0;
+
+// PID 파라미터 (Roll/Pitch 공통 예시)
 float kp = 2.0, ki = 0.5, kd = 0.1;
 
 /*==============================================================================
@@ -33,12 +32,15 @@ float kp = 2.0, ki = 0.5, kd = 0.1;
 
 Servo servoRoll, servoPitch;
 
+// 동작 제어 플래그 (기본 false)
+bool flag = false;
+
 // 영점 캘리브레이션 오프셋
 float offRoll  = 0, offPitch = 0;
 
 // PID 내부 상태
-float iAccRoll  = 0, prevErrRoll  = 0;
-float iAccPitch = 0, prevErrPitch = 0;
+float iAccRoll   = 0, prevErrRoll  = 0;
+float iAccPitch  = 0, prevErrPitch = 0;
 
 // IMU 타이밍
 unsigned long lastIMU = 0;
@@ -67,53 +69,75 @@ void setup() {
 }
 
 void loop() {
-  // IMU 샘플링 주기 체크
+  // 0) 시리얼 명령 처리
+  if (Serial.available()) {
+    String cmd = Serial.readStringUntil('\n');
+    cmd.trim();
+    if (cmd == "start") {
+      flag = true;
+      Serial.println(">> START received");
+    }
+    else if (cmd == "stop") {
+      flag = false;
+      Serial.println(">> STOP received");
+    }
+  }
+
+  // 50 Hz IMU 처리 타이밍
   unsigned long now = millis();
   if (now - lastIMU < IMU_INTERVAL_MS) return;
   lastIMU = now;
 
-  // Euler 읽기 & 영점 보정
-  imu::Vector<3> e = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
-  float rawYaw   = e.x();
-  float rawRoll  = e.y();
-  float rawPitch = e.z();
+  if (flag) {
+    // === 동작 모드 ===
 
-  // 보정값 적용
-  float corrRoll  = rawRoll  - offRoll;
-  float corrPitch = rawPitch - offPitch;
-  float corrYaw   = rawYaw;  // yaw는 영점 보정 없음
+    // Euler 각도 읽기
+    imu::Vector<3> e = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
+    float roll_raw  = e.y();
+    float pitch_raw = e.z();
+    float yaw       = e.x();
 
-  // Dead-band 적용 (roll, pitch만)
-  if (fabs(corrRoll)  < THRESHOLD_ROLL_DEG)  corrRoll  = 0;
-  if (fabs(corrPitch) < THRESHOLD_PITCH_DEG) corrPitch = 0;
+    // 보정된 Roll/Pitch 계산
+    float roll  = roll_raw  - offRoll;
+    float pitch = pitch_raw - offPitch;
 
-  // PID 제어 (서보 동작용) 
-  float uRoll  = pidControl(corrRoll,  prevErrRoll,  iAccRoll);
-  float uPitch = pidControl(corrPitch, prevErrPitch, iAccPitch);
-  updateServo(servoRoll,  -uRoll);
-  updateServo(servoPitch, uPitch);
+    // Roll: |roll| ≥ threshold일 때만 동작, 그 외 중립
+    if (fabs(roll) >= ACTIVATE_THRESHOLD_DEG) {
+      float uRoll = pidControl(roll, prevErrRoll, iAccRoll);
+      updateServo(servoRoll, -uRoll);  // 반전 적용
+    } else {
+      servoRoll.write(90);
+    }
 
-  // 시리얼 출력: 원데이터와 보정된 값
-  Serial.print("Raw Euler [deg]    -> "); 
-    Serial.print("Roll: ");  Serial.print(rawRoll,  2);
-    Serial.print("  Pitch: "); Serial.print(rawPitch, 2);
-    Serial.print("  Yaw: ");   Serial.println(rawYaw,   2);
+    // Pitch: |pitch| ≥ threshold일 때만 동작, 그 외 중립
+    if (fabs(pitch) >= ACTIVATE_THRESHOLD_DEG) {
+      float uPitch = pidControl(pitch, prevErrPitch, iAccPitch);
+      updateServo(servoPitch, uPitch);
+    } else {
+      servoPitch.write(90);
+    }
 
-  Serial.print("Corrected Euler -> ");
-    Serial.print("Roll: ");  Serial.print(corrRoll,  2);
-    Serial.print("  Pitch: "); Serial.print(corrPitch, 2);
-    Serial.print("  Yaw: ");   Serial.println(corrYaw,   2);
-
-  Serial.println("---------------------------------");
-
-  delay(1000);
+    // 3) ROLL, PITCH, YAW 한 줄로 출력
+    Serial.print("ROLL = ");  Serial.print(roll, 2);
+    Serial.print(", PITCH = "); Serial.print(pitch, 2);
+    Serial.print(", YAW = ");   Serial.println(yaw, 2);
+  }
+  else {
+    // === 중지 모드 ===
+    servoRoll.write(90);
+    servoPitch.write(90);
+    Serial.println("Not Running");
+  }
 }
 
+//==============================================================================
+// 영점 캘리브레이션: 50 샘플 평균 (약 1초)
+//==============================================================================
 void calibrateZero() {
   const int N = 50;
   float sumR = 0, sumP = 0;
-  Serial.println("== 수평에 센서 올려놓고 3초 대기 ==");
-  delay(3000);
+  Serial.println("== 수평에 센서 올려놓고 2초 대기 ==");
+  delay(2000);
   for (int i = 0; i < N; i++) {
     imu::Vector<3> e = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
     sumR += e.y();
@@ -126,17 +150,24 @@ void calibrateZero() {
   Serial.print("  offPitch="); Serial.println(offPitch, 2);
 }
 
+//==============================================================================
+// 단일 채널 PID 제어 (목표 = 0°)
+//==============================================================================
 float pidControl(float measured, float &prevErr, float &iAcc) {
-  float err = -measured;
-  iAcc += err * (IMU_INTERVAL_MS / 1000.0);
-  float deriv = (err - prevErr) / (IMU_INTERVAL_MS / 1000.0);
-  prevErr = err;
-  float u = kp * err + ki * iAcc + kd * deriv;
+  float err    = -measured;
+  iAcc        += err * (IMU_INTERVAL_MS / 1000.0);
+  float deriv  = (err - prevErr) / (IMU_INTERVAL_MS / 1000.0);
+  prevErr      = err;
+  float u      = kp * err + ki * iAcc + kd * deriv;
+  // ±SERVO_LIMIT_DEG 클램핑
   if      (u >  SERVO_LIMIT_DEG) u =  SERVO_LIMIT_DEG;
   else if (u < -SERVO_LIMIT_DEG) u = -SERVO_LIMIT_DEG;
   return u;
 }
 
+//==============================================================================
+// u(–75°…+75°) → 서보 각도(0…180) 매핑 & 쓰기
+//==============================================================================
 void updateServo(Servo &sv, float u) {
   int angle = constrain(90 + (int)u,
                         90 - SERVO_LIMIT_DEG,

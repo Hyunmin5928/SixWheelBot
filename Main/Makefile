@@ -1,85 +1,53 @@
-# 컴파일러 및 기본 설정
-CXX := g++
-CXXFLAGS := -std=c++17 -Wall -IMotor -ILiDAR -ILiDAR/lib -pthread 
+# 1. 컴파일러 설정
+CXX      := g++
+CC       := gcc
 
-# 소스 파일 목록
-SRCS := \
-    Motor/motor_module.cpp \
-    Motor/motorCtrl.cpp \
-    LiDAR/lidar_module.cpp \
-    LiDAR/Lidar.cpp \
-    logger.cpp \
-    SafeQueue.hpp
+SDK_ROOT      := LiDAR/YDLidar-SDK
+SDK_INC_SRC   := $(SDK_ROOT)/src             # CYdLidar.h
+SDK_INC_COMMON:= $(SDK_ROOT)/core/common     # ydlidar_help.h 등
+SDK_LIB       := $(SDK_ROOT)/build/libydlidar_sdk.a
 
-LDFLAGS = -L/usr/lib/ -lwiringPi -LYDLiDAR/YDLidar-SDK/build -lydlidar_sdk
-# 오브젝트 파일 목록
-OBJS := $(SRCS:.cpp=.o)
+CXXFLAGS := -std=c++17 -Wall -pthread \
+            -I$(SDK_INC_SRC)    \
+            -I$(SDK_INC_COMMON) \
+            -I.                  \
+            -I./Communication    \
+            -I./GPS              \
+            -I./GPS/lib          \
+            -I./LiDAR
 
-# 최종 실행 파일 이름
-TARGET := main_test
+LDFLAGS  := -pthread
 
-# 빌드 타겟
+# 2. 소스 파일 리스트
+CPP_SRCS := main.cpp \
+            Communication/comm_module.cpp \
+            GPS/gps_module.cpp \
+            GPS/lib/GPS_parse.cpp \
+            LiDAR/Lidar.cpp \
+            LiDAR/lidar_module.cpp \
+            logger.cpp
+# C_SRCS   := logger.c
+
+# 3. 오브젝트 파일 리스트
+OBJ_CPP  := $(CPP_SRCS:.cpp=.o)
+# OBJ_C    := $(C_SRCS:.c=.o)
+OBJS     := $(OBJ_CPP) $(OBJ_C)
+
+# 4. 최종 바이너리 이름
+TARGET   := app   # 원하는 실행 파일 이름으로 변경 가능
+
+# =================================
+# 기본 타겟: all
+.PHONY: all clean
 all: $(TARGET)
 
-# 링크 단계
+# 5. 링크 명령: OBJS 뒤에 SDK_LIB 를 둡니다.
 $(TARGET): $(OBJS)
-	$(CXX) $(CXXFLAGS) -o $@ $^
+	$(CXX) $(CXXFLAGS) -o $@ $(OBJS) $(LDFLAGS) $(SDK_LIB)
 
-# 개별 cpp -> o 파일로 빌드
+# 6. 컴파일 규칙
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-# 정리 명령
 clean:
 	rm -f $(OBJS) $(TARGET)
-# # Makefile
-
-# # 1. 컴파일러 설정
-# CXX      := g++
-# CC       := gcc
-# CXXFLAGS := -std=c++17 -Wall -pthread \
-#              -I. \
-#              -I./Communication \
-#              -I./GPS \
-#              -I./GPS/lib \
-#              -I./IMU
-# LDFLAGS  := -pthread
-
-# # 2. 소스 파일 리스트
-# CPP_SRCS := main.cpp \
-#             Communication/comm_module.cpp \
-#             GPS/gps_module.cpp \
-#             GPS/lib/GPS_parse.cpp \
-#             IMU/imu_module.cpp \
-#             logger.cpp
-# # C_SRCS   := logger.c
-
-# # 3. 오브젝트 파일 리스트
-# OBJ_CPP  := $(CPP_SRCS:.cpp=.o)
-# OBJ_C    := $(C_SRCS:.c=.o)
-# OBJS     := $(OBJ_CPP) $(OBJ_C)
-
-# # 4. 최종 바이너리 이름
-# TARGET   := app   # 원하는 실행 파일 이름으로 변경 가능
-
-# # =================================
-# # 기본 타겟: all
-# all: $(TARGET)
-
-# # 링크 단계
-# $(TARGET): $(OBJS)
-# 	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $(OBJS)
-
-# # C++ 컴파일 규칙
-# %.o: %.cpp
-# 	$(CXX) $(CXXFLAGS) -c $< -o $@
-
-# # C 컴파일 규칙
-# %.o: %.c
-# 	$(CC) -Wall -c $< -o $@
-
-# # 청소 타겟
-# clean:
-# 	rm -f $(OBJS) $(TARGET)
-
-# .PHONY: all clean

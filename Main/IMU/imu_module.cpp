@@ -1,11 +1,5 @@
 #include "imu_module.h"
 
-// Arduino/Adafruit 헤더 (빌드 환경에 맞게 -I 옵션 추가 필요)
-#include <Adafruit_Sensor.h>
-#include <Adafruit_BNO055.h>
-#include <utility/imumaths.h>
-#include <Servo.h>
-
 #include <thread>
 #include <sstream>
 #include <cmath>
@@ -57,14 +51,14 @@ static void updateServo(Servo &sv, float u) {
 }
 
 void IMU::readerThread(
-    SafeQueue<Data>&    data_q,
-    SafeQueue<Command>& cmd_q
+    SafeQueue<Data>&    imu_queue,
+    SafeQueue<Command>& imu_cmd_queue
 ) {
     Logger::instance().info("imu","[IMU] Thread start, waiting START");
     Command cmd;
-    if (!cmd_q.ConsumeSync(cmd) || cmd != Command::START) {
+    if (!imu_cmd_queue.ConsumeSync(cmd) || cmd != Command::START) {
         Logger::instance().warn("imu","[IMU] No START, exiting");
-        data_q.Finish();
+        imu_queue.Finish();
         return;
     }
     Logger::instance().info("imu","[IMU] START received");
@@ -78,7 +72,26 @@ void IMU::readerThread(
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
     bno.setExtCrystalUse(true);
 
+    
     // 서보 초기화
+    // 아두이노 -> bno -> 센서 값만 읽어오면 -> 구현 된거 쓰레드가 지 큐에 저장하게 ino start stop(계속 값을 받아오는게 아니라 -> 해당 쓰레드가 동작 제어
+    /* 
+    void loop()
+        if(flag == true){
+            기존 로직 타고 동작
+            Serial.println("센서 값");
+        }
+        else{
+            동작 안하게
+            Serial.println("Not Running");
+        }
+    
+        쓰레드 ->
+        1. start -> 센서 값 읽어오고 -> 센서 값 로그 작성
+        2. stop  -> Not Running -> 아니면 다시 stop 재전송 -> Not Running -> 로그 동작 x중
+    */
+
+
     servoRoll.attach(9,500,2500);
     servoPitch.attach(10,500,2500);
     servoRoll.write(90);
@@ -90,7 +103,7 @@ void IMU::readerThread(
     // 주기 루프
     while (running.load()) {
         // STOP 명령 체크
-        if (cmd_q.Pop(cmd) && cmd == Command::STOP) {
+        if (imu_cmd_queue.Pop(cmd) && cmd == Command::STOP) {
             Logger::instance().info("imu","[IMU] STOP received");
             break;
         }
@@ -107,10 +120,10 @@ void IMU::readerThread(
         updateServo(servoPitch, up);
 
         Data d{r, p, y, static_cast<uint64_t>(millis())};
-        data_q.Produce(d);
+        imu_queue.Produce(d);
         std::this_thread::sleep_for(std::chrono::milliseconds(INTERVAL_MS));
     }
 
     Logger::instance().info("imu","[IMU] Thread stopping");
-    data_q.Finish();
+    imu_queue.Finish();
 }

@@ -32,6 +32,21 @@ app.use(passport.session());
 const buildPath = path.resolve(__dirname, 'front', 'build');
 app.use(express.static(buildPath));
 
+// server.js 맨 위
+const dgram = require('dgram');
+const PYTHON_IP        = '127.0.0.1';  // server.py가 띄워진 호스트
+const PYTHON_CTRL_PORT = 6001;         // server.py 데몬의 CONTROL_PORT
+
+function sendControl(type, payload = {}) {
+  const client = dgram.createSocket('udp4');
+  const msg    = Buffer.from(JSON.stringify({ type, ...payload }));
+  client.send(msg, PYTHON_CTRL_PORT, PYTHON_IP, err => {
+    if (err) console.error('Control UDP 전송 에러:', err);
+    client.close();
+  });
+}
+
+
 // ── Passport LocalStrategy ────────────────────────────
 passport.use(new LocalStrategy({
     usernameField: 'userId',
@@ -346,6 +361,15 @@ app.post('/api/order/:id/accept', async (req, res) => {
     const [city_do, gu_gun, dong, bunji, ...detail] = address.split(' ');
     const detailAddress = detail.join(' ');  // 나머지는 상세주소로
 
+    // 경기도 분당구 성남대로43번길 1
+    // 경기도 성남시 분당구 구미동 158
+    // 경기 성남시 분당구 구미동 181
+    // city_do = "경기 성남시";
+    // gu_gun = "분당구";
+    // dong = "";
+    // bunji = "성남대로43번길";
+    // detailAddress = "1"
+
     console.log('=== 파싱된 주소 정보 ===');
     console.log('city_do      :', city_do);
     console.log('gu_gun       :', gu_gun);
@@ -463,6 +487,7 @@ app.post('/api/order/:id/accept', async (req, res) => {
 
 
     res.json({ ok: true });
+    sendControl('start', { order_id: req.params.id });
   } catch (e) {
     console.error('order accept 오류', e);
     res.status(500).send('서버 오류');
@@ -484,6 +509,24 @@ app.post('/api/return/:id/accept', async (req, res) => {
     res.status(500).send('서버 오류');
   }
 });
+
+// 적재함 잠금 해제
+app.post('/api/order/:id/unlock', (req, res) => {
+  sendControl('unlock', { order_id: req.params.id });
+  res.json({ ok: true });
+});
+
+// 배송 완료 → 복귀 명령
+app.post('/api/order/:id/complete', (req, res) => {
+  sendControl('return', { order_id: req.params.id });
+  res.json({ ok: true });
+});
+
+app.post('/api/order/:id/return', (req, res)) => {
+  sendControl('return', { order_id: req.params.id });
+  res.json({ ok: true });
+});
+
 
 // ── React SPA 라우팅 ───────────────────────────────────
 app.get('/', (_req, res) => res.redirect('/'));

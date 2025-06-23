@@ -2,7 +2,7 @@
   
   "SERVER":{  
     "_comment": "실제 라즈베리파이 서버 주소", 
-    "IP"      : "192.168.0.191",
+    "IP"      : "192.168.0.215",
     "PORT"    : 5000
   },
   "CLIENT":{
@@ -11,14 +11,33 @@
     "PORT"    : 5001
   },
   "NETWORK":{
-    "_comment"   : "UDP 통신 설정",
-    "ALLOW_IP"   : "0.0.0.0",
-    "ACK_TIMEOUT": 1.0,
-    "RETRY_LIMIT": 5
+    "_comment"      : "UDP 통신 모듈 설정",
+    "LOCAL_HOST"    : "127.0.0.1",
+    "ALLOW_IP"      : "0.0.0.0",
+    "CONTROL_PORT"  : 6001,
+    "ACK_TIMEOUT"   : 1.0,
+    "RETRY_LIMIT"   : 5
+  },
+  "IMU":{
+    "_comment"       : "IMU 모듈 설정",
+    "INTERVAL_MS"    : 20,
+    "THRESH_ROLL"    : 2.0,
+    "THRESH_PITCH"   : 2.0,
+    "SERVO_LIMIT"    : 75
+  },
+  "MOTOR":{
+    "_comment"       : "MOTOR 모듈 설정"
+    
+  },
+  "GPS":{
+    "_comment"       : "GPS 모듈 설정"
+  },
+  "VISION":{
+    "_comment"       : "AI 모델 설정"
   },
   "LOG":{
     "_comment"       : "로그 레벨(0 : Debug, 1 : Info, 2 : Warn, 3 : Error 파일 위치 지정",
-    "LOG_LEVEL"       : 0,
+    "LOG_LEVEL"      : 0,
     "SERVER_LOG_FILE": "log/srv_comm_log.txt",
     "CLIENT_LOG_FILE": "log/cli_comm_log.txt",
     "GPS_LOG_FILE"   : "log/gps_log.txt",
@@ -26,5 +45,13 @@
     "MOTOR_LOG_FILE" : "log/motor_log.txt",
     "IMU_LOG_FILE"   : "log/imu_log.txt",
     "VISION_LOG_FILE": "log/vision_log.txt"
+  },
+  "DB":{
+    "_comment"      : "DB 파일 주소 저장",
+    "DB_FILE"        : "../Web/web_project/delivery.db"
+  },
+  "MAP":{
+    "_comment"      : "MAP 파일 생성 위치",
+    "MAP_FILE"      : "../Web/web_project/route.txt"
   }
 }

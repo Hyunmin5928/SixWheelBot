@@ -1,6 +1,5 @@
 #include "lidar_module.h"
 // 전역 종료 플래그
-extern std::atomic<bool> running;
 
 // LiDAR 결과를 전달하는 큐
 // SafeQueue<std::vector<ScanPoint>>& lidar_q
@@ -11,8 +10,13 @@ void lidar_thread(
     // 초기화 등 필요시 수행
     while (running) {
         lidar.scan_oneCycle();
+<<<<<<< HEAD
         // 가장 근접한 장애물 값을 받음
         auto scans = lidar.get_nearPoint();
+=======
+        auto scans = lidar.get_scanData();
+
+>>>>>>> origin/main
         lidar_q.Produce(std::move(scans));
 
         std::this_thread::sleep_for(std::chrono::milliseconds(50));

@@ -1,7 +1,5 @@
 #include "motor_module.h"
 
-std::atomic<bool> running{true};
-
 void motor_test_thread(
     SafeQueue<std::string>& cmd_queue,
     SafeQueue<LaserPoint>& point_queue,

@@ -1,5 +1,6 @@
 #include "motorCtrl.h"
 #include "../LiDAR/lidar_module.h"
+#include "../IMU/imu_module.h"
 #include "../SafeQueue.hpp"
 #include "../logger.h"
 #include <atomic>
@@ -12,10 +13,8 @@
 #include <sstream>
 
 // 외부에서 선언된 전역 플래그
-extern std::atomic<bool> running;
 extern int         LOG_LEVEL;
-extern std::atomic<bool> running;
-
+extern std::atomic<bool>    running;
 using util::Logger;
 using util::LogLevel;
 
@@ -25,12 +24,6 @@ constexpr float OBSTACLE_ANGLE_LIMIT        = 60.0f;  // deg
 constexpr int   DEFAULT_PWM                 = 50;
 
 // 모듈 진입점
-
-struct ImuData {
-  double roll;
-  double pitch;
-  double yaw;
-};
 
 void motor_thread(
     SafeQueue<float>&    dir_queue,

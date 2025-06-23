@@ -17,6 +17,8 @@ CXXFLAGS := -std=c++17 -Wall -pthread \
             -I./Communication    \
             -I./GPS              \
             -I./GPS/lib          \
+            -I./IMU             \
+            -I./IMU/lib         \
             -I./LiDAR
 
 LDFLAGS  := -pthread
@@ -28,6 +30,8 @@ CPP_SRCS := main.cpp \
             GPS/lib/GPS_parse.cpp \
             LiDAR/Lidar.cpp \
             LiDAR/lidar_module.cpp \
+            IMU/imu_module.cpp \
+            IMU/lib/SerialPort.cpp \
             logger.cpp
 # C_SRCS   := logger.c
 

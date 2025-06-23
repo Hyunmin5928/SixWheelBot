@@ -131,6 +131,8 @@ void navigation_thread(
                     lat, lon, wlat, wlon);
                 if(angle>45){
                     m_cmd_q.Produce(std::move(angle));
+                }else{
+                    m_cmd_q.Produce(0);
                 }
             }
         } else {

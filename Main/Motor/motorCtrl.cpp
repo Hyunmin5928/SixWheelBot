@@ -16,9 +16,9 @@
 #define maxPulse 1024
 #define maxSpeed 150.0f
 
-#define avoidDistance_trigger 300.0f //cm
-#define avoidDistance_step1 250.0f
-#define avoidDistance_step2 180.0f
+#define avoidDistance_trigger 800.0f //cm
+#define avoidDistance_step1 1000.0f
+#define avoidDistance_step2 800.0f
 #define wheelInterval 31.0f //cm
 
 
@@ -72,12 +72,12 @@ void Motor::lmotor_run(int pwm, bool front=true)
     validate_pwm(pwm);
     if (front) {
 
-        pwmWrite(L_RpwmPin, pwm); //positive forward
-        pwmWrite(L_LpwmPin, 0); // must turn off this pin when using L_pwmPin
+        softPwmWrite(L_RpwmPin, pwm); //positive forward
+        softPwmWrite(L_LpwmPin, 0); // must turn off this pin when using L_pwmPin
     }
     else {
-        pwmWrite(L_RpwmPin, 0); //negative backward
-        pwmWrite(L_LpwmPin, pwm);
+        softPwmWrite(L_RpwmPin, 0); //negative backward
+        softPwmWrite(L_LpwmPin, pwm);
     }
 
 }
@@ -87,12 +87,13 @@ void Motor::rmotor_run(int pwm, bool front = true)
     std::cout << "Rmotor_run\n";
     validate_pwm(pwm);
     if (front) {
-        pwmWrite(R_RpwmPin, pwm); //positive forward
-        pwmWrite(R_LpwmPin, 0); // must turn off this pin when using L_pwmPin
+
+        softPwmWrite(R_RpwmPin, pwm); //positive forward
+        softPwmWrite(R_LpwmPin, 0); // must turn off this pin when using L_pwmPin
     }
     else {
-        pwmWrite(R_RpwmPin, 0); //negative backward
-        pwmWrite(R_LpwmPin, pwm);
+        softPwmWrite(R_RpwmPin, 0); //negative backward
+        softPwmWrite(R_LpwmPin, pwm);
     }
 }
 
@@ -108,25 +109,22 @@ void Motor::motor_setup(int lr_pwmPin, int ll_pwmPin, int rr_pwmPin, int rl_pwmP
     L_RENPin = lrenPin;
     L_LENPin = llenPin;;
 
-    pinMode(L_RpwmPin, PWM_OUTPUT);
-    pinMode(L_LpwmPin, PWM_OUTPUT);
-    pinMode(R_RpwmPin, PWM_OUTPUT);
-    pinMode(R_LpwmPin, PWM_OUTPUT);
+    pinMode(L_RpwmPin, OUTPUT);
+    pinMode(L_LpwmPin, OUTPUT);
+    pinMode(R_RpwmPin, OUTPUT);
+    pinMode(R_LpwmPin, OUTPUT);
     pinMode(R_RENPin, OUTPUT);
     pinMode(R_LENPin, OUTPUT);
     pinMode(L_RENPin, OUTPUT);
     pinMode(L_LENPin, OUTPUT);
 
-    pwmSetMode(PWM_MODE_MS);
-    //pwm max pulse
-    pwmSetRange(1024);
-    pwmSetClock(32);
+    softPwmCreate(L_RpwmPin, 0, maxPulse);
+    softPwmCreate(L_LpwmPin, 0, maxPulse);
+    softPwmCreate(R_RpwmPin, 0, maxPulse);
+    softPwmCreate(R_LpwmPin, 0, maxPulse);
     
     digitalWrite(L_RENPin, HIGH);
     digitalWrite(L_LENPin, HIGH);
-}
-
-void Motor::motor_setup()
 {
     motor_setup(L_RPWM, L_LPWM, R_RPWM, R_LPWM, R_REN, R_LEN, L_REN, L_LEN);
 }
@@ -151,41 +149,44 @@ Motor::Motor()
 }
 
 Motor::Motor(int lr_pwmPin, int ll_pwmPin,int rr_pwmPin, int rl_pwmPin, int rr_enPin, int rl_enPin, int lr_enPin, int ll_enPin){
-    
     motor_setup(lr_pwmPin, ll_pwmPin, rr_pwmPin, rl_pwmPin, rr_enPin, rl_enPin, lr_enPin, ll_enPin);
     std::cout << "motor set up : user setting\n";
 }
 
 Motor::~Motor(){
-
 }
 #pragma endregion
 
 #pragma region Move functions
 
+
+
 void Motor::straight(int pwm)
 {
+    Logger::instance().debug("motor", "[MotorCtrl] Straight");
     validate_pwm(pwm);
-    pwmWrite(R_RpwmPin, pwm);   //positive forward
-    pwmWrite(R_LpwmPin, 0);     // must turn off this pin when using R_pwmPin
-    pwmWrite(L_RpwmPin, pwm);   //positive forward
-    pwmWrite(L_LpwmPin, 0);     //must turn off this pin when using R_pwmPin
+    softPwmWrite(R_RpwmPin, pwm);   //positive forward
+    softPwmWrite(R_LpwmPin, 0);     // must turn off this pin when using R_pwmPin
+    softPwmWrite(L_RpwmPin, pwm);   //positive forward
+    softPwmWrite(L_LpwmPin, 0);     //must turn off this pin when using R_pwmPin
 }
 
 void Motor::backoff(int pwm)
 {
+    Logger::instance().debug("motor", "[MotorCtrl] backoff");
     validate_pwm(pwm);
-    pwmWrite(R_LpwmPin, pwm);
-    pwmWrite(R_RpwmPin, 0);
-    pwmWrite(L_LpwmPin, pwm);
-    pwmWrite(L_RpwmPin, 0);
+    softPwmWrite(R_LpwmPin, pwm);
+    softPwmWrite(R_RpwmPin, 0);
+    softPwmWrite(L_LpwmPin, pwm);
+    softPwmWrite(L_RpwmPin, 0);
 }
 
 void Motor::stop(){
-    pwmWrite(R_RpwmPin,0);
-    pwmWrite(R_LpwmPin, 0);
-    pwmWrite(L_RpwmPin,0);
-    pwmWrite(L_LpwmPin, 0);
+    Logger::instance().debug("motor", "[MotorCtrl] stop");
+    softPwmWrite(R_RpwmPin,0);
+    softPwmWrite(R_LpwmPin, 0);
+    softPwmWrite(L_RpwmPin,0);
+    softPwmWrite(L_LpwmPin, 0);
     digitalWrite(R_LENPin, LOW);
     digitalWrite(L_LENPin, LOW);
     digitalWrite(R_RENPin, LOW);
@@ -194,104 +195,138 @@ void Motor::stop(){
 
 void Motor::rotate(int pwm, float degree)
 {
+    Logger::instance().debug("motor", "[MotorCtrl] rotate");
     validate_pwm(pwm);
 
-    float dgrspeed = calculate_dgrspeed(pwm);
-    //abs_dgr : 절대값 각도
-    float abs_dgr = degree;
-    if(abs_dgr <0){
-        abs_dgr *= -1.0f;
-    }
-    float delaytime = abs_dgr / dgrspeed;
+    digitalWrite(L_RENPin, HIGH);
+    digitalWrite(L_LENPin, HIGH);
+    digitalWrite(R_RENPin, HIGH);
+    digitalWrite(R_LENPin, HIGH);
 
-    unsigned int currentTime = millis();
-    while(millis()-currentTime < delaytime){
-        if (degree > 0) 
-        {
-            rmotor_run(pwm, false); // 오른쪽 바퀴는 뒤로 회전
-            lmotor_run(pwm); // 왼쪽 바퀴는 앞으로 회전
+    float targetDgr = fmod((curDgr+degree), 360.0f);
+    if(targetDgr < 0.0f) targetDgr += 360.0f;
+
+    if(degree < 0.0f){
+        while(curDgr>targetDgr){
+            //curDgr 업데이트 코드를 넣어주세요
+            lmotor_run(pwm,false);
+            rmotor_run(pwm);
         }
-        else {
-            rmotor_run(pwm); // 오른쪽 바퀴는 앞으로 회전
-            lmotor_run(pwm, false); // 왼쪽 바퀴는 뒤로 회전
+    }
+    else{
+        while(curDgr<targetDgr){
+            lmotor_run(pwm);
+            rmotor_run(pwm, false);
         }
-            // 모터 최대 150rpm, 설정 최대 pwm 100, 6.0f는 초당 각속도 계산을 위한 상수
     }
 }
 
 //동작 중에 추가로 피해야할 대상이 나타나면 유연하게 회피하도록 해야함
 void Motor::curve_avoid(float distance, int pwm, float degree, bool recover = false)
 {
-    float currentDegree=0;
-    if(distance<=avoidDistance_trigger){
-        //if(degree>)
-        //curve_corner(distance, pwm, 20);
-        //if(distance<=avoidDistance_step1){}
-    }
-
-    /*
-    float currentdgr = 0.01f;
-    int current_rpwm = pwm;
-    int current_lpwm = pwm;
-    std::vector<std::pair<int, int>> pwmList;
-    if (distance > avoidDistance / 2.0f) {
-        float addWeight = 0.02f;
-        while (currentdgr < degree) {
-            currentdgr += addWeight;
-            addWeight += 0.3f;
-
-            // 각도 범위 변경 시 이 부분도 유의
-            if (degree > 0) {
-                calculate_twin_pwm(distance, pwm, currentdgr, &current_lpwm, &current_rpwm);
-            }
-            else {
-                calculate_twin_pwm(distance, pwm, currentdgr, &current_rpwm, &current_lpwm);
-            }
-            std::cout << "currentdgr : " << currentdgr << ", current_lpwm : " << current_lpwm << ", current_rpwm : " << current_rpwm << "\n";
-            pwmList.push_back({ current_lpwm, current_rpwm });
+    float abs_degree = degree>0 ? degree : -degree;
+    float avoid_degree = 30.0f-abs_degree;
+    if(distance<=avoidDistance_trigger && degree >= -20.0f && degree <= 20.0f){
+        
+        if(degree > 0){ //왼쪽 회피
+            rotate(pwm, avoid_degree);
+            Logger::instance().debug("motor", "[MotorCtrl] rotate left for avoid : avoid angle");
         }
-        std::cout << "reached target degree : " << currentdgr << "\n";
-        int index = pwmList.size() - 1;
-
-        //아래는 회피 후 복귀용 코드..
-        while (index >= 0) {
-            std::cout << " current_lpwm : " << pwmList[index].first << ", current_rpwm : " << pwmList[index].second << "\n";
-            index--;
+        else{ //오른쪽 회피
+            rotate(pwm, -avoid_degree);
+            Logger::instance().debug("motor", "[MotorCtrl] rotate right for avoid : avoid angle");
         }
     }
-    else if (distance < avoidDistance / 1.3f) {
+    long long unsigned int currentTime = millis();
+    straight(pwm);
+    Logger::instance().debug("motor", "[MotorCtrl] straight for avoid");
+    while(millis() - currentTime < 2500) {
 
     }
-    */
+    stop();
+    if(degree > 0){ //왼쪽 회피
+        rotate(pwm, -avoid_degree);
+        Logger::instance().debug("motor", "[MotorCtrl] rotate left for avoid : recover angle");
+    }
+    else {
+        rotate(pwm, avoid_degree);
+        Logger::instance().debug("motor", "[MotorCtrl] rotate right for avoid : recover angle");
+    }
+
 }
 
 void Motor::curve_corner(float connerdistance, int pwm, float degree)
 {
     validate_pwm(pwm);
-    float dgrspeed = calculate_dgrspeed(pwm);
-    float abs_dgr = degree;
-    if(degree < 0){
-        abs_dgr *= -1.0f;
-    }
-    float delaytime = abs_dgr / dgrspeed;
-
-    int pwm_1, pwm_2;
+    const int pwm_1, pwm_2;
     calculate_twin_pwm(connerdistance, pwm, degree, &pwm_1, &pwm_2);
 
-    unsigned int currentTime = millis();
-    if(degree>0){
-        while(millis()-currentTime <= delaytime){
-            pwmWrite(L_RpwmPin, pwm_1);
-            pwmWrite(R_RpwmPin, pwm_2);
-        }
-        
-    }else{
-        while(millis()-currentTime <= delaytime){
-            pwmWrite(L_RpwmPin, pwm_2);
-            pwmWrite(R_RpwmPin, pwm_1);
+    float targetDgr = fmod((curDgr+degree), 360.0f);
+    if(targetDgr < 0.0f) targetDgr += 360.0f;
+
+    if(degree < 0.0f){
+        while(curDgr>targetDgr){
+            softPwmWrite(L_RpwmPin, pwm_2);
+            softPwmWrite(R_RpwmPin, pwm_1);
         }
     }
-    
+    else{
+        while(curDgr<targetDgr){
+            softPwmWrite(L_RpwmPin, pwm_1);
+            softPwmWrite(R_RpwmPin, pwm_2);
+        }
+    }
+
 }
 
 #pragma endregion
+
+
+int Operation() {
+    Motor motor;
+    Lidar lidar;
+    lidar.scan_oneCycle();
+
+    if(lidar.get_nearPoint().angle<20.0f && lidar.get_nearPoint().angle > -20.0f && lidar.get_nearPoint().range < avoidDistance_trigger){
+        motor.curve_avoid(lidar.get_nearPoint().range, 700, lidar.get_nearPoint().angle);
+    }
+    delay(2000);
+    /*
+    for(int i=0; i<scanpoints.size(); i++){
+        
+        if(scanpoints[i].angle <20.0f && scanpoints[i].angle > -20.0f && scanpoints[i].range < avoidDistance_trigger){
+            if(scanpoints[i].range < avoid_dist && scanpoints[i].range != 0.0f){
+                avoid_dgr=scanpoints[i].angle;
+                avoid_dist = scanpoints[i].range;
+            }
+        }
+    }
+    log_msg("Debug", "scanpoint near : "+std::to_string(avoid_dgr)+", "+std::to_string(avoid_dist));
+    */
+
+    
+
+    //motor.curve_avoid(avoid_dist, 700, avoid_dgr);
+
+    //scanpoint 자동 업데이트
+    //너무 빠른 업데이트를 막기위해 delay넣어야하는지는 실제 테스트해봐야함
+    /*
+    unsigned int time = millis();
+    while(millis()-time <5000){
+        motor.scan_OneCycle();
+        motor.straight(1024);
+    }
+    time=millis();
+    while(millis()-time <3000){
+
+        motor.backoff(1024);
+    }
+    time=millis();
+    motor.get_scanpoints()
+    while(millis()-time <3000){
+        motor.curve_corner(100.0f, 500, 90);
+    }
+    */
+    motor.stop();
+    return 0;
+}

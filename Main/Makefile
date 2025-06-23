@@ -7,7 +7,8 @@ CXXFLAGS := -std=c++17 -Wall -pthread \
              -I. \
              -I./Communication \
              -I./GPS \
-             -I./GPS/lib
+             -I./GPS/lib \
+             -I./IMU
 LDFLAGS  := -pthread
 
 # 2. 소스 파일 리스트
@@ -15,6 +16,7 @@ CPP_SRCS := main.cpp \
             Communication/comm_module.cpp \
             GPS/gps_module.cpp \
             GPS/lib/GPS_parse.cpp \
+            IMU/imu_module.cpp \
             logger.cpp
 # C_SRCS   := logger.c
 

@@ -17,7 +17,7 @@
 #include "IMU/imu_module.h"
 #include "LiDAR/lidar_module.h"
 #include "LiDAR/Lidar.h"
-#include "Motor/motor_module.h"
+// #include "Motor/motor_module.h"
 #include "logger.h"
 
 using util::Logger;
@@ -120,7 +120,7 @@ int main(){
 
     // 5) LiDAR 센서 큐
     SafeQueue<LaserPoint> lidar_queue;
-    SafeQueue<bool> lidar_switch;
+    // SafeQueue<bool> lidar_switch;
 
     // 6) Motor 큐
     

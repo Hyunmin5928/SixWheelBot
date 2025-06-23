@@ -109,9 +109,12 @@ class DeliveryDaemon(Daemon):
                 data, addr = robot_sock.recvfrom(65536)
             except socket.timeout:
                 continue
-            msg = data.decode(errors='ignore').strip()
-            if not msg.startswith('{'): continue
-            pkt = json.loads(msg)
+            raw = data.decode(errors='ignore')
+            logger.debug(f"RAW UDP from {addr}: {raw!r}")
+            if not raw.startswith('{'):
+                continue
+
+            pkt = json.loads(raw)
             ptype, num = pkt.get('type'), pkt.get('packet_number')
             if ptype == 'log':
                 if num not in received:
@@ -119,14 +122,15 @@ class DeliveryDaemon(Daemon):
                     logger.info(f"Log {num} processed")
                 robot_sock.sendto(f"ACK_LOG:{num}".encode(), addr)
                 lat, lon = pkt['gps']['lat'], pkt['gps']['lon']
-                dist = ((lat-destination[0])**2 + (lon-destination[1])**2)**0.5 * 111000
-                if not returned and dist <= 0.5:
-                    for action in ('pause','unlock','return'):
-                        cmd = json.dumps({'type':'cmd','action':action}).encode()
-                        robot_sock.sendto(cmd, addr)
-                        logger.info(f"{action} command sent (auto)")
-                        time.sleep(1 if action!='unlock' else 2)
-                    returned = True
+                # dist = ((lat-destination[0])**2 + (lon-destination[1])**2)**0.5 * 111000
+                # if not returned and dist <= 0.5:
+                    # for action in ('pause','unlock','return'):
+                    #     cmd = json.dumps({'type':'cmd','action':action}).encode()
+                    #     robot_sock.sendto(cmd, addr)
+                    #     logger.info(f"{action} command sent (auto)")
+                    #     time.sleep(1 if action!='unlock' else 2)
+                    # returned = True
+                logger.info(f"Packet data -> lat : {lat}, lon : {lon}")
             elif ptype == 'done':
                 robot_sock.sendto(f"ACK_DONE:{num}".encode(), addr)
                 logger.info("ACK_DONE sent")

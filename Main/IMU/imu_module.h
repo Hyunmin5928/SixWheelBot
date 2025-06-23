@@ -1,62 +1,39 @@
+// imu_module.h
 #pragma once
 
+#include <thread>
 #include <atomic>
-#include <cstdint>
-#include "../SafeQueue.hpp"
-#include "../logger.h"
-// Arduino/Adafruit 헤더 (빌드 환경에 맞게 -I 옵션 추가 필요)
-#include "lib/Adafruit_Sensor.h"
-#include "lib/Adafruit_BNO055.h"
-#include "lib/imumaths.h"
-#include "lib/"
+#include <string>
+#include "SafeQueue.hpp"
+#include "SerialPort.h"   // 기존 GPS/lib 에 있던 시리얼 포트 래퍼
 
-
-/*
-    // IMU START/STOP 예시
-    imu_cmd_queue.Produce(IMU::IMU_CMD_START);
-    std::this_thread::sleep_for(std::chrono::seconds(10));
-    imu_cmd_queue.Produce(IMU::IMU_CMD_STOP);
-*/
-
-namespace IMU {
-
-// 외부에서 정의하는 실행 플래그
-extern std::atomic<bool> running;
-extern std::atomic<bool> run_imu;
-
-using util::Logger;
-using util::LogLevel;
-// START / STOP 명령
-enum Command : int {
-    IMU_CMD_STOP  = 0,
-    IMU_CMD_START = 1
+/// IMU 에서 읽어들인 Roll/Pitch/Yaw 값을 담는 구조체
+struct ImuData {
+    double roll;
+    double pitch;
+    double yaw;
 };
 
-// 샘플 주기·임계값
-static constexpr uint16_t INTERVAL_MS  = 20;    // 20ms → 50Hz
-static constexpr float    THRESH_ROLL  = 2.0f;  // Dead-band 각도
-static constexpr float    THRESH_PITCH = 2.0f;
-static constexpr int      SERVO_LIMIT  = 75;    // ±75°
+class ImuModule {
+public:
+    /// 생성자: 시리얼 포트 경로, 보드레이트, 데이터를 푸시할 큐를 받음
+    ImuModule(const std::string& port, unsigned int baud, SafeQueue<ImuData>& queue);
 
-// 센서 데이터 구조체
-struct Data {
-    float    roll;      // Roll (deg)
-    float    pitch;     // Pitch (deg)
-    float    yaw;       // Yaw (deg)
-    uint64_t timestamp; // millis() 기준
+    ~ImuModule();
+
+    /// 스레드를 띄워 start/stop 명령 대기 → IMU 데이터 읽기 시작
+    void start();
+
+    /// stop 명령 전송 → IMU 데이터 읽기 중지
+    void stop();
+
+private:
+    /// 내부 워커 스레드 함수
+    void run();
+
+    SerialPort     serial_;       // 시리얼 통신 객체
+    SafeQueue<ImuData>& queue_;   // 읽은 데이터를 넣을 큐
+    std::thread    worker_;       // 백그라운드 스레드
+    std::atomic<bool> running_{false};    // start/stop 플래그
+    std::atomic<bool> threadAlive_{true}; // 스레드 전체 생명주기 플래그
 };
-
-/**
- * readerThread:
- *   - cmd_q에서 IMU_CMD_START 대기
- *   - BNO055 초기화 및 영점 캘리브레이션
- *   - running==true & STOP 전까지
- *       매 INTERVAL_MS마다 센서 읽어 Data를 data_q에 Produce
- *   - STOP 수신 또는 running=false 시 data_q.Finish() 후 종료
- */
-void readerThread(
-    SafeQueue<Data>&    imu_queue,
-    SafeQueue<Command>& imu_cmd_queue
-);
-
-} // namespace IMU

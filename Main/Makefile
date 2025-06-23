@@ -5,11 +5,14 @@ CC       := gcc
 SDK_ROOT      := LiDAR/YDLidar-SDK
 SDK_INC_SRC   := $(SDK_ROOT)/src             # CYdLidar.h
 SDK_INC_COMMON:= $(SDK_ROOT)/core/common     # ydlidar_help.h 등
+SDK_INC_BASE  := $(SDK_ROOT)/core/base       # utils.h 포함 경로
 SDK_LIB       := $(SDK_ROOT)/build/libydlidar_sdk.a
 
 CXXFLAGS := -std=c++17 -Wall -pthread \
             -I$(SDK_INC_SRC)    \
             -I$(SDK_INC_COMMON) \
+            -I$(SDK_INC_BASE)   \
+            -I$(SDK_ROOT)       \
             -I.                  \
             -I./Communication    \
             -I./GPS              \

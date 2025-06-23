@@ -50,6 +50,9 @@ def load_map_data(path):
 
 # ── 메인 데몬 클래스 ─────────────────────────────────────────────────────────
 class DeliveryDaemon(Daemon):
+    def __init__(self, pid_file, stdin, stdout, stderr):
+        super().__init__(pid_file, stdin, stdout, stderr)
+        self._server_started = False
     def run(self):
         # 소켓 생성 및 바인드 (run 시점에만 실행)
         self.robot_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -67,18 +70,21 @@ class DeliveryDaemon(Daemon):
             time.sleep(1)
 
     def control_listener(self):
-        logger.info(f"Control listener started on {SERVER_IP}:{CONTROL_PORT}")
+        logger.info(f"Control listener started on {LOCAL_HOST}:{CONTROL_PORT}")
         while True:
             data, addr = self.control_sock.recvfrom(1024)
             msg = json.loads(data.decode())
-            t   = msg.get('type')
-            if t == 'start':
+            t = msg.get('type')
+
+            if t == 'start' and not self._server_started:
                 logger.info("Start command received, launching server_loop thread")
                 threading.Thread(target=self.server_loop, daemon=True).start()
-            elif t in ('unlock','return','pause'):
+                self._server_started = True
+
+            elif t in ('unlock', 'return', 'pause'):
                 logger.info(f"Control command received: {t}")
                 self.send_command(t)
-
+                
     def server_loop(self):
         robot_sock = self.robot_sock
         destination = None

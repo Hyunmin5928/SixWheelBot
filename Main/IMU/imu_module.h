@@ -27,14 +27,9 @@ struct ImuData {
 // 전역 상태
 //------------------------------------------------------------------------------
 static CSerialPort   g_serial;
-static SafeQueue<ImuData>* g_queue = nullptr;
-static std::atomic<bool>     g_running{false};
-static std::atomic<bool>     g_threadAlive{false};
+// static SafeQueue<ImuData>* g_queue = nullptr;
 extern std::atomic<bool>    running;
 extern std::atomic<bool>    run_imu;
-
-void imuStart();
-void imuStop();
 
 // 내부적으로 돌아가는 리더 스레드를 시작합니다.
 // imuInit() 호출 직후에 std::thread를 띄워 주세요.

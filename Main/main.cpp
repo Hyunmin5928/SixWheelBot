@@ -54,11 +54,15 @@ double      ACK_TIMEOUT;
 int         sock_fd = -1;
 
 std::atomic<bool> running{true};
-std::atomic<bool> run_imu(false);
-
+std::atomic<bool> run_imu{false};
+std::atomic<bool> run_lidar{false};
+std::atomic<bool> run_gps{false};
 
 // SIGINT 핸들러: Ctrl+C 시 running 플래그만 false 로 전환
 void handle_sigint(int) {
+    run_lidar.store(false);
+    run_gps.store(false);
+    run_imu.store(false);
     running.store(false);
 }
 
@@ -96,11 +100,7 @@ int main(){
     Logger::instance().addFile("lidar",  LIDAR_LOG_FILE, static_cast<LogLevel>(LOG_LEVEL));
     Logger::instance().addFile("motor",  MOTOR_LOG_FILE, static_cast<LogLevel>(LOG_LEVEL));
     Logger::instance().addFile("imu",    IMU_LOG_FILE,   static_cast<LogLevel>(LOG_LEVEL));
-    Logger::instance().addFile("vision", VISION_LOG_FILE,static_cast<LogLevel>(LOG_LEVEL));
-
-    // IMU 로그 파일 등록
-    Logger::instance().addFile("imu",    "imu.log",      static_cast<LogLevel>(LOG_LEVEL));
-    Logger::instance().info("app","IMU integration start");
+    // Logger::instance().addFile("vision", VISION_LOG_FILE,static_cast<LogLevel>(LOG_LEVEL));
 
     // 1) 경로(map) → Route 리스트
     SafeQueue<std::vector<std::tuple<double,double,int>>> map_queue;
@@ -147,7 +147,7 @@ int main(){
     // Gyro 스레드 시작
     std::thread t_imu(
         imureader_thread,
-        "/dev/ttyUSB1",
+        "/dev/ttyUSB0",
         115200u,
         std::ref(imu_queue)
     );

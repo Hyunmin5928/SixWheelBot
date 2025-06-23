@@ -56,106 +56,109 @@ void navigation_thread(
     bool finish = false;
 
     // 2) 네비게이션 루프
-    while (running) {
-        int dir2=0;
-        if(finish){
-            break;
-        }
-        // GPS 데이터 수신
-        if (!gpsSensor.GetGPSdata(&raw)) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(200));
-            continue;
-        }
-        double lat = raw.latitude;
-        double lon = raw.longitude;
-        Logger::instance().info("gps", "[navigation_thread] While Running");
-        // 3) 목표 waypoint와 거리 계산
-        if (idx < path.size()) {
-            auto [wlat, wlon, dir] = path[idx];
-            double dist = haversine(lat, lon, wlat, wlon);
-            Logger::instance().info("gps", "[navigation_thread] Path Calc");
-            if (dist <= threshold) {
-                if(dir>0){
-                    switch (dir) {
-                            case 12: // 좌회전
-                                Logger::instance().info("gps", "[navigation_thread] case 12");
-                                dir2 = -90;
-                                break;
-                            case 212: //좌회전 + 횡단보도
-                                Logger::instance().info("gps", "[navigation_thread] case 212");
-                                dir2 = -90;
-                                break;
-                            case 16: // 8시 방향 좌회전
-                                Logger::instance().info("gps", "[navigation_thread] case 16");
-                                dir2 = -120;
-                                break;
-                            case 214: //8시 방향 + 횡단보도
-                                Logger::instance().info("gps", "[navigation_thread] case 214");
-                                dir2 = -120;
-                                break;
-                            case 17: // 10시 방향 좌회전
-                                Logger::instance().info("gps", "[navigation_thread] case 17");
-                                dir2 = -60;
-                                break;
-                            case 215: //10시 방향 + 횡단보도
-                                Logger::instance().info("gps", "[navigation_thread] case 215");
-                                dir2 = -60;
-                                break;
-
-                            case 13: // 우회전
-                                Logger::instance().info("gps", "[navigation_thread] case 13");
-                                dir2 = 90;
-                                break;
-                            case 213: //우회전 + 횡단보도 
-                                Logger::instance().info("gps", "[navigation_thread] case 213");
-                                dir2 = 90;
-                                break;
-                            case 18: // 2시 방향 우회전
-                                Logger::instance().info("gps", "[navigation_thread] case 18");
-                                dir2 = 60;
-                                break;
-                            case 216: //2시 방향 + 횡단보도
-                                Logger::instance().info("gps", "[navigation_thread] case 216");
-                                dir2 = 60;
-                                break;
-                            case 19: // 4시 방향 우회전
-                                Logger::instance().info("gps", "[navigation_thread] case 19");
-                                dir2 = 120;
-                                break;
-                            case 217: //4시 방향 + 횡단보도
-                                Logger::instance().info("gps", "[navigation_thread] case 217");
-                                dir2 = 120;
-                                break;
-                            case 211: //횡단보도
-                                Logger::instance().info("gps", "[navigation_thread] case 211");
-                                break;
-                            case 201:
-                                std::cout << "🏁 도착 지점" << std::endl;
-                                Logger::instance().info("gps", "[navigation_thread] case 201");
-                                dir2 = 0;
-                                break;
-                        }
-                }
-                // 도달: 방향 코드 전송
-                m_cmd_q.Produce(std::move(dir2));
-                idx++;
-            } else {
-                // (선택) 전진 명령 보내기
-                // m_cmd_q.Produce(FORWARD_CMD);
-                double angle = bearing(
-                    lat, lon, wlat, wlon);
-                if(angle>45){
-                    m_cmd_q.Produce(std::move(angle));
-                }
+    while (running.load()) {
+        Logger::instance().info("gps", "[navigation_thread] Running True");
+        if(run_gps.load()){
+            Logger::instance().info("gps", "[navigation_thread] run_gps True");
+            int dir2=0;
+            if(finish){
+                break;
             }
-        } else {
-            // 경로 완료: PAUSE
-            Logger::instance().info("gps", "[navigation_thread] Complete Path");
-            finish = true;
-            m_cmd_q.Produce(1000);
-            break;
-        }
+            // GPS 데이터 수신
+            if (!gpsSensor.GetGPSdata(&raw)) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(200));
+                continue;
+            }
+            double lat = raw.latitude;
+            double lon = raw.longitude;
+            Logger::instance().info("gps", "[navigation_thread] While Running");
+            // 3) 목표 waypoint와 거리 계산
+            if (idx < path.size()) {
+                auto [wlat, wlon, dir] = path[idx];
+                double dist = haversine(lat, lon, wlat, wlon);
+                Logger::instance().info("gps", "[navigation_thread] Path Calc");
+                if (dist <= threshold) {
+                    if(dir>0){
+                        switch (dir) {
+                                case 12: // 좌회전
+                                    Logger::instance().info("gps", "[navigation_thread] case 12");
+                                    dir2 = -90;
+                                    break;
+                                case 212: //좌회전 + 횡단보도
+                                    Logger::instance().info("gps", "[navigation_thread] case 212");
+                                    dir2 = -90;
+                                    break;
+                                case 16: // 8시 방향 좌회전
+                                    Logger::instance().info("gps", "[navigation_thread] case 16");
+                                    dir2 = -120;
+                                    break;
+                                case 214: //8시 방향 + 횡단보도
+                                    Logger::instance().info("gps", "[navigation_thread] case 214");
+                                    dir2 = -120;
+                                    break;
+                                case 17: // 10시 방향 좌회전
+                                    Logger::instance().info("gps", "[navigation_thread] case 17");
+                                    dir2 = -60;
+                                    break;
+                                case 215: //10시 방향 + 횡단보도
+                                    Logger::instance().info("gps", "[navigation_thread] case 215");
+                                    dir2 = -60;
+                                    break;
 
+                                case 13: // 우회전
+                                    Logger::instance().info("gps", "[navigation_thread] case 13");
+                                    dir2 = 90;
+                                    break;
+                                case 213: //우회전 + 횡단보도 
+                                    Logger::instance().info("gps", "[navigation_thread] case 213");
+                                    dir2 = 90;
+                                    break;
+                                case 18: // 2시 방향 우회전
+                                    Logger::instance().info("gps", "[navigation_thread] case 18");
+                                    dir2 = 60;
+                                    break;
+                                case 216: //2시 방향 + 횡단보도
+                                    Logger::instance().info("gps", "[navigation_thread] case 216");
+                                    dir2 = 60;
+                                    break;
+                                case 19: // 4시 방향 우회전
+                                    Logger::instance().info("gps", "[navigation_thread] case 19");
+                                    dir2 = 120;
+                                    break;
+                                case 217: //4시 방향 + 횡단보도
+                                    Logger::instance().info("gps", "[navigation_thread] case 217");
+                                    dir2 = 120;
+                                    break;
+                                case 211: //횡단보도
+                                    Logger::instance().info("gps", "[navigation_thread] case 211");
+                                    break;
+                                case 201:
+                                    std::cout << "🏁 도착 지점" << std::endl;
+                                    Logger::instance().info("gps", "[navigation_thread] case 201");
+                                    dir2 = 0;
+                                    break;
+                            }
+                    }
+                    // 도달: 방향 코드 전송
+                    m_cmd_q.Produce(std::move(dir2));
+                    idx++;
+                } else {
+                    // (선택) 전진 명령 보내기
+                    // m_cmd_q.Produce(FORWARD_CMD);
+                    double angle = bearing(
+                        lat, lon, wlat, wlon);
+                    if(angle>45){
+                        m_cmd_q.Produce(std::move(angle));
+                    }
+                }
+            } else {
+                // 경로 완료: PAUSE
+                Logger::instance().info("gps", "[navigation_thread] Complete Path");
+                finish = true;
+                m_cmd_q.Produce(1000);
+                break;
+            }
+        }
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
     }
 
@@ -172,25 +175,28 @@ void gps_reader_thread(
     sGPS  raw;
 
     // 읽기 루프
-    while (running) {
-        // 하드웨어에서 유효한 GNGGA 메시지 하나 읽어들이면 true 반환
-        Logger::instance().info("gps", "[gps_reader_thread] GPS reader thread start");
-        if (gpsSensor.GetGPSdata(&raw)) {
-            double lat = raw.latitude;
-            double lon = raw.longitude;
+    while (running.load()) {
+        Logger::instance().info("gps", "[gps_reader_thread] Running True");
+        if(run_gps.load()){
+            Logger::instance().info("gps", "[gps_reader_thread] run_GPS Ture");
+            // 하드웨어에서 유효한 GNGGA 메시지 하나 읽어들이면 true 반환
+            Logger::instance().info("gps", "[gps_reader_thread] GPS reader thread start");
+            if (gpsSensor.GetGPSdata(&raw)) {
+                double lat = raw.latitude;
+                double lon = raw.longitude;
 
-            // 위치 큐에 푸시
-            gps_q.Produce({lat, lon});
+                // 위치 큐에 푸시
+                gps_q.Produce({lat, lon});
 
-            // (선택) 로그 출력
-            std::ostringstream oss;
-            oss << "[gps_reader_thread] GPS: 위도= " << std::to_string(lat)
-                << ", 경도=" << std::to_string(lon);
-            Logger::instance().info("gps", oss.str());
+                // (선택) 로그 출력
+                std::ostringstream oss;
+                oss << "[gps_reader_thread] GPS: 위도= " << std::to_string(lat)
+                    << ", 경도=" << std::to_string(lon);
+                Logger::instance().info("gps", oss.str());
+            }
         }
         // 너무 빡빡하게 읽지 않도록 잠깐 대기 (예: 200ms)
-        std::this_thread::sleep_for(
-            std::chrono::milliseconds(200)
+        std::this_thread::sleep_for(std::chrono::milliseconds(200)
         );
     }
 

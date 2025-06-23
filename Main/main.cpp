@@ -17,7 +17,7 @@
 // #include "IMU/imu_module.h"
 #include "LiDAR/lidar_module.h"
 #include "LiDAR/Lidar.h"
-// #include "LiDAR/lib/CYdLidar.h"
+#include "Motor/motor_module.h"
 #include "logger.h"
 
 using util::Logger;
@@ -117,9 +117,14 @@ int main(){
 
     // SafeQueue<IMU::Data>    imu_queue;
     // SafeQueue<IMU::Command> imu_cmd_queue;
-    // 5) LiDAR 센서 큐
-    SafeQueue<std::vector<LaserPoint>> lidar_queue;
+    SafeQueue<float> yaw_queue;     // imu에서 yaw값만을 받아 motor로 전송하는 큐
 
+    // 5) LiDAR 센서 큐
+    SafeQueue<LaserPoint> lidar_queue;
+    SafeQueue<bool> lidar_switch;
+
+    // 6) Motor 큐
+    
     // 통신 스레드: map_queue, cmd_queue, log_queue
     std::thread t_comm(
         comm_thread,
@@ -155,8 +160,16 @@ int main(){
 
     std::thread t_lidar{
         lidar_thread,
+        std::ref(lidar_switch),
         std::ref(lidar_queue)
     };
+
+    std::thread t_motor{
+        motor_thread,
+        std::ref(gps_queue),
+        std::ref(lidar_queue),
+        std::ref(yaw_queue)
+    }
 
     // running==false 될 때까지 대기
     while (running.load()) {

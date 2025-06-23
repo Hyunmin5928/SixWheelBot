@@ -6,23 +6,37 @@ import axios from 'axios';
    ------------------------------------------------------------------ */
 export const getReturns = () =>
   axios
-    .get('/api/return', { withCredentials: true }) // 세션 쿠키 포함
+    .get('/api/return', { withCredentials: true })
     .then((res) => res.data);
 
 /* ------------------------------------------------------------------
    새 반품 요청 생성
-   payload 예시)
-   {
-     userId:  'ymh',
-     sender:  { address:'부산 …', detail:'2층' },
-     itemType:'전자제품'
-   }
    ------------------------------------------------------------------ */
 export const createReturn = (payload) =>
   axios
     .post('/api/return', payload, { withCredentials: true })
     .then((res) => res.data);
 
+/* ------------------------------------------------------------------
+   반품 요청 수락 (PENDING → IN_PROGRESS)
+   ------------------------------------------------------------------ */
 export const acceptReturn = (id) =>
-  axios.post(`/api/return/${id}/accept`, {}, { withCredentials:true })
-       .then(r => r.data);    
+  axios
+    .post(`/api/return/${id}/accept`, {}, { withCredentials: true })
+    .then((res) => res.data);
+
+/* ------------------------------------------------------------------
+   반품 로봇 정지 신호 전송
+   ------------------------------------------------------------------ */
+export const stopReturn = (id) =>
+  axios
+    .post(`/api/return/${id}/unlock`, {}, { withCredentials: true })
+    .then((res) => res.data);
+
+/* ------------------------------------------------------------------
+   반품 완료 → 로봇 복귀 신호 전송
+   ------------------------------------------------------------------ */
+export const returnReturn = (id) =>
+  axios
+    .post(`/api/return/${id}/complete`, {}, { withCredentials: true })
+    .then((res) => res.data);

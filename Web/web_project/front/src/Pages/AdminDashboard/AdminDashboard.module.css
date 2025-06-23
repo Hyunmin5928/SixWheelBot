@@ -1,84 +1,174 @@
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@100..900&display=swap');
 
-:root{
-  --bg:#262626;
-  --text:#e0e0e0;
-  --line:#c4c4c4;
+:root {
+  --bg:   #262626;
+  --text: #e0e0e0;
+  --line: #c4c4c4;
 }
-*{box-sizing:border-box;font-family:"Noto Sans KR",sans-serif;}
-
-.page{
-  background:var(--bg);
-  color:var(--text);
-  min-height:100vh;
+* {
+  box-sizing: border-box;
+  font-family: "Noto Sans KR", sans-serif;
 }
 
-/* ---------- Header ---------- */
-.header{
-  display:flex;justify-content:space-between;align-items:center;
-  background:#3b3b3b;padding:16px 32px;
-}
-.logoArea{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:32px;}
-.logoArea img{width:40px;height:40px;}
-.userMenu button{
-  margin-left:24px;color:#fff;background:none;border:1px solid #fff;
-  padding:4px 12px;border-radius:4px;cursor:pointer;font-size:13px;
-}
-.userMenu button:hover{background:#fff;color:#000;}
-
-/* ---------- Profile pill ---------- */
-.profilePill{
-  width:360px;margin:48px auto 64px;
-  background:#4c4c4c;border-radius:64px;
-  display:flex;align-items:center;gap:20px;justify-content:center;
-  padding:20px 0;font-size:20px;font-weight:600;
-}
-.profileIcon{
-  width:60px;height:60px;border-radius:50%;
-  background:#9aa url("../../assets/default_image.png") center/100% no-repeat;
+.page {
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
 }
 
-/* ---------- Section ---------- */
-.section{max-width:950px;margin:0 auto;}
-.section h2{margin-bottom:24px;font-size:20px;font-weight:600;}
-
-/* ---------- Request group (큰 틀) ---------- */
-.reqGroup{
-  border:1px solid var(--line);
-  padding:30px;
-  margin-bottom:60px;
+/* Header */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #3b3b3b;
+  padding: 16px 32px;
+}
+.logoArea {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 32px;
+}
+.logoArea img {
+  width: 40px;
+  height: 40px;
+}
+.userMenu button {
+  margin-left: 24px;
+  color: #fff;
+  background: none;
+  border: 1px solid #fff;
+  padding: 4px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.userMenu button:hover {
+  background: #fff;
+  color: #000;
 }
 
-/* ---------- Request card (내부 박스) ---------- */
-.reqCard{
-  border:1px solid var(--line);
-  padding:24px;
-  margin-bottom:36px;
-  position:relative;
+/* Profile pill */
+.profilePill {
+  width: 360px;
+  margin: 48px auto 64px;
+  background: #4c4c4c;
+  border-radius: 64px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  justify-content: center;
+  padding: 20px 0;
+  font-size: 20px;
+  font-weight: 600;
 }
-.reqCard:last-child{margin-bottom:0;}
-.reqCard>div{margin-bottom:12px;font-size:14px;}
-.reqCard span{display:inline-block;width:90px;color:#c8c8c8;}
-.reqCard button{
-  position:absolute;top:24px;right:24px;
-  background:#444;color:#fff;border:1px solid var(--line);
-  border-radius:4px;padding:6px 20px;font-size:14px;cursor:pointer;
-}
-.reqCard button:hover{background:#fff;color:#000;}
-
-/* ---------- Empty text ---------- */
-.empty{color:#a0a0a0;font-size:14px;margin:8px 0;}
-
-/* ---------- Static map ---------- */
-.mapWrapper{
-  max-width:950px;     /* 본문 폭과 통일 */
-  margin:40px auto 80px;
-  text-align:center;   /* 작은 화면에서 중앙 정렬 */
+.profileIcon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: #9aa url("../../assets/default_image.png") center/100% no-repeat;
 }
 
-.mapWrapper img{
-  width:100%;
-  height:auto;
-  border-radius:6px;
-  box-shadow:0 4px 10px rgba(0,0,0,.25);  /* 살짝 그림자 */
+/* Section */
+.section {
+  max-width: 950px;
+  margin: 0 auto 60px;
+}
+.section h2 {
+  margin-bottom: 24px;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+/* Request group */
+.reqGroup {
+  border: 1px solid var(--line);
+  padding: 30px;
+  margin-bottom: 60px;
+}
+
+/* Request card */
+.reqCard {
+  border: 1px solid var(--line);
+  padding: 24px;
+  margin-bottom: 36px;
+  position: relative;
+}
+.reqCard:last-child {
+  margin-bottom: 0;
+}
+.reqCard > div {
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+.reqCard span {
+  display: inline-block;
+  width: 90px;
+  color: #c8c8c8;
+}
+
+/* → accept 버튼(직접 자식)만 절대위치로 */
+.reqCard > button {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  background: #444;
+  color: #fff;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 6px 20px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.reqCard button:hover {
+  background: #fff;
+  color: #000;
+}
+
+/* In-progress buttons container */
+.inProgressBtns {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  display: flex;
+  gap: 8px;
+}
+.inProgressBtns button {
+  background: #444;
+  color: #fff;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.inProgressBtns button:hover {
+  background: #fff;
+  color: #000;
+}
+
+/* Empty text */
+.empty {
+  color: #a0a0a0;
+  font-size: 14px;
+  margin: 8px 0;
+}
+
+/* Static map (실시간 위치) */
+.mapWrapper {
+  max-width: 950px;
+  margin: 0 auto 80px;
+}
+.mapWrapper h2 {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+.mapWrapper img {
+  width: 100%;
+  height: auto;
+  border-radius: 6px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.25);
 }

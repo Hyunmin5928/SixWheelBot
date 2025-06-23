@@ -11,18 +11,32 @@ export const getOrders = () =>
 
 /* ------------------------------------------------------------------
    새 배송 요청 생성
-   payload 예시)
-   {
-     userId:   'ymh',
-     receiver: { address:'서울 …', detail:'101동 1004호' },
-     itemType: '서적'
-   }
    ------------------------------------------------------------------ */
 export const createOrder = (payload) =>
   axios
     .post('/api/order', payload, { withCredentials: true })
     .then((res) => res.data);
 
+/* ------------------------------------------------------------------
+   배송 요청 수락 (PENDING → IN_PROGRESS)
+   ------------------------------------------------------------------ */
 export const acceptOrder = (id) =>
-  axios.post(`/api/order/${id}/accept`, {}, { withCredentials:true })
-       .then(r => r.data);
+  axios
+    .post(`/api/order/${id}/accept`, {}, { withCredentials: true })
+    .then((res) => res.data);
+
+/* ------------------------------------------------------------------
+   배송 로봇 정지 신호 전송
+   ------------------------------------------------------------------ */
+export const stopOrder = (id) =>
+  axios
+    .post(`/api/order/${id}/unlock`, {}, { withCredentials: true })
+    .then((res) => res.data);
+
+/* ------------------------------------------------------------------
+   배송 완료 → 로봇 복귀 신호 전송
+   ------------------------------------------------------------------ */
+export const returnOrder = (id) =>
+  axios
+    .post(`/api/order/${id}/complete`, {}, { withCredentials: true })
+    .then((res) => res.data);

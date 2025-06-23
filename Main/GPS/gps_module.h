@@ -7,6 +7,7 @@
 #include "../logger.h"
 #include "lib/GPS_parse.h"     // sGPS, GPS 클래스
 // using Route = std::vector<std::tuple<double,double,int>>;
+// sudo ln -sf /dev/ttyAMA0 /dev/serial0
 
 extern std::string GPS_LOG_FILE;
 extern int         LOG_LEVEL;

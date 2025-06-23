@@ -63,6 +63,7 @@ void imureader_thread(const std::string& port,
                 std::ostringstream oss;
                 oss << "[IMU] Roll : "<< std::to_string(d.roll) << ",Pitch : " << std::to_string(d.pitch) << ",Yaw : "<< std::to_string(d.yaw);
                 // 큐로 전달
+                // Logger::instance().info("imu", oss.str());
                 queue.Produce(std::move(d));
         }
 
@@ -73,4 +74,8 @@ void imureader_thread(const std::string& port,
     g_serial.Close();
     Logger::instance().info("imu", "[IMU] Serial closed");
     queue.Finish();
+}
+
+void stop_imu(){
+    
 }

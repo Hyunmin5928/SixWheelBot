@@ -13,7 +13,11 @@ void lidar_thread(
         if(run_lidar.load()) {
             lidar.scan_oneCycle();
             auto scans = lidar.get_nearPoint();
-            Logger::instance().info("lidar", "[LiDAR] Scannaing oneCycle");
+            std::string msg = "[LiDAR Near Point] ang : ";
+            msg += std::to_string(scans.angle);
+            msg+=", range : ";
+            msg+=std::to_string(scans.range);
+            Logger::instance().info("lidar", msg);
             lidar_q.Produce(std::move(scans));
         }
         // start→stop 전환 시 여기서 아무 일도 하지 않고 깨어 있도록

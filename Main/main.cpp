@@ -14,8 +14,10 @@
 #include "SafeQueue.hpp"
 #include "Communication/comm_module.h"
 #include "GPS/gps_module.h"
-#include "IMU/imu_module.h"
+// #include "IMU/imu_module.h"
 #include "LiDAR/lidar_module.h"
+#include "LiDAR/Lidar.h"
+#include "Motor/motor_module.h"
 #include "logger.h"
 
 using util::Logger;
@@ -46,7 +48,7 @@ std::string CLI_LOG_FILE;
 std::string GPS_LOG_FILE;
 std::string LIDAR_LOG_FILE;
 std::string MOTOR_LOG_FILE;
-std::string IMU_LOG_FILE;
+// std::string IMU_LOG_FILE;
 std::string VISION_LOG_FILE;
 
 int         RETRY_LIMIT;
@@ -54,6 +56,8 @@ double      ACK_TIMEOUT;
 int         sock_fd = -1;
 
 std::atomic<bool> running{true};
+std::atomic<bool> run_imu(false);
+
 
 // SIGINT 핸들러: Ctrl+C 시 running 플래그만 false 로 전환
 void handle_sigint(int) {
@@ -75,7 +79,7 @@ void load_config(const std::string& path) {
     GPS_LOG_FILE    = cfg["LOG"]["GPS_LOG_FILE"];
     LIDAR_LOG_FILE  = cfg["LOG"]["LIDAR_LOG_FILE"];
     MOTOR_LOG_FILE  = cfg["LOG"]["MOTOR_LOG_FILE"];
-    IMU_LOG_FILE    = cfg["LOG"]["IMU_LOG_FILE"];
+    // IMU_LOG_FILE    = cfg["LOG"]["IMU_LOG_FILE"];
     VISION_LOG_FILE = cfg["LOG"]["VISION_LOG_FILE"];
 
     // 통신 패킷 관련 설정
@@ -93,7 +97,7 @@ int main(){
     Logger::instance().addFile("gps",    GPS_LOG_FILE,   static_cast<LogLevel>(LOG_LEVEL));
     Logger::instance().addFile("lidar",  LIDAR_LOG_FILE, static_cast<LogLevel>(LOG_LEVEL));
     Logger::instance().addFile("motor",  MOTOR_LOG_FILE, static_cast<LogLevel>(LOG_LEVEL));
-    Logger::instance().addFile("imu",    IMU_LOG_FILE,   static_cast<LogLevel>(LOG_LEVEL));
+    // Logger::instance().addFile("imu",    IMU_LOG_FILE,   static_cast<LogLevel>(LOG_LEVEL));
     Logger::instance().addFile("vision", VISION_LOG_FILE,static_cast<LogLevel>(LOG_LEVEL));
 
     // IMU 로그 파일 등록
@@ -111,10 +115,16 @@ int main(){
     SafeQueue<std::string> log_queue;
     SafeQueue<int> m_cmd_queue;
 
-    SafeQueue<IMU::Data>    imu_queue;
-    SafeQueue<IMU::Command> imu_cmd_queue;
-    SafeQueue<std::vector<LaserPoint>> lidar_queue;
+    // SafeQueue<IMU::Data>    imu_queue;
+    // SafeQueue<IMU::Command> imu_cmd_queue;
+    SafeQueue<float> yaw_queue;     // imu에서 yaw값만을 받아 motor로 전송하는 큐
 
+    // 5) LiDAR 센서 큐
+    SafeQueue<LaserPoint> lidar_queue;
+    SafeQueue<bool> lidar_switch;
+
+    // 6) Motor 큐
+    
     // 통신 스레드: map_queue, cmd_queue, log_queue
     std::thread t_comm(
         comm_thread,
@@ -142,16 +152,24 @@ int main(){
     );
 
     // Gyro 스레드 시작
-    std::thread t_imu(
-        IMU::readerThread,
-        std::ref(imu_queue), 
-        std::ref(imu_cmd_queue)
-    );
+    // std::thread t_imu(
+    //     IMU::readerThread,
+    //     std::ref(imu_queue), 
+    //     std::ref(imu_cmd_queue)
+    // );
 
     std::thread t_lidar{
         lidar_thread,
+        std::ref(lidar_switch),
         std::ref(lidar_queue)
     };
+
+    std::thread t_motor{
+        motor_thread,
+        std::ref(gps_queue),
+        std::ref(lidar_queue),
+        std::ref(yaw_queue)
+    }
 
     // running==false 될 때까지 대기
     while (running.load()) {
@@ -163,6 +181,7 @@ int main(){
     t_gps_sender.join();
     t_gps.join();
     t_nav.join();
-    t_imu.join();
+    // t_imu.join();
+    t_lidar.join();
     return 0;
 }

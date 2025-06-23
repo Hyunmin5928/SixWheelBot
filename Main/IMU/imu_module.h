@@ -4,6 +4,12 @@
 #include <cstdint>
 #include "../SafeQueue.hpp"
 #include "../logger.h"
+// Arduino/Adafruit 헤더 (빌드 환경에 맞게 -I 옵션 추가 필요)
+#include "lib/Adafruit_Sensor.h"
+#include "lib/Adafruit_BNO055.h"
+#include "lib/imumaths.h"
+#include "lib/"
+
 
 /*
     // IMU START/STOP 예시
@@ -16,6 +22,7 @@ namespace IMU {
 
 // 외부에서 정의하는 실행 플래그
 extern std::atomic<bool> running;
+extern std::atomic<bool> run_imu;
 
 using util::Logger;
 using util::LogLevel;

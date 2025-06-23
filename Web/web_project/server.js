@@ -522,7 +522,7 @@ app.post('/api/order/:id/complete', (req, res) => {
   res.json({ ok: true });
 });
 
-app.post('/api/order/:id/return', (req, res)) => {
+app.post('/api/order/:id/return', (req, res) => {
   sendControl('return', { order_id: req.params.id });
   res.json({ ok: true });
 });

@@ -23,5 +23,6 @@ class Lidar{
         Lidar();
         ~Lidar();
         void scan_oneCycle();
+        LaserPoint get_nearPoint();
         std::vector<LaserPoint> get_scanData();
 };

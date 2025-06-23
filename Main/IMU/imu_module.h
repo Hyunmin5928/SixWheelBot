@@ -37,6 +37,8 @@ void imureader_thread(const std::string& port,
                     unsigned int baud,
                     SafeQueue<ImuData>& dataQueue);
 
+void stop_imu();
+
 // struct ImuData {
 //     double roll;
 //     double pitch;

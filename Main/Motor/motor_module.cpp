@@ -75,21 +75,3 @@ void motor_thread(
     point_queue.Finish();
     m_yaw_q.Finish();
 }
-
-int main(){
-    SafeQueue<LaserPoint> pnt;
-    SafeQueue<GpsDir> gps;
-    SafeQueue<float> yaw;
-
-    std::thread lidar(lidar_thread, std::ref(pnt));
-    std::thread motor(motor_thread, std::ref(gps), std::ref(pnt), std::ref(yaw));
-
-    std::this_thread::sleep_for(std::chrono::seconds(10));
-
-    lidar.join();
-    motor.join();
-
-    std::cout<<"test out";
-    return 0;
-
-}

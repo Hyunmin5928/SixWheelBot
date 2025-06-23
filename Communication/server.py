@@ -146,22 +146,21 @@ def control_listener():
             logger.info(f"Control command received: {t}")
             send_command(t)
 
-
 # ── Daemon 클래스 상속 ─────────────────────────────────────────────────────
 class DeliveryDaemon(Daemon):
     def run(self):
         threading.Thread(target=control_listener, daemon=True).start()
-        # 메인 쓰레드는 idle 상태로 유지
         while True:
             time.sleep(1)
 
-
 if __name__ == '__main__':
     pid_file = os.path.join(BASE_DIR, 'server.pid')
-    daemon = DeliveryDaemon(pid_file,
-                              stdin='/dev/null',
-                              stdout=log_conf['SERVER_LOG_FILE'],
-                              stderr=log_conf['SERVER_LOG_FILE'])
+    daemon = DeliveryDaemon(
+        pid_file,
+        stdin='/dev/null',
+        stdout=log_conf['SERVER_LOG_FILE'],
+        stderr=log_conf['SERVER_LOG_FILE']
+    )
 
     if len(sys.argv) == 2:
         cmd = sys.argv[1]
@@ -177,3 +176,4 @@ if __name__ == '__main__':
             print('Usage: server.py [start|stop|restart|status]')
     else:
         print('Usage: server.py [start|stop|restart|status]')
+

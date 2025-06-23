@@ -478,6 +478,7 @@ app.post('/api/order/:id/accept', async (req, res) => {
 
 
     res.json({ ok: true });
+    sendControl('start', { order_id: req.params.id });
   } catch (e) {
     console.error('order accept 오류', e);
     res.status(500).send('서버 오류');
@@ -499,6 +500,19 @@ app.post('/api/return/:id/accept', async (req, res) => {
     res.status(500).send('서버 오류');
   }
 });
+
+// 적재함 잠금 해제
+app.post('/api/order/:id/unlock', (req, res) => {
+  sendControl('unlock', { order_id: req.params.id });
+  res.json({ ok: true });
+});
+
+// 배송 완료 → 복귀 명령
+app.post('/api/order/:id/complete', (req, res) => {
+  sendControl('return', { order_id: req.params.id });
+  res.json({ ok: true });
+});
+
 
 // ── React SPA 라우팅 ───────────────────────────────────
 app.get('/', (_req, res) => res.redirect('/'));

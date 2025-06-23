@@ -371,4 +371,4 @@ build/
 */build
 *.db
 Web/web_project/*.db
-Main/app
+app

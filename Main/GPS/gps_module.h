@@ -11,6 +11,7 @@
 extern std::string GPS_LOG_FILE;
 extern int         LOG_LEVEL;
 extern std::atomic<bool> running;
+extern std::atomic<bool> run_gps;
 
 using util::Logger;
 using util::LogLevel;

@@ -15,6 +15,7 @@
 #include "Communication/comm_module.h"
 #include "GPS/gps_module.h"
 #include "IMU/imu_module.h"
+#include "LiDAR/lidar_module.h"
 #include "logger.h"
 
 using util::Logger;
@@ -112,6 +113,7 @@ int main(){
 
     SafeQueue<IMU::Data>    imu_queue;
     SafeQueue<IMU::Command> imu_cmd_queue;
+    SafeQueue<std::vector<LaserPoint>> lidar_queue;
 
     // 통신 스레드: map_queue, cmd_queue, log_queue
     std::thread t_comm(
@@ -146,10 +148,10 @@ int main(){
         std::ref(imu_cmd_queue)
     );
 
-    // IMU START/STOP 예시
-    imu_cmd_queue.Produce(IMU::IMU_CMD_START);
-    std::this_thread::sleep_for(std::chrono::seconds(10));
-    imu_cmd_queue.Produce(IMU::IMU_CMD_STOP);
+    std::thread t_lidar{
+        lidar_thread,
+        std::ref(lidar_queue)
+    };
 
     // running==false 될 때까지 대기
     while (running.load()) {

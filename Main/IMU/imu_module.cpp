@@ -57,14 +57,14 @@ static void updateServo(Servo &sv, float u) {
 }
 
 void IMU::readerThread(
-    SafeQueue<Data>&    data_q,
-    SafeQueue<Command>& cmd_q
+    SafeQueue<Data>&    imu_queue,
+    SafeQueue<Command>& imu_cmd_queue
 ) {
     Logger::instance().info("imu","[IMU] Thread start, waiting START");
     Command cmd;
-    if (!cmd_q.ConsumeSync(cmd) || cmd != Command::START) {
+    if (!imu_cmd_queue.ConsumeSync(cmd) || cmd != Command::START) {
         Logger::instance().warn("imu","[IMU] No START, exiting");
-        data_q.Finish();
+        imu_queue.Finish();
         return;
     }
     Logger::instance().info("imu","[IMU] START received");
@@ -90,7 +90,7 @@ void IMU::readerThread(
     // 주기 루프
     while (running.load()) {
         // STOP 명령 체크
-        if (cmd_q.Pop(cmd) && cmd == Command::STOP) {
+        if (imu_cmd_queue.Pop(cmd) && cmd == Command::STOP) {
             Logger::instance().info("imu","[IMU] STOP received");
             break;
         }
@@ -107,10 +107,10 @@ void IMU::readerThread(
         updateServo(servoPitch, up);
 
         Data d{r, p, y, static_cast<uint64_t>(millis())};
-        data_q.Produce(d);
+        imu_queue.Produce(d);
         std::this_thread::sleep_for(std::chrono::milliseconds(INTERVAL_MS));
     }
 
     Logger::instance().info("imu","[IMU] Thread stopping");
-    data_q.Finish();
+    imu_queue.Finish();
 }

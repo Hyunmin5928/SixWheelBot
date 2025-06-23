@@ -12,7 +12,7 @@ void lidar_thread(
     while (running.load()) {
         if(run_lidar.load()) {
             lidar.scan_oneCycle();
-            auto scans = lidar.get_scanData();
+            auto scans = lidar.get_nearPoint();
             Logger::instance().info("lidar", "[LiDAR] Scannaing oneCycle");
             lidar_q.Produce(std::move(scans));
         }

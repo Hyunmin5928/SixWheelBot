@@ -2,17 +2,37 @@
 
 std::atomic<bool> running{true};
 
-void motor_thread(
-    SafeQueue<GpsDir>&    dir_queue,
-    SafeQueue<LaserPoint>& point_queue,
-    SafeQueue<float>& m_yaw_q
-) {
+void motor_test_thread(
+    SafeQueue<LaserPoint>& pnt_queue,
+    SafeQueue<float>& yaw_queue
+){
     Motor motor;
     Logger::instance().info("motor", "[motor_module] Motor Thread start");
 
-    while (running) {
+    while(running){
+
+    }
+}
+
+void motor_thread(
+    SafeQueue<float>&    dir_queue,
+    SafeQueue<LaserPoint>& point_queue,
+    SafeQueue<float>& yaw_queue,
+    SafeQueue<bool>& arrive_queue
+) {
+    Motor motor;
+    Logger::instance().info("motor", "[motor_module] Motor Thread start");
+    bool is_arrive=false;
+    // 이 스레드가 돌아가는 중이고, 아직 도착하지 않았다면
+    while (running && !is_arrive) {
         LaserPoint pnt;
-        m_yaw_q.Consume(motor.curDgr);
+        //  도착 여부 확인
+        arrive_queue.ConsumeSync(is_arrive);
+        //  yaw값은 항상 motor.curDgr로 업데이트하도록 
+        //  (non blocking 방식인 consume을 사용하여 rotate함수가 도는 와중에도 지속적으로 업데이트가 되도록 함)
+        yaw_queue.Consume(motor.curDgr);
+        //도착했으면 스레드 종료
+        if(is_arrvie) break;
 
         // 1순위 : 장애물 회피
         if (point_queue.ConsumeSync(pnt)) {
@@ -37,7 +57,7 @@ void motor_thread(
             }
         }
         // 2순위 내비게이션 방향 처리
-        GpsDir dir;
+        float dir;
         if (dir_queue.ConsumeSync(dir)) {
             switch (dir) {
                 case 0:  // pause
@@ -73,5 +93,5 @@ void motor_thread(
     // 큐에 더 이상 값이 들어오지 않음을 알림;
     dir_queue.Finish();
     point_queue.Finish();
-    m_yaw_q.Finish();
+    yaw_queue.Finish();
 }

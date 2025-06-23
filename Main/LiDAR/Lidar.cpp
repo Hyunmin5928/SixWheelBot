@@ -145,33 +145,6 @@ int Lidar::lidar_setup(){
         return -1;
     }
 
-    ret = lidar.turnOn();
-    if (!ret)
-    {
-        fprintf(stderr, "Fail to start %s\n", lidar.DescribeError());
-        fflush(stderr);
-        return -1;
-    }
-
-    if (ret)
-    {
-        device_info di;
-        memset(&di, 0, DEVICEINFOSIZE);
-        if (lidar.getDeviceInfo(di, EPT_Module)) {
-            // ydlidar::core::common::printfDeviceInfo(di, EPT_Module);
-            ydlidar::core::common::printfDeviceInfo(di, EPT_Module);
-        }
-        else {
-        printf("Fail to get module device info\n");
-        }
-
-        if (lidar.getDeviceInfo(di, EPT_Base)) {
-            ydlidar::core::common::printfDeviceInfo(di, EPT_Base);
-        }
-        else {
-        printf("Fail to get baseplate device info\n");
-        }
-    }
     return 0;
 }
 

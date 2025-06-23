@@ -59,45 +59,6 @@ export default function AdminDashboard() {
     })();
   }, []);
 
-   /*useEffect(() => {
-    if (!trackInfo?.id) return;                // 추적 대상 없으면 pass
-
-    const src = new EventSource(
-      `/api/v1/${trackInfo.type}s/${trackInfo.id}/coords/stream`
-    );
-
-    src.onmessage = (e) => {
-      //const { lat, lng } = JSON.parse(e.data);
-      const lat = 	37.339775;
-      const lng = 127.108942; 
-      setTrackInfo(prev => ({ ...prev, lat, lng }));
-    };
-
-    src.onerror = (err) => console.error('SSE 오류', err);
-    return () => src.close();                  // 언마운트·ID 변경 때 정리
-  }, [trackInfo?.id]);*/
-
-  /*
-  useEffect(() => {
-  if (!trackInfo?.id) return;
-
-  const src = new EventSource(
-    `/api/v1/${trackInfo.type}s/${trackInfo.id}/coords/stream`
-  );
-
-  src.onmessage = () => {
-    const lat = 37.339775;
-    const lng = 127.108942;
-    setTrackInfo(prev => ({ ...prev, lat, lng }));
-  };
-
-  src.onerror = (err) => {
-    console.error('SSE 오류', err);
-  };
-
-  return () => src.close();
-}, [trackInfo?.id]);
-*/
 
 useEffect(() => {
    console.log('[DBG] useEffect enter', trackInfo);
@@ -114,9 +75,9 @@ useEffect(() => {
   src.onopen = () => console.log('[SSE] OPEN', url);
 
   src.onmessage = (e) => {
-    // 실제 운영 시엔   const {lat, lng} = JSON.parse(e.data);
-    const lat = 37.339775;
-    const lng = 127.108942;
+     const {lat, lng} = JSON.parse(e.data);
+    //const lat = 37.339775;
+    //const lng = 127.108942;
     console.log('[SSE] message', { lat, lng });
 
     setTrackInfo((prev) => {

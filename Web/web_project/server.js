@@ -30,9 +30,26 @@ app.get('/api/v1/orders/:id/coords/stream', (req, res) => {
   res.flushHeaders();
 
   // -- 테스트용 좌표 2초마다 전송
+ /* const timer = setInterval(() => {
+    res.write(`data: {"lat":37.566826,"lng":126.9786567}\n\n`);
+  }, 2000);*/
+
+    /* ① 광화문 근처 5개 좌표 */
+  const points = [
+    { lat: 37.566826,  lng: 126.9786567 },   // 광화문
+    { lat: 37.567400,  lng: 126.9791000 },   // 북서쪽
+    { lat: 37.566300,  lng: 126.9798000 },   // 남서쪽
+    { lat: 37.566900,  lng: 126.9778000 },   // 동쪽
+    { lat: 37.567600,  lng: 126.9783000 },   // 북동쪽
+  ];
+  let idx = 0;
+
+  /* ② 1초마다 다음 좌표 전송 */
   const timer = setInterval(() => {
-    res.write(`data: {"lat":37.339775,"lng":127.108942}\n\n`);
-  }, 2000);
+    const { lat, lng } = points[idx];
+    res.write(`data: {"lat":${lat},"lng":${lng}}\n\n`);
+    idx = (idx + 1) % points.length;         // 0→4 순환
+  }, 1000);
 
   req.on('close', () => clearInterval(timer));
 });

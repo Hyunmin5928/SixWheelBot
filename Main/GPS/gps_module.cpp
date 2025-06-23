@@ -152,6 +152,7 @@ void navigation_thread(
                     }
                 }
             } else {
+
                 // 경로 완료: PAUSE
                 Logger::instance().info("gps", "[navigation_thread] Complete Path");
                 finish = true;

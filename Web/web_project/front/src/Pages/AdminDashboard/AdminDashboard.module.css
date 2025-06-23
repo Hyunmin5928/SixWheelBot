@@ -68,3 +68,17 @@
 
 /* ---------- Empty text ---------- */
 .empty{color:#a0a0a0;font-size:14px;margin:8px 0;}
+
+/* ---------- Static map ---------- */
+.mapWrapper{
+  max-width:950px;     /* 본문 폭과 통일 */
+  margin:40px auto 80px;
+  text-align:center;   /* 작은 화면에서 중앙 정렬 */
+}
+
+.mapWrapper img{
+  width:100%;
+  height:auto;
+  border-radius:6px;
+  box-shadow:0 4px 10px rgba(0,0,0,.25);  /* 살짝 그림자 */
+}

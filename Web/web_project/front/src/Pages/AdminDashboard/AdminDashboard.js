@@ -7,8 +7,27 @@ import styles  from './AdminDashboard.module.css';
 import { getOrders,  acceptOrder  } from '../../Services/order';
 import { getReturns, acceptReturn } from '../../Services/return';
 
+
+ const TMAP_API_KEY = '6uHPB650j41F9NmAfTKjs5DxEZ0eBcTC77dm55iX';
+
+
+const makeTmapUrl = ({ lat, lng, zoom = 15, w = 950, h = 320 }) =>
+  `https://apis.openapi.sk.com/tmap/staticMap` +
+  `?appKey=${TMAP_API_KEY}` +
+  `&longitude=${lng}` +
+  `&latitude=${lat}` +
+  `&coordType=WGS84GEO` +        // WGS84 좌표계
+  `&zoom=${zoom}` +
+  `&markers=${lng},${lat}` +     // 쉼표로 구분
+  `&format=PNG` +
+  `&width=${w}&height=${h}`;
+
+
+
+
 export default function AdminDashboard() {
   const nav = useNavigate();
+  console.log('[DBG] AdminDashboard 렌더');
 
   /* ---------- 권한 체크 ---------- */
   useEffect(() => {
@@ -25,6 +44,10 @@ export default function AdminDashboard() {
   const [orders,  setOrders]  = useState([]);
   const [returns, setReturns] = useState([]);
 
+// ★ 실시간 위치(state)
+//    trackInfo = { id, type, lat, lng }
+  const [trackInfo, setTrackInfo] = useState(null);
+
   useEffect(() => {
     (async () => {
       try {
@@ -36,16 +59,102 @@ export default function AdminDashboard() {
     })();
   }, []);
 
+   /*useEffect(() => {
+    if (!trackInfo?.id) return;                // 추적 대상 없으면 pass
+
+    const src = new EventSource(
+      `/api/v1/${trackInfo.type}s/${trackInfo.id}/coords/stream`
+    );
+
+    src.onmessage = (e) => {
+      //const { lat, lng } = JSON.parse(e.data);
+      const lat = 	37.339775;
+      const lng = 127.108942; 
+      setTrackInfo(prev => ({ ...prev, lat, lng }));
+    };
+
+    src.onerror = (err) => console.error('SSE 오류', err);
+    return () => src.close();                  // 언마운트·ID 변경 때 정리
+  }, [trackInfo?.id]);*/
+
+  /*
+  useEffect(() => {
+  if (!trackInfo?.id) return;
+
+  const src = new EventSource(
+    `/api/v1/${trackInfo.type}s/${trackInfo.id}/coords/stream`
+  );
+
+  src.onmessage = () => {
+    const lat = 37.339775;
+    const lng = 127.108942;
+    setTrackInfo(prev => ({ ...prev, lat, lng }));
+  };
+
+  src.onerror = (err) => {
+    console.error('SSE 오류', err);
+  };
+
+  return () => src.close();
+}, [trackInfo?.id]);
+*/
+
+useEffect(() => {
+   console.log('[DBG] useEffect enter', trackInfo);
+  if (!trackInfo?.id) {
+    console.log('[DBG] no id, return');
+    return;   }        // (1) 아직 추적 대상 없음
+  console.log('[DBG] id ok → open SSE');
+  // ───── ① 연결 만들기 ─────
+  const url = `/api/v1/${trackInfo.type}s/${trackInfo.id}/coords/stream`;
+  console.log('[SSE] connect →', url);
+
+  const src = new EventSource(url);
+
+  src.onopen = () => console.log('[SSE] OPEN', url);
+
+  src.onmessage = (e) => {
+    // 실제 운영 시엔   const {lat, lng} = JSON.parse(e.data);
+    const lat = 37.339775;
+    const lng = 127.108942;
+    console.log('[SSE] message', { lat, lng });
+
+    setTrackInfo((prev) => {
+      const next = { ...prev, lat, lng };
+      console.log('[state] setTrackInfo →', next);
+      return next;
+    });
+  };
+
+  src.onerror = (err) => {
+    console.error('[SSE] ERROR', err);
+  };
+
+  // ───── ② 클린업 ─────
+  return () => {
+    console.log('[SSE] CLOSE', url);
+    src.close();
+  };
+}, [trackInfo?.id]);
+
+
+
   /* ---------- 요청 수락 ---------- */
-  const accept = async (type, id) => {
+  const accept = async (type, item )=> {
+    console.log('[DBG] accept', type, item);           // 클릭 여부
     try {
       if (type === 'order') {
-        await acceptOrder(id);
-        setOrders((prev) => prev.filter((o) => o.id !== id));
+        await acceptOrder(item.id);
+        setOrders(prev => prev.filter(o => o.id !== item.id));
       } else {
-        await acceptReturn(id);
-        setReturns((prev) => prev.filter((r) => r.id !== id));
+        await acceptReturn(item.id);
+        setReturns(prev => prev.filter(r => r.id !== item.id));
       }
+      // ★ 지도 트래킹 시작
+     // setTrackInfo({ id: item.id, type });
+     // ★ accept() 맨 아래에 좌표를 직접 넣어 본다
+      setTrackInfo({ id: item.id, type, lat: 37.339775, lng: 127.108942 });
+      console.log('[DBG] setTrackInfo done');
     } catch (e) {
       alert('수락 실패: ' + (e.response?.data || e.message));
     }
@@ -73,7 +182,7 @@ export default function AdminDashboard() {
         )}
         <div><span>물품 종류&nbsp;:</span>{item.itemType}</div>
 
-        <button onClick={() => accept(type, item.id)}>요청 수락</button>
+        <button onClick={() => accept(type, item)}>요청 수락</button>
       </div>
     );
   };
@@ -121,6 +230,18 @@ export default function AdminDashboard() {
           )}
         </div>
       </section>
+
+      {/* ---------- 실시간 지도 ---------- */}
+      {trackInfo?.lat && trackInfo?.lng && (
+        <section className={styles.mapWrapper}>
+          <img
+            src={makeTmapUrl(trackInfo)}
+            alt="실시간 위치"
+            style={{ width: '100%', height: 'auto', borderRadius: '6px' }}
+          />
+        </section>
+      )}
+
     </div>
   );
 }

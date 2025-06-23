@@ -261,7 +261,6 @@ void Motor::rotate(int pwm, float degree)
 
     //curDgr 받아와야해요
     float curDgr; 
-    float targetDgr; 
     //curDgr = 회전하기 이전 yaw 값
     //target degree = yaw에서 얻은 값 + 원하는 값(회전 결과)
     float targetDgr = fmod((curDgr + degree), 360.0f);

@@ -81,12 +81,12 @@ int main(){
     SafeQueue<GpsDir> gps;
     SafeQueue<float> yaw;
 
-    std::thread fake_lidar(lidar_test_producer, std::ref(pnt));
+    std::thread lidar(lidar_thread, std::ref(pnt));
     std::thread motor(motor_thread, std::ref(gps), std::ref(pnt), std::ref(yaw));
 
     std::this_thread::sleep_for(std::chrono::seconds(10));
 
-    fake_lidar.join();
+    lidar.join();
     motor.join();
 
     std::cout<<"test out";

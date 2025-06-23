@@ -1,7 +1,7 @@
 #pragma once
 
 #include <vector>
-#include "SerialPort.h"
+// #include "SerialPort.h"
 
 using namespace std;
 
@@ -38,5 +38,5 @@ private:
     int _gps_len;
     double _utc_prev;
    int _gps_fd;             // ← 라즈베리 UART로 GPS 읽기용 파일 디스크립터
-    CSerialPort* _rc;        // ← 아두이노 자이로 측정값 수신용 시리얼 포트 객체
+    // CSerialPort* _rc;        // ← 아두이노 자이로 측정값 수신용 시리얼 포트 객체
 };

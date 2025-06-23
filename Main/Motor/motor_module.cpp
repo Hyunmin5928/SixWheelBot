@@ -3,7 +3,7 @@
 std::atomic<bool> running{true};
 
 void motor_test_thread(
-    SafeQueue<LaserPoint>& pnt_queue,
+    SafeQueue<LaserPoint>& point_queue,
     SafeQueue<float>& yaw_queue
 ){
     Motor motor;

@@ -361,6 +361,15 @@ app.post('/api/order/:id/accept', async (req, res) => {
     const [city_do, gu_gun, dong, bunji, ...detail] = address.split(' ');
     const detailAddress = detail.join(' ');  // 나머지는 상세주소로
 
+    // 경기도 분당구 성남대로43번길 1
+    // 경기도 성남시 분당구 구미동 158
+    // 경기 성남시 분당구 구미동 181
+    // city_do = "경기 성남시";
+    // gu_gun = "분당구";
+    // dong = "";
+    // bunji = "성남대로43번길";
+    // detailAddress = "1"
+
     console.log('=== 파싱된 주소 정보 ===');
     console.log('city_do      :', city_do);
     console.log('gu_gun       :', gu_gun);
@@ -509,6 +518,11 @@ app.post('/api/order/:id/unlock', (req, res) => {
 
 // 배송 완료 → 복귀 명령
 app.post('/api/order/:id/complete', (req, res) => {
+  sendControl('return', { order_id: req.params.id });
+  res.json({ ok: true });
+});
+
+app.post('/api/order/:id/return', (req, res)) => {
   sendControl('return', { order_id: req.params.id });
   res.json({ ok: true });
 });

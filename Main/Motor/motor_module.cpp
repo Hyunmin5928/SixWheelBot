@@ -59,17 +59,30 @@ void motor_thread(
         // 2순위 내비게이션 방향 처리
         float dir;
         if (dir_queue.ConsumeSync(dir)) {
+
+            if(dir==0.0f)
+            {
+                Logger::instance().info("motor", "[motor_module] straight");
+                motor.straight(DEFALUT_PWM);
+            }
+            else
+            {
+                string msg = "[motor_module] rotate ";
+                msg+=dir;
+                Logger::instance().info("motor", msg);
+                motor.rotate(DEFAULT_PWM, dir);
+            }
+            /*
             switch (dir) {
                 case 0:  // pause
                     Logger::instance().info("motor", "[motor_module] stop");
                     motor.stop();
                     break;
                 case 1:  // forward
-                    Logger::instance().info("motor", "[motor_module] straight");
-                    motor.straight(DEFAULT_PWM);
+                    
                     break;
                 case 2:  // rotate right (예시)
-                    Logger::instance().info("motor", "[motor_module] rotate +90deg");
+                    
                     motor.rotate(DEFAULT_PWM,  90.0f);
                     break;
                 case 3:  // rotate left (예시)
@@ -81,7 +94,7 @@ void motor_thread(
                     oss << "[motor_module] Unknown dir code: "  << std::to_string(dir);
                     Logger::instance().info("motor", oss.str());
                     motor.stop();
-            }
+            }*/
         }
         // 10Hz 루프
 

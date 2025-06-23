@@ -115,10 +115,8 @@ int main(){
     SafeQueue<int> cmd_queue;
     SafeQueue<std::string> log_queue;
     SafeQueue<int> m_cmd_queue;
-
     SafeQueue<ImuData>    imu_queue;
     // SafeQueue<IMU::Command> imu_cmd_queue;
-    SafeQueue<float> yaw_queue;     // imu에서 yaw값만을 받아 motor로 전송하는 큐
 
     // 5) LiDAR 센서 큐
     SafeQueue<LaserPoint> lidar_queue;
@@ -134,7 +132,7 @@ int main(){
         std::ref(log_queue));
 
     // GPS 읽기 스레드 : gps_queue
-    std::thread t_gps(
+    std::thread t_gps_reader(
         gps_reader_thread,
         std::ref(gps_queue)
     );
@@ -162,16 +160,15 @@ int main(){
 
     std::thread t_lidar{
         lidar_thread,
-        std::ref(lidar_switch),
         std::ref(lidar_queue)
     };
 
-    std::thread t_motor{
-        motor_thread,
-        std::ref(gps_queue),
-        std::ref(lidar_queue),
-        std::ref(yaw_queue)
-    }
+    // std::thread t_motor{
+    //     motor_thread,
+    //     std::ref(gps_queue),
+    //     std::ref(lidar_queue),
+    //     std::ref(imu_queue)
+    // }
 
     // running==false 될 때까지 대기
     while (running.load()) {
@@ -180,10 +177,11 @@ int main(){
     g_serial.Write(cmd_stop1, sizeof(cmd_stop1) - 1);
     // 종료
     t_comm.join();
+    t_gps_reader.join();
     t_gps_sender.join();
-    t_gps.join();
     t_nav.join();
     t_imu.join();
     t_lidar.join();
+    
     return 0;
 }

@@ -4,7 +4,6 @@
 // LiDAR 결과를 전달하는 큐
 // SafeQueue<std::vector<ScanPoint>>& lidar_q
 void lidar_thread(
-    SafeQueue<bool>& lidar_on,
     SafeQueue<LaserPoint>& lidar_q)
 {
     Lidar lidar;

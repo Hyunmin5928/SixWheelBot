@@ -12,15 +12,8 @@
 
 GPS::GPS()
 {
-   
     memset(&_gps, 0, sizeof(_gps));
-
-
     _count = 0;
-
-
-    
-
     // [✅] GPS UART 초기화
     _gps_fd = open("/dev/serial0", O_RDWR | O_NOCTTY | O_SYNC);
     if (_gps_fd >= 0) {
@@ -39,6 +32,7 @@ GPS::GPS()
         tcsetattr(_gps_fd, TCSANOW, &tty);
     } else {
         printf("❌ GPS UART open failed\n");
+        std::cout << "❌ GPS UART open failed" << endl;
     }
 
     _gps_buff[0] = 0;
@@ -63,6 +57,7 @@ bool GPS::GetGPSdata(sGPS* gps)
     if (_gps_len > 2 && (_gps_buff[_gps_len - 1] == '\n' || _gps_buff[_gps_len - 1] == '\r')) {
         _gps_buff[_gps_len] = '\0';
         printf("📡 수신된 NMEA 문장: %s\n", _gps_buff);
+        std::cout << "📡 수신된 NMEA 문장" << _gps_buff << endl;
 
         char* line = strtok(_gps_buff, "\n");
         bool gngga_parsed = false;
@@ -96,10 +91,12 @@ bool GPS::GetGPSdata(sGPS* gps)
                     gps->altitude = altitude;
 
                     printf("✅ GNGGA 파싱 완료\n");
+                    std::cout << "✅ GNGGA 파싱 완료" << endl;
                     // log_msg("INFO", "위도 : " + std::to_string(gps->latitude));
                     // log_msg("INFO", "경도 : " + std::to_string(gps->longitude));
                     gngga_parsed = true;
                 } else {
+                    std::cout << "❌ GNGGA 파싱 실패 (matched=" << matched << ")" << endl;
                     printf("❌ GNGGA 파싱 실패 (matched=%d)\n", matched);
                 }
             }
@@ -114,6 +111,7 @@ bool GPS::GetGPSdata(sGPS* gps)
 
     if (_gps_len >= _gps_buff_size) {
         _gps_len = 0;
+        std::cout << "⚠️ GPS 버퍼 리셋됨 (오버플로우)" << endl;
         printf("⚠️ GPS 버퍼 리셋됨 (오버플로우)\n");
     }
 

@@ -9,8 +9,7 @@ TARGET   := main_gps
 
 # 소스 파일 리스트
 SRCS     := runGPS.cpp \
-            GPS_parse.cpp \
-            SerialPort.cpp
+            GPS_parse.cpp
 
 # 오브젝트 파일 리스트 (SRCS에서 .cpp→.o 변환)
 OBJS     := $(SRCS:.cpp=.o)

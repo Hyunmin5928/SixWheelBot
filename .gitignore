@@ -372,3 +372,4 @@ build/
 *.db
 Web/web_project/*.db
 app
+config.json

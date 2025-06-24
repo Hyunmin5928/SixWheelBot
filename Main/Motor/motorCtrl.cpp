@@ -125,6 +125,8 @@ void Motor::motor_setup(int lr_pwmPin, int ll_pwmPin, int rr_pwmPin, int rl_pwmP
     
     digitalWrite(L_RENPin, HIGH);
     digitalWrite(L_LENPin, HIGH);
+    digitalWrite(R_RENPin, HIGH);
+    digitalWrite(R_LENPin, HIGH);
 }
 
 void Motor::motor_setup()
@@ -166,6 +168,10 @@ Motor::~Motor(){
 
 void Motor::straight(int pwm)
 {
+    digitalWrite(L_RENPin, HIGH);
+    digitalWrite(L_LENPin, HIGH);
+    digitalWrite(R_RENPin, HIGH);
+    digitalWrite(R_LENPin, HIGH);
     Logger::instance().debug("motor", "[MotorCtrl] Straight");
     validate_pwm(pwm);
     softPwmWrite(R_RpwmPin, pwm);   //positive forward
@@ -176,6 +182,10 @@ void Motor::straight(int pwm)
 
 void Motor::backoff(int pwm)
 {
+    digitalWrite(L_RENPin, HIGH);
+    digitalWrite(L_LENPin, HIGH);
+    digitalWrite(R_RENPin, HIGH);
+    digitalWrite(R_LENPin, HIGH);
     Logger::instance().debug("motor", "[MotorCtrl] backoff");
     validate_pwm(pwm);
     softPwmWrite(R_LpwmPin, pwm);
@@ -193,7 +203,7 @@ void Motor::stop(){
     digitalWrite(R_LENPin, LOW);
     digitalWrite(L_LENPin, LOW);
     digitalWrite(R_RENPin, LOW);
-    digitalWrite(R_LENPin, LOW);
+    digitalWrite(L_RENPin, LOW);
 }
 
 void Motor::rotate(int pwm, float degree)
@@ -318,7 +328,7 @@ int Operation() {
     if(lidar.get_nearPoint().angle<20.0f && lidar.get_nearPoint().angle > -20.0f && lidar.get_nearPoint().range < avoidDistance_trigger){
         motor.curve_avoid(lidar.get_nearPoint().range, 700, lidar.get_nearPoint().angle);
     }
-    delay(2000);
+    delay_ms(2000);
 
     motor.stop();
     return 0;

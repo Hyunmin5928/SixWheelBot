@@ -8,7 +8,7 @@ void setup() {
 
   Serial.println("GPS 시작...");
 
-  delay(2000);  // GPS 모듈 부팅 대기
+  delay_ms(2000);  // GPS 모듈 부팅 대기
 
   enableSBAS();  // SBAS 기능 활성화
 

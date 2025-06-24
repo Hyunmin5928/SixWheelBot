@@ -164,13 +164,13 @@ int main(){
     };
 
     
-    std::thread t_motor{
-        motor_thread,
-        std::ref(dir_queue),
-        std::ref(lidar_queue),
-        std::ref(imu_queue),
-        std::ref(arrive_queue)
-    };
+    // std::thread t_motor{
+    //     motor_thread,
+    //     std::ref(dir_queue),
+    //     std::ref(lidar_queue),
+    //     std::ref(imu_queue),
+    //     std::ref(arrive_queue)
+    // };
 
     std::thread motor(motor_rotate_thread);
 
@@ -186,7 +186,7 @@ int main(){
     t_nav.join();
     t_imu.join();
     t_lidar.join();
-    t_motor.join();
+    // t_motor.join();
     motor.join();
 
     return 0;

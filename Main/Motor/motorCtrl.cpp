@@ -21,6 +21,8 @@
 #define avoidDistance_step2 300.0f
 #define wheelInterval 31.0f //cm
 
+#define detectDegree 60.0f
+
 
 //degree 값을 180 ~ -180 으로 설정함. 0~360으로 나올 경우 변수 변경 필요 (실제 받아오는 값은 전방 부채꼴 각도이므로, 유의)
 
@@ -267,8 +269,8 @@ void Motor::rotate_without_imu(int pwm, float degree){
 void Motor::curve_avoid(float distance, int pwm, float degree, bool recover = false)
 {
     float abs_degree = degree>0 ? degree : -degree;
-    float avoid_degree = 30.0f-abs_degree;
-    if(distance<=avoidDistance_trigger && degree >= -20.0f && degree <= 20.0f){
+    float avoid_degree = detectDegree-abs_degree;
+    if(distance<=avoidDistance_trigger && degree >= -detectDegree && degree <= detectDegree){
         
         if(degree > 0){ //왼쪽 회피
             rotate(pwm, avoid_degree);
@@ -282,9 +284,7 @@ void Motor::curve_avoid(float distance, int pwm, float degree, bool recover = fa
     long long unsigned int currentTime = millis();
     straight(pwm);
     Logger::instance().debug("motor", "[MotorCtrl] straight for avoid");
-    while(millis() - currentTime < 2500) {
-
-    }
+    motor_delay(2500);
     stop();
     if(degree > 0){ //왼쪽 회피
         rotate(pwm, -avoid_degree);
@@ -318,6 +318,7 @@ void Motor::curve_corner(float connerdistance, int pwm, float degree)
             softPwmWrite(R_RpwmPin, pwm_2);
         }
     }
+    stop();
 
 }
 
@@ -334,8 +335,8 @@ int Operation() {
     Lidar lidar;
     lidar.scan_oneCycle();
     const LaserPoint lsp = lidar.get_nearPoint();
-    if(lidar.get_nearPoint().angle<20.0f && lidar.get_nearPoint().angle > -20.0f && lidar.get_nearPoint().range < avoidDistance_trigger){
-        motor.curve_avoid(lidar.get_nearPoint().range, 700, lidar.get_nearPoint().angle);
+    if(lidar.get_nearPoint().angle<detectDegree && lidar.get_nearPoint().angle > -detectDegree && lidar.get_nearPoint().range < avoidDistance_trigger){
+        motor.curve_avoid(lidar.get_nearPoint().range, 40, lidar.get_nearPoint().angle);
     }
     delay_ms(2000);
 

@@ -35,3 +35,5 @@ void motor_thread(
 void motor_test_thread(
     SafeQueue<std::string>& cmd_queue
 );
+
+void motor_rotate_thread();

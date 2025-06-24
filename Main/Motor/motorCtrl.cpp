@@ -3,15 +3,15 @@
 #include <wiringPi.h>
 #define PI 3.1415926 
 
-#define L_RPWM 23//1
-#define L_LPWM 24//23
-#define R_RPWM 1//24
-#define R_LPWM 2//26
+#define L_RPWM 23   //1     왼쪽 아래서     4번째
+#define L_LPWM 24   //23    왼쪽 아래서     3번째
+#define R_RPWM 1    //24    오른쪽 위에서   6번째
+#define R_LPWM 2    //26    왼쪽 위에서     7번째
 
-#define L_REN 21
-#define L_LEN 22
-#define R_REN 6
-#define R_LEN 10
+#define L_REN 21    //      왼쪽 아래서     6번째
+#define L_LEN 22    //      왼쪽 아래서     5번째
+#define R_REN 6     //      오른쪽 아래서   10번째
+#define R_LEN 10    //      오른쪽 아래서   9번째
 
 #define maxPulse 100
 #define maxSpeed 150.0f
@@ -232,9 +232,6 @@ void Motor::rotate_without_imu(int pwm, float degree){
     digitalWrite(L_LENPin, HIGH);
     digitalWrite(R_RENPin, HIGH);
     digitalWrite(R_LENPin, HIGH);
-
-    float targetDgr = fmod((curDgr+degree), 360.0f);
-    if(targetDgr < 0.0f) targetDgr += 360.0f;
 
     if(degree < 0.0f){
         lmotor_run(pwm,false);

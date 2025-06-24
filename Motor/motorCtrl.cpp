@@ -106,35 +106,6 @@ void Motor::rmotor_run(int pwm, bool front = true)
     }
 }
 
-void Motor::log_msg(const std::string& level, const std::string& msg) {
-    auto now = std::chrono::system_clock::to_time_t(
-                std::chrono::system_clock::now());
-    std::ostringstream oss;
-    oss << std::put_time(std::localtime(&now),
-                                "%Y-%m-%d %H:%M:%S")
-                << " [" << level << "] " << msg << "\n";
-    write(log_fd, oss.str().c_str(), oss.str().size());
-}
-
-void Motor::open_log_file(){
-    log_fd = open(LOG_FILE.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0644);
-    if (log_fd < 0) {
-        std::cerr << "Failed to open log file: " << LOG_FILE << std::endl;
-    } else {
-        log_msg("INFO", "Log file opened successfully.");
-    }
-}
-
-void Motor::close_log_file() {
-    if (log_fd >= 0) {
-        close(log_fd);
-        log_fd = -1;
-        log_msg("INFO", "Log file closed successfully.");
-        } 
-        else {
-            std::cerr << "Log file is not open." << std::endl;
-        }
-}
 
 void Motor::motor_setup(int lr_pwmPin, int ll_pwmPin, int rr_pwmPin, int rl_pwmPin, int rrenPin, int rlenPin, int lrenPin, int llenPin) {
     wiringPiSetup();
@@ -167,8 +138,7 @@ void Motor::motor_setup(int lr_pwmPin, int ll_pwmPin, int rr_pwmPin, int rl_pwmP
     digitalWrite(L_LENPin, HIGH);
     digitalWrite(R_RENPin,HIGH);
     digitalWrite(R_LENPin, HIGH);
-    open_log_file();
-    log_msg("INFO", "Motor setup");
+
     std::cout << "Motor setup complete.\n";
 }
 
@@ -202,8 +172,6 @@ Motor::Motor(int lr_pwmPin, int ll_pwmPin,int rr_pwmPin, int rl_pwmPin, int rr_e
 }
 
 Motor::~Motor(){
-    log_msg("INFO", "Motor destructor called, cleaning up resources.");
-    close_log_file();
     stop();
 }
 #pragma endregion
@@ -259,22 +227,24 @@ void Motor::rotate(int pwm, float degree)
     digitalWrite(R_RENPin, HIGH);
     digitalWrite(R_LENPin, HIGH);
 
+    /*
     //curDgr 받아와야해요
     float curDgr; 
     //curDgr = 회전하기 이전 yaw 값
     //target degree = yaw에서 얻은 값 + 원하는 값(회전 결과)
     float targetDgr = fmod((curDgr + degree), 360.0f);
     if (targetDgr < 0.0f) targetDgr += 360.0f;
-
+    */
+    unsigned long long time = millis();
     if(degree<0.0f){
-        while(curDgr > targetDgr){
+        while(millis()-time < 3000){
             //curDgr 업데이트 코드 넣어주세요
             lmotor_run(pwm, false);
             rmotor_run(pwm, true);
         }
     }
     else{
-        while(curDgr<targetDgr){
+        while(millis()-time < 3000){
             //curDgr 업데이트 코드 넣어주세요
             rmotor_run(pwm, false);
             lmotor_run(pwm, true);
@@ -292,27 +262,22 @@ void Motor::curve_avoid(float distance, int pwm, float degree, bool recover = fa
         
         if(degree > 0){ //왼쪽 회피
             rotate(pwm, avoid_degree);
-            log_msg("Debug", "rotate left for avoid : avoid angle");
         }
         else{ //오른쪽 회피
             rotate(pwm, -avoid_degree);
-            log_msg("Debug", "rotate right for avoid : avoid angle");
         }
     }
     long long unsigned int currentTime = millis();
     straight(pwm);
-    log_msg("Debug", "straight for avoid");
     while(millis() - currentTime < 500) {
 
     }
     stop();
     if(degree > 0){ //왼쪽 회피
         rotate(pwm, -avoid_degree);
-        log_msg("Debug", "rotate left for avoid : recover angle");
     }
     else {
         rotate(pwm, avoid_degree);
-        log_msg("Debug", "rotate right for avoid : recover angle");
     }
 
     /*
@@ -354,20 +319,20 @@ void Motor::curve_avoid(float distance, int pwm, float degree, bool recover = fa
 void Motor::curve_corner(float connerdistance, int pwm, float degree)
 {
     validate_pwm(pwm);
-    float delaytime =calculate_delaytime(pwm, degree);
+    //float delaytime =calculate_delaytime(pwm, degree);
 
     int pwm_1, pwm_2;
     calculate_twin_pwm(connerdistance, pwm, degree, &pwm_1, &pwm_2);
 
     unsigned int currentTime = millis();
     if(degree>0){
-        while(millis()-currentTime <= delaytime){
+        while(millis()-currentTime <= 3000){
             softPwmWrite(L_RpwmPin, pwm_1);
             softPwmWrite(R_RpwmPin, pwm_2);
         }
         
     }else{
-        while(millis()-currentTime <= delaytime){
+        while(millis()-currentTime <= 3000){
             softPwmWrite(L_RpwmPin, pwm_2);
             softPwmWrite(R_RpwmPin, pwm_1);
         }
@@ -389,17 +354,28 @@ int main() {
 
     //lidar.scan_oneCycle();
     bool done = false;
-    time=millis();
-    //motor.rotate(40,90)
     
+    motor.straight(30);
+    while(millis()-time < 1500){
+
+    }
+    motor.stop();
+    motor.backoff(30);
+    time = millis();
+    while(millis()-time < 1500){
+
+    }
+
     motor.rotate(40,90);
     motor.rotate(40,-90);
     
+    motor.stop();
     
     
     //motor.stop();
 
     delay(2000);
+    motor.stop();
     //motor.rotate(40, 90);
     //motor.stop();
 

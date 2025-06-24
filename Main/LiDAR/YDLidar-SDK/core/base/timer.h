@@ -18,12 +18,12 @@
 
 #if defined(_WIN32)
 #include <windows.h>
-#define delay(x)   ::Sleep(x)
+#define delay_ms(x)   ::Sleep(x)
 #else
 #include <sys/time.h>
 #include <unistd.h>
 
-static inline void delay(uint32_t ms) {
+static inline void delay_ms(uint32_t ms) {
   while (ms >= 1000) {
     usleep(1000 * 1000);
     ms -= 1000;

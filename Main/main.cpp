@@ -15,9 +15,9 @@
 #include "Communication/comm_module.h"
 #include "GPS/gps_module.h"
 #include "IMU/imu_module.h"
+#include "Motor/motor_module.h"
 #include "LiDAR/lidar_module.h"
 #include "LiDAR/Lidar.h"
-#include "Motor/motor_module.h"
 #include "logger.h"
 
 using util::Logger;
@@ -191,11 +191,3 @@ int main(){
 
     return 0;
 }
-
-
-//motor test용으로 사용중임
-int main(){
-
-    return 0;
-}
-

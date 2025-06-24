@@ -93,7 +93,7 @@ void DTSLidarDriver::disconnect()
         return;
 
     stop();
-    delay(10);
+    delay_ms(10);
 
     ScopedLocker l(_cmd_lock);
     if (_serial)
@@ -125,7 +125,7 @@ result_t DTSLidarDriver::stopScan(uint32_t timeout)
         return ans;
     }
 
-    delay(10);
+    delay_ms(10);
 
     return RESULT_OK;
 }
@@ -839,7 +839,7 @@ result_t DTSLidarDriver::checkAutoConnecting()
             }
             setDriverError(NotOpenError);
 
-            delay(50 * retryConnect);
+            delay_ms(50 * retryConnect);
         }
 
         if (!isAutoReconnect)
@@ -850,7 +850,7 @@ result_t DTSLidarDriver::checkAutoConnecting()
 
         if (isconnected())
         {
-            delay(10);
+            delay_ms(10);
             {
                 ans = startAutoScan();
                 if (!IS_OK(ans))
@@ -877,7 +877,7 @@ result_t DTSLidarDriver::startAutoScan(bool force, uint32_t timeout)
         return RESULT_FAIL;
 
     flushSerial();
-    delay(10);
+    delay_ms(10);
     {
         ScopedLocker l(_cmd_lock);
         if (sendCmd(SDK_CMD_STARTSCAN) != RESULT_OK)
@@ -966,7 +966,7 @@ void DTSLidarDriver::flushSerial()
         _serial->readSize(len);
     }
 
-    delay(20);
+    delay_ms(20);
 }
 
 uint16_t DTSLidarDriver::calculateCrc(const vector<uint8_t> &data)

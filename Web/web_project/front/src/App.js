@@ -14,6 +14,7 @@ import OrderDetailPage   from './Pages/OrderDetailPage/OrderDetailPage';
 import ReturnRequestPage from './Pages/ReturnRequestPage/ReturnRequestPage';
 import ReturnDetailPage  from './Pages/ReturnDetailPage/ReturnDetailPage';
 import AdminDashboard    from './Pages/AdminDashboard/AdminDashboard';
+import OrderListPage     from './Pages/OrderListPage/OrderListPage'; 
 
 export default function App() {
   return (
@@ -32,6 +33,7 @@ export default function App() {
         <Route path="/return/new"  element={<ReturnRequestPage />} />
         <Route path="/return/:id"  element={<ReturnDetailPage />} />
         <Route path="/admin/*"     element={<AdminDashboard />} />
+        <Route path="/order"     element={<OrderListPage  />} />
       </Routes>
     </BrowserRouter>
   );

@@ -32,10 +32,11 @@ export default function OrderRequestPage() {
   useEffect(() => {
     (async () => {
       try {
-        const list = await getOrders();
+        const list = await getOrders(userId);
         setStats({
           total: list.length,
-          prog:  list.filter(o => o.status === 'IN_PROGRESS').length,
+          prog:  list.filter(o =>
+                ['ACCEPTED', 'IN_PROGRESS'].includes(o.status)).length,
           done:  list.filter(o => o.status === 'COMPLETED').length,
         });
       } catch (e) {

@@ -365,7 +365,7 @@ int main() {
     while(millis()-time < 1500){
 
     }
-
+    motor.stop();
     motor.rotate(40,90);
     motor.rotate(40,-90);
     

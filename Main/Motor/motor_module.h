@@ -15,6 +15,7 @@
 // 외부에서 선언된 전역 플래그
 extern int         LOG_LEVEL;
 extern std::atomic<bool>    running;
+extern std::atomic<bool>    run_motor;
 using util::Logger;
 using util::LogLevel;
 

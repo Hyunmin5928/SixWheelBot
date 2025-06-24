@@ -30,6 +30,7 @@ void motor_test_thread(
     Logger::instance().info("motor", "[motor_module] Motor Thread start");
 
     std::string cmd;
+    
     while(running.load()){
         if(cmd_queue.ConsumeSync(cmd)){
             if(cmd == "straight"){
@@ -50,6 +51,8 @@ void motor_test_thread(
                 motor.stop();
             }
         }
+
+
     }
 }
 

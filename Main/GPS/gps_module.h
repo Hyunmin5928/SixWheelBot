@@ -13,6 +13,7 @@ extern std::string GPS_LOG_FILE;
 extern int         LOG_LEVEL;
 extern std::atomic<bool> running;
 extern std::atomic<bool> run_gps;
+extern std::atomic<bool> run_motor;
 
 using util::Logger;
 using util::LogLevel;
@@ -28,7 +29,7 @@ using Waypoint = std::tuple<double,double,int>;      // {lat, lon, dirCode}
  */
 void navigation_thread(
     SafeQueue<std::vector<Waypoint>>& map_q,
-    SafeQueue<int>&                  m_cmd_q
+    SafeQueue<float>&                  dir_queue
 );
 
 // GPS 읽기 전용 스레드 함수

@@ -1,5 +1,19 @@
 #include "motor_module.h"
 
+void motor_rotate_thread(){
+    Motor motor;
+    Logger::instance().info("motor", "[motor_module] Motor Thread start");
+    while(running){
+        motor.straight(30);
+        motor.motor_delay(1000);
+        motor.backoff(30);
+        motor.motor_delay(1000);
+        motor.rotate_without_imu(30, 90);
+        motor.rotate_without_imu(30, -90);
+        running = false;
+    }
+}
+
 void motor_test_thread(
     SafeQueue<std::string>& cmd_queue,
     SafeQueue<LaserPoint>& point_queue,

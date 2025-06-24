@@ -19,24 +19,26 @@ static double haversine(double lat1, double lon1, double lat2, double lon2) {
     double a = std::sin(dLat/2)*std::sin(dLat/2)
              + std::cos(toRad(lat1))*std::cos(toRad(lat2))
              * std::sin(dLon/2)*std::sin(dLon/2);
+    if (a < 0.0) a = 0.0;
+    else if (a > 1.0) a = 1.0;
     double c = 2 * std::atan2(std::sqrt(a), std::sqrt(1-a));
     double result = R * c;
     Logger::instance().info("gps", "[nav] Calc Result : " + std::to_string(result));
     return R * c;
 }
 
-    double bearing(double lat1, double lon1, double lat2, double lon2) {
-        double phi1 = DEG2RAD(lat1);
-        double phi2 = DEG2RAD(lat2);
-        double delta_lambda = DEG2RAD(lon2 - lon1);
+double bearing(double lat1, double lon1, double lat2, double lon2) {
+    double phi1 = DEG2RAD(lat1);
+    double phi2 = DEG2RAD(lat2);
+    double delta_lambda = DEG2RAD(lon2 - lon1);
 
-        double y = std::sin(delta_lambda) * std::cos(phi2);
-        double x = std::cos(phi1) * std::sin(phi2) -
-                   std::sin(phi1) * std::cos(phi2) * std::cos(delta_lambda);
+    double y = std::sin(delta_lambda) * std::cos(phi2);
+    double x = std::cos(phi1) * std::sin(phi2) -
+                std::sin(phi1) * std::cos(phi2) * std::cos(delta_lambda);
 
-        double theta = std::atan2(y, x);
-        return fmod((RAD2DEG(theta) + 360.0), 360.0);  // 0~360도 범위
-    }
+    double theta = std::atan2(y, x);
+    return fmod((RAD2DEG(theta) + 360.0), 360.0);  // 0~360도 범위
+}
 
 void navigation_thread(
     SafeQueue<std::vector<Waypoint>>& map_q,

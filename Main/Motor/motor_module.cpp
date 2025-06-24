@@ -31,25 +31,29 @@ void motor_test_thread(
 
     std::string cmd;
     while(running){
-        if(cmd_queue.ConsumeSync(cmd)){
-            if(cmd == "straight"){
-                motor.straight(30);
-                motor.motor_delay(3000);
-                motor.stop();
-            }
-            else if(cmd=="rotate"){
-                motor.rotate(30, 30);
-                motor.rotate(30, -30);
-            }
-            else if(cmd=="backoff"){
-                motor.backoff(30);
-                motor.motor_delay(3000);
-                motor.stop();
-            }
-            else{
-                motor.stop();
-            }
+        if(run_motor.load()){
+            if(cmd_queue.ConsumeSync(cmd)){
+                if(cmd == "straight"){
+                    motor.straight(30);
+                    motor.motor_delay(3000);
+                    motor.stop();
+                }
+                else if(cmd=="rotate"){
+                    motor.rotate(30, 30);
+                    motor.rotate(30, -30);
+                }
+                else if(cmd=="backoff"){
+                    motor.backoff(30);
+                    motor.motor_delay(3000);
+                    motor.stop();
+                }
+                else{
+                    motor.stop();
+                }
+            }            
         }
+
+
     }
 }
 

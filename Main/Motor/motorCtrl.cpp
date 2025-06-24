@@ -122,11 +122,6 @@ void Motor::motor_setup(int lr_pwmPin, int ll_pwmPin, int rr_pwmPin, int rl_pwmP
     softPwmCreate(L_LpwmPin, 0, maxPulse);
     softPwmCreate(R_RpwmPin, 0, maxPulse);
     softPwmCreate(R_LpwmPin, 0, maxPulse);
-    
-    digitalWrite(L_RENPin, HIGH);
-    digitalWrite(L_LENPin, HIGH);
-    digitalWrite(R_RENPin, HIGH);
-    digitalWrite(R_LENPin, HIGH);
 }
 
 void Motor::motor_setup()

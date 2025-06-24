@@ -1,22 +1,22 @@
 #include "motor_module.h"
-#define DISABLE_WIRINGPI_DELAY
-#include <wiringPi.h>
 
 void motor_rotate_thread(){
     Motor motor;
-    Logger::instance().info("motor", "[motor_module] Motor Thread start");
+    Logger::instance().info("motor", "[motor_module] Motor test Thread start");
     int cnt = 0;
-    while(running){
+    while(running.load()){
+        Logger::instance().info("motor", "[motor_module] Motor test Thread while");
         motor.straight(30);
         motor.motor_delay(1000);
+
         motor.backoff(30);
         motor.motor_delay(1000);
+
         motor.rotate_without_imu(30, 90);
+        motor.motor_delay(2000);
+
         motor.rotate_without_imu(30, -90);
-        cnt++;
-        if(cnt > 15){
-            running.store(false);
-        }
+        motor.motor_delay(2000);
         // running = false;
     }
 }
@@ -30,7 +30,7 @@ void motor_test_thread(
     Logger::instance().info("motor", "[motor_module] Motor Thread start");
 
     std::string cmd;
-    while(running){
+    while(running.load()){
         if(cmd_queue.ConsumeSync(cmd)){
             if(cmd == "straight"){
                 motor.straight(30);
@@ -63,7 +63,7 @@ void motor_thread(
     Logger::instance().info("motor", "[motor_module] Motor Thread start");
     bool is_arrive=false;
     // 이 스레드가 돌아가는 중이고, 아직 도착하지 않았다면
-    while (running && !is_arrive) {
+    while (running.load() && !is_arrive) {
         LaserPoint pnt;
         ImuData imu;
         //  도착 여부 확인
@@ -158,7 +158,7 @@ void testCmd_thread(
     SafeQueue<std::string>& cmd_queue
 ){
     std::string cmd;
-    while(running){
+    while(running.load()){
         std::cout << ">>> ";
         std::getline(std::cin, cmd);
         std::string msg = "[testCmd] get "+cmd;

@@ -122,11 +122,6 @@ void Motor::motor_setup(int lr_pwmPin, int ll_pwmPin, int rr_pwmPin, int rl_pwmP
     softPwmCreate(L_LpwmPin, 0, maxPulse);
     softPwmCreate(R_RpwmPin, 0, maxPulse);
     softPwmCreate(R_LpwmPin, 0, maxPulse);
-    
-    digitalWrite(L_RENPin, HIGH);
-    digitalWrite(L_LENPin, HIGH);
-    digitalWrite(R_RENPin, HIGH);
-    digitalWrite(R_LENPin, HIGH);
 }
 
 void Motor::motor_setup()
@@ -172,6 +167,10 @@ void Motor::straight(int pwm)
     digitalWrite(L_LENPin, HIGH);
     digitalWrite(R_RENPin, HIGH);
     digitalWrite(R_LENPin, HIGH);
+    softPwmWrite(R_RpwmPin,0);
+    softPwmWrite(R_LpwmPin, 0);
+    softPwmWrite(L_RpwmPin,0);
+    softPwmWrite(L_LpwmPin, 0);
     Logger::instance().debug("motor", "[MotorCtrl] Straight");
     validate_pwm(pwm);
     softPwmWrite(R_RpwmPin, pwm);   //positive forward
@@ -186,6 +185,10 @@ void Motor::backoff(int pwm)
     digitalWrite(L_LENPin, HIGH);
     digitalWrite(R_RENPin, HIGH);
     digitalWrite(R_LENPin, HIGH);
+    softPwmWrite(R_RpwmPin,0);
+    softPwmWrite(R_LpwmPin, 0);
+    softPwmWrite(L_RpwmPin,0);
+    softPwmWrite(L_LpwmPin, 0);
     Logger::instance().debug("motor", "[MotorCtrl] backoff");
     validate_pwm(pwm);
     softPwmWrite(R_LpwmPin, pwm);
@@ -210,7 +213,10 @@ void Motor::rotate(int pwm, float degree)
 {
     Logger::instance().debug("motor", "[MotorCtrl] rotate");
     validate_pwm(pwm);
-
+    softPwmWrite(R_RpwmPin,0);
+    softPwmWrite(R_LpwmPin, 0);
+    softPwmWrite(L_RpwmPin,0);
+    softPwmWrite(L_LpwmPin, 0);
     digitalWrite(L_RENPin, HIGH);
     digitalWrite(L_LENPin, HIGH);
     digitalWrite(R_RENPin, HIGH);
@@ -220,8 +226,8 @@ void Motor::rotate(int pwm, float degree)
     if(targetDgr < 0.0f) targetDgr += 360.0f;
 
     if(degree < 0.0f){
+        //curDgr 자동 업데이트 (메시지큐)
         while(curDgr>targetDgr){
-            //curDgr 업데이트 코드를 넣어주세요
             lmotor_run(pwm,false);
             rmotor_run(pwm);
         }
@@ -237,7 +243,10 @@ void Motor::rotate(int pwm, float degree)
 void Motor::rotate_without_imu(int pwm, float degree){
     Logger::instance().debug("motor", "[MotorCtrl] rotate");
     validate_pwm(pwm);
-
+    softPwmWrite(R_RpwmPin,0);
+    softPwmWrite(R_LpwmPin, 0);
+    softPwmWrite(L_RpwmPin,0);
+    softPwmWrite(L_LpwmPin, 0);
     digitalWrite(L_RENPin, HIGH);
     digitalWrite(L_LENPin, HIGH);
     digitalWrite(R_RENPin, HIGH);

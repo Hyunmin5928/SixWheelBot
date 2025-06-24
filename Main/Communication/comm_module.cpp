@@ -109,7 +109,7 @@ void comm_thread(
     cli.sin_port        = htons(CLIENT_PORT);
     cli.sin_addr.s_addr = (CLIENT_IP=="0.0.0.0"
                            ? INADDR_ANY
-                           : inet_addr(CLIENT_IP.c_str()));
+                           : inet_addr(ALLOW_IP.c_str()));
     bind(sock_fd, (sockaddr*)&cli, sizeof(cli));
     srv.sin_family = AF_INET;
     srv.sin_port   = htons(SERVER_PORT);

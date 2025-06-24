@@ -1,4 +1,6 @@
 #include "motor_module.h"
+#define DISABLE_WIRINGPI_DELAY
+#include <wiringPi.h>
 
 void motor_rotate_thread(){
     Motor motor;

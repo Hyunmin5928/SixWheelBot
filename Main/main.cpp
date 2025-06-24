@@ -68,6 +68,7 @@ void handle_sigint(int) {
     run_gps.store(false);
     run_imu.store(false);
     running.store(false);
+    run_motor.store(false);
 }
 
 void load_config(const std::string& path) {
@@ -169,8 +170,7 @@ int main(){
         motor_thread,
         std::ref(dir_queue),
         std::ref(lidar_queue),
-        std::ref(imu_queue),
-        std::ref(arrive_queue)
+        std::ref(imu_queue)
     };
 
     //std::thread motor(motor_rotate_thread);

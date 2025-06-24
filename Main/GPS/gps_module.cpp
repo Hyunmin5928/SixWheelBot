@@ -292,6 +292,9 @@ void gps_reader_thread(
                 ", 경도=" + std::to_string(lon);
             Logger::instance().info("gps", msg);
         }
+        else {
+            Logger::instance().error("gps", "[gps_reader_thread] Can't read GPS data");
+        }
 
         // 너무 빡빡하게 읽지 않도록 잠깐 대기 (예: 200ms)
         std::this_thread::sleep_for(std::chrono::milliseconds(200));

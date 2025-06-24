@@ -59,8 +59,7 @@ void motor_test_thread(
 void motor_thread(
     SafeQueue<float>&    dir_queue,
     SafeQueue<LaserPoint>& point_queue,
-    SafeQueue<ImuData>& imu_queue,
-    SafeQueue<int>& status_queue
+    SafeQueue<ImuData>& imu_queue
 ) {
     Motor motor;
     Logger::instance().info("motor", "[motor_module] Motor Thread start");
@@ -70,8 +69,6 @@ void motor_thread(
     while (running.load()) {
         LaserPoint pnt;
         ImuData imu;
-        //  도착 여부 확인
-        status_queue.ConsumeSync(status);
         //  yaw값은 항상 motor.curDgr로 업데이트하도록 
         //  (non blocking 방식인 consume을 사용하여 rotate함수가 도는 와중에도 지속적으로 업데이트가 되도록 함)
         if(!imu_queue.Consume(imu)){
@@ -89,8 +86,8 @@ void motor_thread(
             float dist  = pnt.range;
             float angle = pnt.angle;
             // 거리가 0(감지불가 임계값 이하)일 경우 무시, 거리와 각도가 회피 기준값 이내로 들어오면 회피 동작
-            std::cout<<"값 받음 :"<<dist<<" "<<angle<<"\n";
-            if (dist > 0.0f
+            // std::cout<<"값 받음 :"<<dist<<" "<<angle<<"\n";
+            if (dist > 10.0f
              && dist <= OBSTACLE_DISTANCE_THRESHOLD
              && std::fabs(angle) <= OBSTACLE_ANGLE_LIMIT)
             {

@@ -1,6 +1,8 @@
 #pragma once
-#include "../Main/LiDAR/YDLidar/YDLidar-SDK/src/CYdLidar.h"
-#include "../LiDAR/Lidar.h"
+// #include "../LiDAR/lib/CYdLidar.h"
+// #include "../LiDAR/Lidar.h"
+#include "../Main/LiDAR/Lidar.h"
+#include "../Main/LiDAR/YDLidar-SDK/src/CYdLidar.h"
 #include <wiringPi.h>
 #include <softPwm.h>
 #include <iostream>
@@ -30,18 +32,6 @@ using json = nlohmann::json;
 
 class Motor{
     private:
-        std::string SERVER_IP;
-        int         SERVER_PORT;
-        std::string CLIENT_IP;
-        int         CLIENT_PORT;
-        std::string ALLOW_IP;
-        double      ACK_TIMEOUT;
-        int         RETRY_LIMIT;
-        std::string LOG_FILE="Motor/log/motor_log.txt"; // 기본 로그 파일 경로
-
-        int log_fd;
-        int sock_fd = -1;
-
 
         int L_RpwmPin; //LEFT WHEEL. direction: FRONT
         int L_LpwmPin; //LEFT WHEEL. direction: BACK

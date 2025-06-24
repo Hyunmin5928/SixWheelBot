@@ -32,6 +32,7 @@ extern int         LOG_LEVEL;
 extern std::string CLI_LOG_FILE;
 extern int         RETRY_LIMIT;
 extern double      ACK_TIMEOUT;
+extern std::string ALLOW_IP;
 
 // map data 수신 후 map_queue에 전달 only
 void comm_thread(

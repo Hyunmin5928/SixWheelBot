@@ -15,9 +15,9 @@
 #include "Communication/comm_module.h"
 #include "GPS/gps_module.h"
 #include "IMU/imu_module.h"
+#include "Motor/motor_module.h"
 #include "LiDAR/lidar_module.h"
 #include "LiDAR/Lidar.h"
-// #include "Motor/motor_module.h"
 #include "logger.h"
 
 using util::Logger;
@@ -93,6 +93,7 @@ void load_config(const std::string& path) {
     ALLOW_IP     = cfg["NETWORK"]["ALLOW_IP"];
 }
 
+
 int main(){
     std::signal(SIGINT, handle_sigint);
 
@@ -110,7 +111,7 @@ int main(){
     // 2) 현재 위치 (필요시 로깅용)
     SafeQueue<std::pair<double,double>> gps_queue;
     // 3) 방향 코드만
-    SafeQueue<int> dir_queue;
+    SafeQueue<float> dir_queue;
     // 4) (선택) 통신 명령용, 로그용 큐
     SafeQueue<int> cmd_queue;
     SafeQueue<std::string> log_queue;
@@ -120,10 +121,9 @@ int main(){
 
     // 5) LiDAR 센서 큐
     SafeQueue<LaserPoint> lidar_queue;
-    // SafeQueue<bool> lidar_switch;
 
     // 6) Motor 큐
-    
+    SafeQueue<bool> arrive_queue;    //네비게이션 도착여부에 대한 bool값
     // 통신 스레드: map_queue, cmd_queue, log_queue
     std::thread t_comm(
         comm_thread,
@@ -163,12 +163,16 @@ int main(){
         std::ref(lidar_queue)
     };
 
+    
     // std::thread t_motor{
     //     motor_thread,
-    //     std::ref(gps_queue),
+    //     std::ref(dir_queue),
     //     std::ref(lidar_queue),
-    //     std::ref(imu_queue)
-    // }
+    //     std::ref(imu_queue),
+    //     std::ref(arrive_queue)
+    // };
+
+    std::thread motor(motor_rotate_thread);
 
     // running==false 될 때까지 대기
     while (running.load()) {
@@ -182,6 +186,8 @@ int main(){
     t_nav.join();
     t_imu.join();
     t_lidar.join();
-    
+    // t_motor.join();
+    motor.join();
+
     return 0;
 }

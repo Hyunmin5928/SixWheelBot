@@ -484,7 +484,7 @@ result_t TiaLidarDriver::checkAutoConnecting()
             !IS_OK(connect(m_port.c_str(), m_port2)))
         {
             setDriverError(NotOpenError);
-            delay(300); //延时
+            delay_ms(300); //延时
         }
         if (!isAutoconnting)
         {
@@ -507,7 +507,7 @@ result_t TiaLidarDriver::checkAutoConnecting()
             else
             {
                 setDriverError(DeviceNotFoundError);
-                delay(300); //延时
+                delay_ms(300); //延时
             }
         }
     }
@@ -617,7 +617,7 @@ int TiaLidarDriver::parseParamInfoThread()
         }
         int count = 0;
         while (count++ < 4 && m_isScanning)
-            delay(TIMEOUT_500);
+            delay_ms(TIMEOUT_500);
     }
 
     return RESULT_OK;

@@ -527,7 +527,7 @@ bool CYdLidar::doProcessSimple(LaserScan &outscan)
   //判断是否已启动扫描
   if (!checkHardware())
   {
-    delay(200 / m_ScanFrequency);
+    delay_ms(200 / m_ScanFrequency);
     m_AllNode = 0;
     m_FristNodeTime = getTime();
     return false;
@@ -1093,7 +1093,7 @@ bool CYdLidar::checkLidarAbnormal()
     // Ensure that the voltage is insufficient or the motor resistance is high, 
     //causing an abnormality.
     if (checkCount)
-      delay(500);
+      delay_ms(500);
 
     float scan_time = 0.0;
     uint64_t start_time = 0;

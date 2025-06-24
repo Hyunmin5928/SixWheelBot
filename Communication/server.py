@@ -133,6 +133,10 @@ class DeliveryDaemon(Daemon):
                     #     time.sleep(1 if action!='unlock' else 2)
                     # returned = True
                 logger.info(f"Packet data -> lat : {lat}, lon : {lon}")
+                NODE_SERVER_ADDR = ('127.0.0.1', 6002)
+                node_sock = socket .socket(socket .AF_INET, socket .SOCK_DGRAM)
+                msg = json.dumps({ 'lat': lat, 'lng': lon }).encode()
+                node_sock.sendto(msg, NODE_SERVER_ADDR)
             elif ptype == 'done':
                 robot_sock.sendto(f"ACK_DONE:{num}".encode(), addr)
                 logger.info("ACK_DONE sent")

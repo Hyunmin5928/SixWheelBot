@@ -936,7 +936,7 @@ result_t ETLidarDriver::checkAutoConnecting() {
     int tempCount = 0;
 
     while (isAutoReconnect && isscanning() && tempCount < retryCount) {
-      delay(100);
+      delay_ms(100);
       tempCount++;
     }
 
@@ -954,7 +954,7 @@ result_t ETLidarDriver::checkAutoConnecting() {
       setDriverError(NotOpenError);
 
       while (isAutoReconnect && isscanning() && tempCount < retryConnect) {
-        delay(200);
+        delay_ms(200);
         tempCount++;
       }
     }
@@ -965,7 +965,7 @@ result_t ETLidarDriver::checkAutoConnecting() {
     }
 
     if (isconnected()) {
-      delay(100);
+      delay_ms(100);
       {
         ans = startAutoScan();
 

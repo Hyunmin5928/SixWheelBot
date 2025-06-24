@@ -15,9 +15,9 @@
 #include "Communication/comm_module.h"
 #include "GPS/gps_module.h"
 #include "IMU/imu_module.h"
+#include "Motor/motor_module.h"
 #include "LiDAR/lidar_module.h"
 #include "LiDAR/Lidar.h"
-#include "Motor/motor_module.h"
 #include "logger.h"
 
 using util::Logger;
@@ -59,6 +59,8 @@ std::atomic<bool> run_imu{false};
 std::atomic<bool> run_lidar{false};
 std::atomic<bool> run_gps{false};
 
+static constexpr const char cmd_stop1 [] = "stop\n";
+
 // SIGINT 핸들러: Ctrl+C 시 running 플래그만 false 로 전환
 void handle_sigint(int) {
     run_lidar.store(false);
@@ -91,6 +93,7 @@ void load_config(const std::string& path) {
     ALLOW_IP     = cfg["NETWORK"]["ALLOW_IP"];
 }
 
+
 int main(){
     std::signal(SIGINT, handle_sigint);
 
@@ -108,22 +111,19 @@ int main(){
     // 2) 현재 위치 (필요시 로깅용)
     SafeQueue<std::pair<double,double>> gps_queue;
     // 3) 방향 코드만
-    SafeQueue<int> dir_queue;
+    SafeQueue<float> dir_queue;
     // 4) (선택) 통신 명령용, 로그용 큐
     SafeQueue<int> cmd_queue;
     SafeQueue<std::string> log_queue;
     SafeQueue<int> m_cmd_queue;
-
     SafeQueue<ImuData>    imu_queue;
     // SafeQueue<IMU::Command> imu_cmd_queue;
-    SafeQueue<float> yaw_queue;     // imu에서 yaw값만을 받아 motor로 전송하는 큐
 
     // 5) LiDAR 센서 큐
     SafeQueue<LaserPoint> lidar_queue;
-    SafeQueue<bool> lidar_switch;
 
     // 6) Motor 큐
-    
+    SafeQueue<bool> arrive_queue;    //네비게이션 도착여부에 대한 bool값
     // 통신 스레드: map_queue, cmd_queue, log_queue
     std::thread t_comm(
         comm_thread,
@@ -132,7 +132,7 @@ int main(){
         std::ref(log_queue));
 
     // GPS 읽기 스레드 : gps_queue
-    std::thread t_gps(
+    std::thread t_gps_reader(
         gps_reader_thread,
         std::ref(gps_queue)
     );
@@ -160,28 +160,34 @@ int main(){
 
     std::thread t_lidar{
         lidar_thread,
-        std::ref(lidar_switch),
         std::ref(lidar_queue)
     };
 
-    std::thread t_motor{
-        motor_thread,
-        std::ref(gps_queue),
-        std::ref(lidar_queue),
-        std::ref(yaw_queue)
-    }
+    
+    // std::thread t_motor{
+    //     motor_thread,
+    //     std::ref(dir_queue),
+    //     std::ref(lidar_queue),
+    //     std::ref(imu_queue),
+    //     std::ref(arrive_queue)
+    // };
+
+    std::thread motor(motor_rotate_thread);
 
     // running==false 될 때까지 대기
     while (running.load()) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
-
+    g_serial.Write(cmd_stop1, sizeof(cmd_stop1) - 1);
     // 종료
     t_comm.join();
+    t_gps_reader.join();
     t_gps_sender.join();
-    t_gps.join();
     t_nav.join();
     t_imu.join();
     t_lidar.join();
+    // t_motor.join();
+    motor.join();
+
     return 0;
 }

@@ -5,7 +5,7 @@ import { useNavigate, NavLink } from 'react-router-dom';
 import logoImg from '../../assets/logo.png';
 import styles  from './ReturnRequestPage.module.css';
 
-import { getReturns, createReturn } from '../../Services/return';
+import { getMyReturns, createReturn } from '../../Services/return';
 
 export default function ReturnRequestPage() {
   const userId = localStorage.getItem('USER_ID') || 'OOO';
@@ -32,17 +32,17 @@ export default function ReturnRequestPage() {
   useEffect(() => {
     (async () => {
       try {
-        const list = await getReturns();
+        const list = await getMyReturns(userId);
         setStats({
           total: list.length,
-          prog:  list.filter(r => r.status === 'IN_PROGRESS').length,
+          prog:  list.filter(r => r.status === 'ACCEPTED').length,
           done:  list.filter(r => r.status === 'COMPLETED').length,
         });
       } catch (e) {
         console.error('반품 통계 로드 실패', e);
       }
     })();
-  }, []);
+  }, [userId]);
 
   /* ---------- 신청 ---------- */
   const submit = async (e) => {

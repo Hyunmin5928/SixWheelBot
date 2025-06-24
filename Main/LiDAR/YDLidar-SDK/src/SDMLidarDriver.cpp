@@ -148,7 +148,7 @@ void SDMLidarDriver::flushSerial()
         _serial->readSize(len);
     }
 
-    delay(20);
+    delay_ms(20);
 }
 
 void SDMLidarDriver::disconnect()
@@ -161,7 +161,7 @@ void SDMLidarDriver::disconnect()
     }
 
     stop();
-    delay(10);
+    delay_ms(10);
     ScopedLocker l(_cmd_lock);
 
     if (_serial)
@@ -422,7 +422,7 @@ result_t SDMLidarDriver::checkAutoConnecting()
             retryCount = 10;
         }
 
-        delay(100 * retryCount);
+        delay_ms(100 * retryCount);
         int retryConnect = 0;
 
         while (isAutoReconnect &&
@@ -434,7 +434,7 @@ result_t SDMLidarDriver::checkAutoConnecting()
                 retryConnect = 10;
             }
 
-            delay(100);
+            delay_ms(100);
         }
 
         if (!isAutoReconnect)
@@ -445,7 +445,7 @@ result_t SDMLidarDriver::checkAutoConnecting()
 
         if (isconnected())
         {
-            delay(100);
+            delay_ms(100);
             {
                 ans = startAutoScan();
                 if (!IS_OK(ans))
@@ -789,7 +789,7 @@ result_t SDMLidarDriver::stopScan(uint32_t timeout)
         return ans;
     }
 
-    delay(10);
+    delay_ms(10);
 
     return RESULT_OK;
 }
@@ -823,7 +823,7 @@ result_t SDMLidarDriver::startAutoScan(bool force, uint32_t timeout)
         return RESULT_FAIL;
 
     flushSerial();
-    delay(10);
+    delay_ms(10);
     {
         ScopedLocker l(_cmd_lock);
         if ((ans = sendCmd(SDK_CMD_STARTSCAN)) !=

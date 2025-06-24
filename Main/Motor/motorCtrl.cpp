@@ -3,15 +3,15 @@
 #include <wiringPi.h>
 #define PI 3.1415926 
 
-#define L_RPWM 23//1
-#define L_LPWM 24//23
-#define R_RPWM 1//24
-#define R_LPWM 2//26
+#define L_RPWM 23   //1     왼쪽 아래서     4번째
+#define L_LPWM 24   //23    왼쪽 아래서     3번째
+#define R_RPWM 1    //24    오른쪽 위에서   6번째
+#define R_LPWM 2    //26    왼쪽 위에서     7번째
 
-#define L_REN 21
-#define L_LEN 22
-#define R_REN 6
-#define R_LEN 10
+#define L_REN 21    //      왼쪽 아래서     6번째
+#define L_LEN 22    //      왼쪽 아래서     5번째
+#define R_REN 6     //      오른쪽 아래서   10번째
+#define R_LEN 10    //      오른쪽 아래서   9번째
 
 #define maxPulse 100
 #define maxSpeed 150.0f
@@ -125,6 +125,8 @@ void Motor::motor_setup(int lr_pwmPin, int ll_pwmPin, int rr_pwmPin, int rl_pwmP
     
     digitalWrite(L_RENPin, HIGH);
     digitalWrite(L_LENPin, HIGH);
+    digitalWrite(R_RENPin, HIGH);
+    digitalWrite(R_LENPin, HIGH);
 }
 
 void Motor::motor_setup()
@@ -166,6 +168,10 @@ Motor::~Motor(){
 
 void Motor::straight(int pwm)
 {
+    digitalWrite(L_RENPin, HIGH);
+    digitalWrite(L_LENPin, HIGH);
+    digitalWrite(R_RENPin, HIGH);
+    digitalWrite(R_LENPin, HIGH);
     Logger::instance().debug("motor", "[MotorCtrl] Straight");
     validate_pwm(pwm);
     softPwmWrite(R_RpwmPin, pwm);   //positive forward
@@ -176,6 +182,10 @@ void Motor::straight(int pwm)
 
 void Motor::backoff(int pwm)
 {
+    digitalWrite(L_RENPin, HIGH);
+    digitalWrite(L_LENPin, HIGH);
+    digitalWrite(R_RENPin, HIGH);
+    digitalWrite(R_LENPin, HIGH);
     Logger::instance().debug("motor", "[MotorCtrl] backoff");
     validate_pwm(pwm);
     softPwmWrite(R_LpwmPin, pwm);
@@ -193,7 +203,7 @@ void Motor::stop(){
     digitalWrite(R_LENPin, LOW);
     digitalWrite(L_LENPin, LOW);
     digitalWrite(R_RENPin, LOW);
-    digitalWrite(R_LENPin, LOW);
+    digitalWrite(L_RENPin, LOW);
 }
 
 void Motor::rotate(int pwm, float degree)
@@ -224,6 +234,26 @@ void Motor::rotate(int pwm, float degree)
     }
 }
 
+void Motor::rotate_without_imu(int pwm, float degree){
+    Logger::instance().debug("motor", "[MotorCtrl] rotate");
+    validate_pwm(pwm);
+
+    digitalWrite(L_RENPin, HIGH);
+    digitalWrite(L_LENPin, HIGH);
+    digitalWrite(R_RENPin, HIGH);
+    digitalWrite(R_LENPin, HIGH);
+
+    if(degree < 0.0f){
+        lmotor_run(pwm,false);
+        rmotor_run(pwm);
+    }
+    else{
+        lmotor_run(pwm);
+        rmotor_run(pwm, false);
+    }
+    motor_delay(1500);
+    stop();
+}
 //동작 중에 추가로 피해야할 대상이 나타나면 유연하게 회피하도록 해야함
 void Motor::curve_avoid(float distance, int pwm, float degree, bool recover = false)
 {
@@ -282,6 +312,11 @@ void Motor::curve_corner(float connerdistance, int pwm, float degree)
 
 }
 
+void Motor::motor_delay(int time){
+    unsigned long long tm = millis();
+        while(millis()-tm < time){}
+}
+
 #pragma endregion
 
 
@@ -293,7 +328,7 @@ int Operation() {
     if(lidar.get_nearPoint().angle<20.0f && lidar.get_nearPoint().angle > -20.0f && lidar.get_nearPoint().range < avoidDistance_trigger){
         motor.curve_avoid(lidar.get_nearPoint().range, 700, lidar.get_nearPoint().angle);
     }
-    delay(2000);
+    delay_ms(2000);
 
     motor.stop();
     return 0;

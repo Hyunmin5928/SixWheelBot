@@ -1,21 +1,19 @@
 #pragma once
-#include "../../Main/LiDAR/Lidar.h"
-#include "../../Main/LiDAR/YDLidar/YDLidar-SDK/src/CYdLidar.h"
+// #include "../LiDAR/YDLidar-SDK/src/CYdLidar.h"
 #include <wiringPi.h>
+#include "../LiDAR/Lidar.h"
+#include "../LiDAR/lidar_module.h"
 #include <softPwm.h>
 #include <iostream>
 #include <cmath>
 #include <vector>
 #include <functional>
-#include <core/common/ydlidar_help.h>
+// #include <core/common/ydlidar_help.h>
 #include <fstream>
 #include <ctime>
 #include <string>
 #include <../logger.h>
 
-using json = nlohmann::json;
-extern int         LOG_LEVEL;
-extern std::atomic<bool> running;
 
 using util::Logger;
 using util::LogLevel;
@@ -23,18 +21,6 @@ using util::LogLevel;
 
 class Motor{
     private:
-        std::string SERVER_IP;
-        int         SERVER_PORT;
-        std::string CLIENT_IP;
-        int         CLIENT_PORT;
-        std::string ALLOW_IP;
-        double      ACK_TIMEOUT;
-        int         RETRY_LIMIT;
-        std::string LOG_FILE="Motor/log/motor_log.txt"; // 기본 로그 파일 경로
-
-        int log_fd;
-        int sock_fd = -1;
-
         int L_RpwmPin; //LEFT WHEEL. direction: FRONT
         int L_LpwmPin; //LEFT WHEEL. direction: BACK
         int R_RpwmPin; //RIGHT WHEEL. direction: FRONT
@@ -78,6 +64,8 @@ class Motor{
         // @brief rotate by degree : R positive, L negative
         //@brief this function is not depend on time, only whether is degree reach
         void rotate(int pwm, float degree);
+        //@brief just test. without imu module
+        void rotate_without_imu(int pwm, float degree);
         // @brief default curve (30 degree)
         void left_curve(bool recover, int pwm);
         // @brief default curve (30 degree)
@@ -91,4 +79,6 @@ class Motor{
         void curve_avoid(float distance, int pwm, float degree, bool recover);
         //@brief this function is not depend on time, only whether is degree reach
         void curve_corner(float connerdistance, int pwm, float degree);
+
+        void motor_delay(int time);
 };

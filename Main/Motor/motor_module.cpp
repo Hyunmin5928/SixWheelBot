@@ -1,22 +1,22 @@
 #include "motor_module.h"
-#define DISABLE_WIRINGPI_DELAY
-#include <wiringPi.h>
 
 void motor_rotate_thread(){
     Motor motor;
-    Logger::instance().info("motor", "[motor_module] Motor Thread start");
+    Logger::instance().info("motor", "[motor_module] Motor test Thread start");
     int cnt = 0;
-    while(running){
+    while(running.load()){
+        Logger::instance().info("motor", "[motor_module] Motor test Thread while");
         motor.straight(30);
         motor.motor_delay(1000);
+
         motor.backoff(30);
         motor.motor_delay(1000);
+
         motor.rotate_without_imu(30, 90);
+        motor.motor_delay(2000);
+
         motor.rotate_without_imu(30, -90);
-        cnt++;
-        if(cnt > 15){
-            running.store(false);
-        }
+        motor.motor_delay(2000);
         // running = false;
     }
 }
@@ -30,27 +30,26 @@ void motor_test_thread(
     Logger::instance().info("motor", "[motor_module] Motor Thread start");
 
     std::string cmd;
-    while(running){
-        if(run_motor.load()){
-            if(cmd_queue.ConsumeSync(cmd)){
-                if(cmd == "straight"){
-                    motor.straight(30);
-                    motor.motor_delay(3000);
-                    motor.stop();
-                }
-                else if(cmd=="rotate"){
-                    motor.rotate(30, 30);
-                    motor.rotate(30, -30);
-                }
-                else if(cmd=="backoff"){
-                    motor.backoff(30);
-                    motor.motor_delay(3000);
-                    motor.stop();
-                }
-                else{
-                    motor.stop();
-                }
-            }            
+    
+    while(running.load()){
+        if(cmd_queue.ConsumeSync(cmd)){
+            if(cmd == "straight"){
+                motor.straight(30);
+                motor.motor_delay(3000);
+                motor.stop();
+            }
+            else if(cmd=="rotate"){
+                motor.rotate(30, 30);
+                motor.rotate(30, -30);
+            }
+            else if(cmd=="backoff"){
+                motor.backoff(30);
+                motor.motor_delay(3000);
+                motor.stop();
+            }
+            else{
+                motor.stop();
+            }
         }
 
 
@@ -61,17 +60,18 @@ void motor_thread(
     SafeQueue<float>&    dir_queue,
     SafeQueue<LaserPoint>& point_queue,
     SafeQueue<ImuData>& imu_queue,
-    SafeQueue<bool>& arrive_queue
+    SafeQueue<int>& status_queue
 ) {
     Motor motor;
     Logger::instance().info("motor", "[motor_module] Motor Thread start");
-    bool is_arrive=false;
+    int status=0;
+    // 0 : 출발 1 : 도착 2: 복귀
     // 이 스레드가 돌아가는 중이고, 아직 도착하지 않았다면
-    while (running && !is_arrive) {
+    while (running.load()) {
         LaserPoint pnt;
         ImuData imu;
         //  도착 여부 확인
-        arrive_queue.ConsumeSync(is_arrive);
+        status_queue.ConsumeSync(status);
         //  yaw값은 항상 motor.curDgr로 업데이트하도록 
         //  (non blocking 방식인 consume을 사용하여 rotate함수가 도는 와중에도 지속적으로 업데이트가 되도록 함)
         if(!imu_queue.Consume(imu)){
@@ -80,8 +80,8 @@ void motor_thread(
             motor.curDgr=imu.yaw;
         }
         
-        //도착했으면 스레드 종료
-        if(is_arrive) break;
+        //도착했으면 스레드 종료 >> 종료시키지 않고 복귀 로직으로 변경해야함 
+        //if(is_arrive) break;
 
         // 1순위 : 장애물 회피
         if (point_queue.ConsumeSync(pnt)) {
@@ -162,7 +162,7 @@ void testCmd_thread(
     SafeQueue<std::string>& cmd_queue
 ){
     std::string cmd;
-    while(running){
+    while(running.load()){
         std::cout << ">>> ";
         std::getline(std::cin, cmd);
         std::string msg = "[testCmd] get "+cmd;

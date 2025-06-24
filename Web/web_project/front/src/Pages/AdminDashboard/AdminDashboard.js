@@ -71,21 +71,47 @@ export default function AdminDashboard() {
     })();
   }, []);
 
-  // SSE로 좌표 스트리밍
-  useEffect(() => {
-    if (!trackInfo?.id) return;
-    const url = `/api/v1/${trackInfo.type}s/${trackInfo.id}/coords/stream`;
-    const src = new EventSource(url);
-    src.onmessage = e => {
-      const { lat, lng } = JSON.parse(e.data);
-      setTrackInfo(prev => ({ ...prev, lat, lng }));
-    };
-    src.onerror = err => console.error('SSE 오류', err);
-    return () => src.close();
-  }, [trackInfo?.id]);
+useEffect(() => {
+   console.log('[DBG] useEffect enter', trackInfo);
+  if (!trackInfo?.id) {
+    console.log('[DBG] no id, return');
+    return;   }        // (1) 아직 추적 대상 없음
+  console.log('[DBG] id ok → open SSE');
+  // ───── ① 연결 만들기 ─────
+  const url = `/api/v1/${trackInfo.type}s/${trackInfo.id}/coords/stream`;
+  console.log('[SSE] connect →', url);
+
+  const src = new EventSource(url);
+
+  src.onopen = () => console.log('[SSE] OPEN', url);
+
+  src.onmessage = (e) => {
+    const {lat, lng} = JSON.parse(e.data);
+    //const lat = 37.339775;
+    //const lng = 127.108942;
+    console.log('[SSE] message', { lat, lng });
+
+    setTrackInfo((prev) => {
+      const next = { ...prev, lat, lng };
+      console.log('[state] setTrackInfo →', next);
+      return next;
+    });
+  };
+
+  src.onerror = (err) => {
+    console.error('[SSE] ERROR', err);
+  };
+
+  // ───── ② 클린업 ─────
+  return () => {
+    console.log('[SSE] CLOSE', url);
+    src.close();
+  };
+}, [trackInfo?.id]);
 
   // 요청 수락 핸들러
   const handleAccept = async (type, item) => {
+    console.log('[DBG] accept', type, item);   
     try {
       if (type === 'order') {
         await acceptOrder(item.id);

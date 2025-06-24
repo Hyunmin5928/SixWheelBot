@@ -4,9 +4,11 @@ import axios from 'axios';
 /* ------------------------------------------------------------------
    배송 요청 목록 조회
    ------------------------------------------------------------------ */
-export const getOrders = () =>
-  axios
-    .get('/api/order', { withCredentials: true }) // 세션 쿠키 전송
+    export const getOrders = (userId = '') =>
+    axios.get('/api/order', {
+    withCredentials: true,
+    params: userId ? { userId } : {},   // ← 쿼리 전달
+  })
     .then((res) => res.data);
 
 /* ------------------------------------------------------------------
@@ -40,3 +42,18 @@ export const returnOrder = (id) =>
   axios
     .post(`/api/order/${id}/complete`, {}, { withCredentials: true })
     .then((res) => res.data);
+
+    /* 상세 1건 조회 ---------------------------------------------------- */
+export const getOrderById = (id) =>
+  axios.get(`/api/order/${id}`, { withCredentials:true })
+       .then(res => res.data);
+
+/* 잠금 ----------------------------------------------------------- */
+export const lockOrder = (id) =>
+  axios.post(`/api/order/${id}/lock`, {}, { withCredentials:true })
+       .then(res => res.data);
+
+/* 이미 있던 unlockOrder / completeOrder 는 stopOrder / returnOrder
+   이름 그대로 두셔도 되고, 헷갈리면 아래처럼 alias 해도 됩니다. */
+export const unlockOrder   = stopOrder;      // 잠금 해제
+export const completeOrder = returnOrder;    // 배송 완료

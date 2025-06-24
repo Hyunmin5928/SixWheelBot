@@ -21,6 +21,8 @@
 #define avoidDistance_step2 300.0f
 #define wheelInterval 31.0f //cm
 
+#define detectDegree 60.0f
+
 
 //degree 값을 180 ~ -180 으로 설정함. 0~360으로 나올 경우 변수 변경 필요 (실제 받아오는 값은 전방 부채꼴 각도이므로, 유의)
 
@@ -122,11 +124,6 @@ void Motor::motor_setup(int lr_pwmPin, int ll_pwmPin, int rr_pwmPin, int rl_pwmP
     softPwmCreate(L_LpwmPin, 0, maxPulse);
     softPwmCreate(R_RpwmPin, 0, maxPulse);
     softPwmCreate(R_LpwmPin, 0, maxPulse);
-    
-    digitalWrite(L_RENPin, HIGH);
-    digitalWrite(L_LENPin, HIGH);
-    digitalWrite(R_RENPin, HIGH);
-    digitalWrite(R_LENPin, HIGH);
 }
 
 void Motor::motor_setup()
@@ -172,6 +169,10 @@ void Motor::straight(int pwm)
     digitalWrite(L_LENPin, HIGH);
     digitalWrite(R_RENPin, HIGH);
     digitalWrite(R_LENPin, HIGH);
+    softPwmWrite(R_RpwmPin,0);
+    softPwmWrite(R_LpwmPin, 0);
+    softPwmWrite(L_RpwmPin,0);
+    softPwmWrite(L_LpwmPin, 0);
     Logger::instance().debug("motor", "[MotorCtrl] Straight");
     validate_pwm(pwm);
     softPwmWrite(R_RpwmPin, pwm);   //positive forward
@@ -186,6 +187,10 @@ void Motor::backoff(int pwm)
     digitalWrite(L_LENPin, HIGH);
     digitalWrite(R_RENPin, HIGH);
     digitalWrite(R_LENPin, HIGH);
+    softPwmWrite(R_RpwmPin,0);
+    softPwmWrite(R_LpwmPin, 0);
+    softPwmWrite(L_RpwmPin,0);
+    softPwmWrite(L_LpwmPin, 0);
     Logger::instance().debug("motor", "[MotorCtrl] backoff");
     validate_pwm(pwm);
     softPwmWrite(R_LpwmPin, pwm);
@@ -210,7 +215,10 @@ void Motor::rotate(int pwm, float degree)
 {
     Logger::instance().debug("motor", "[MotorCtrl] rotate");
     validate_pwm(pwm);
-
+    softPwmWrite(R_RpwmPin,0);
+    softPwmWrite(R_LpwmPin, 0);
+    softPwmWrite(L_RpwmPin,0);
+    softPwmWrite(L_LpwmPin, 0);
     digitalWrite(L_RENPin, HIGH);
     digitalWrite(L_LENPin, HIGH);
     digitalWrite(R_RENPin, HIGH);
@@ -220,8 +228,8 @@ void Motor::rotate(int pwm, float degree)
     if(targetDgr < 0.0f) targetDgr += 360.0f;
 
     if(degree < 0.0f){
+        //curDgr 자동 업데이트 (메시지큐)
         while(curDgr>targetDgr){
-            //curDgr 업데이트 코드를 넣어주세요
             lmotor_run(pwm,false);
             rmotor_run(pwm);
         }
@@ -237,7 +245,10 @@ void Motor::rotate(int pwm, float degree)
 void Motor::rotate_without_imu(int pwm, float degree){
     Logger::instance().debug("motor", "[MotorCtrl] rotate");
     validate_pwm(pwm);
-
+    softPwmWrite(R_RpwmPin,0);
+    softPwmWrite(R_LpwmPin, 0);
+    softPwmWrite(L_RpwmPin,0);
+    softPwmWrite(L_LpwmPin, 0);
     digitalWrite(L_RENPin, HIGH);
     digitalWrite(L_LENPin, HIGH);
     digitalWrite(R_RENPin, HIGH);
@@ -258,8 +269,8 @@ void Motor::rotate_without_imu(int pwm, float degree){
 void Motor::curve_avoid(float distance, int pwm, float degree, bool recover = false)
 {
     float abs_degree = degree>0 ? degree : -degree;
-    float avoid_degree = 30.0f-abs_degree;
-    if(distance<=avoidDistance_trigger && degree >= -20.0f && degree <= 20.0f){
+    float avoid_degree = detectDegree-abs_degree;
+    if(distance<=avoidDistance_trigger && degree >= -detectDegree && degree <= detectDegree){
         
         if(degree > 0){ //왼쪽 회피
             rotate(pwm, avoid_degree);
@@ -273,9 +284,7 @@ void Motor::curve_avoid(float distance, int pwm, float degree, bool recover = fa
     long long unsigned int currentTime = millis();
     straight(pwm);
     Logger::instance().debug("motor", "[MotorCtrl] straight for avoid");
-    while(millis() - currentTime < 2500) {
-
-    }
+    motor_delay(2500);
     stop();
     if(degree > 0){ //왼쪽 회피
         rotate(pwm, -avoid_degree);
@@ -309,6 +318,7 @@ void Motor::curve_corner(float connerdistance, int pwm, float degree)
             softPwmWrite(R_RpwmPin, pwm_2);
         }
     }
+    stop();
 
 }
 
@@ -325,8 +335,8 @@ int Operation() {
     Lidar lidar;
     lidar.scan_oneCycle();
     const LaserPoint lsp = lidar.get_nearPoint();
-    if(lidar.get_nearPoint().angle<20.0f && lidar.get_nearPoint().angle > -20.0f && lidar.get_nearPoint().range < avoidDistance_trigger){
-        motor.curve_avoid(lidar.get_nearPoint().range, 700, lidar.get_nearPoint().angle);
+    if(lidar.get_nearPoint().angle<detectDegree && lidar.get_nearPoint().angle > -detectDegree && lidar.get_nearPoint().range < avoidDistance_trigger){
+        motor.curve_avoid(lidar.get_nearPoint().range, 40, lidar.get_nearPoint().angle);
     }
     delay_ms(2000);
 

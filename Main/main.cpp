@@ -164,15 +164,15 @@ int main(){
     };
 
     
-    // std::thread t_motor{
-    //     motor_thread,
-    //     std::ref(dir_queue),
-    //     std::ref(lidar_queue),
-    //     std::ref(imu_queue),
-    //     std::ref(arrive_queue)
-    // };
+    std::thread t_motor{
+        motor_thread,
+        std::ref(dir_queue),
+        std::ref(lidar_queue),
+        std::ref(imu_queue),
+        std::ref(arrive_queue)
+    };
 
-    std::thread motor(motor_rotate_thread);
+    //std::thread motor(motor_rotate_thread);
 
     // running==false 될 때까지 대기
     while (running.load()) {
@@ -186,8 +186,8 @@ int main(){
     t_nav.join();
     t_imu.join();
     t_lidar.join();
-    // t_motor.join();
-    motor.join();
+    t_motor.join();
+    //motor.join();
 
     return 0;
 }

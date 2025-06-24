@@ -288,21 +288,35 @@ app.post('/api/order', async (req, res) => {
     res.status(500).send('서버 오류');
   }
 });
-app.get('/api/order', async (_req, res) => {
-  const db   = await dbPromise;
-  const rows = await db.all(`
-    SELECT
-      ORD_ID    AS id,
-      MEM_ID    AS userId,
-      (REC_ADDR || ' ' || IFNULL(REC_DETAIL,'')) AS address,
-      ITEM_TYPE AS itemType,
-      STATUS    AS status
-    FROM ORDER_REQ
-    WHERE STATUS = 'PENDING'
-    ORDER BY REQ_TIME ASC`
-  );
-  res.json(rows);
-});
+// 회원별/전체 조회 모두 지원 --------------------
+ app.get('/api/order', async (req, res) => {
+   try {
+     const { userId } = req.query;          // 예: /api/order?userId=ymh
+     const db = await dbPromise;
+
+     let sql = `
+       SELECT  ORD_ID  AS id,
+               MEM_ID  AS userId,
+               (REC_ADDR || ' ' || IFNULL(REC_DETAIL,'')) AS address,
+               ITEM_TYPE       AS itemType,
+               STATUS          AS status
+         FROM  ORDER_REQ`;
+
+     const params = [];
+     if (userId) {          // 회원별 필터
+       sql += ' WHERE MEM_ID = ?';
+       params.push(userId);
+     }
+
+     sql += ' ORDER BY REQ_TIME DESC';
+     const rows = await db.all(sql, params);
+     res.json(rows);
+   } catch (e) {
+     console.error('order list 오류', e);
+     res.status(500).send('서버 오류');
+   }
+ });
+
 app.post('/api/order/:id/accept', async (req, res) => {
   try {
     const db = await dbPromise;
@@ -391,6 +405,43 @@ app.post('/api/return/:id/complete', (req, res) => {
   // 다시 출발지로 돌아가라는 신호
   sendControl('return', { order_id: req.params.id });
   res.json({ ok: true });
+});
+
+/************************************************************/
+/*  주문 상세 + 잠금                                         */
+/************************************************************/
+
+/* GET /api/order/:id  ------------------------------------ */
+app.get('/api/order/:id', async (req, res) => {
+  try {
+    const db  = await dbPromise;
+    const row = await db.get(`
+      SELECT ORD_ID AS id,
+             MEM_ID AS userId,
+             (REC_ADDR || ' ' || IFNULL(REC_DETAIL,'')) AS address,
+             ITEM_TYPE AS itemType,
+             STATUS AS status
+        FROM ORDER_REQ
+       WHERE ORD_ID = ?`, [req.params.id]);
+    if (!row) return res.status(404).send('해당 주문이 없습니다.');
+    res.json({
+      id: row.id,
+      userId: row.userId,
+      receiver: { address: row.address },
+      itemType: row.itemType,
+      status: row.status
+    });
+  } catch (e) {
+    console.error('주문 상세 조회 오류', e);
+    res.status(500).send('서버 오류');
+  }
+});
+
+/* POST /api/order/:id/lock  ------------------------------ */
+app.post('/api/order/:id/lock', (req, res) => {
+  // 실제 로봇 제어가 필요하면 sendControl('lock', …) 등 수행
+  console.log(`🚩 잠금 요청 → 주문 ${req.params.id}`);
+  res.json({ ok:true });
 });
 
 // SPA 라우팅

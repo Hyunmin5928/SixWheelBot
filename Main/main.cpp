@@ -58,6 +58,7 @@ std::atomic<bool> running{true};
 std::atomic<bool> run_imu{false};
 std::atomic<bool> run_lidar{false};
 std::atomic<bool> run_gps{false};
+std::atomic<bool> run_motor{false};
 
 static constexpr const char cmd_stop1 [] = "stop\n";
 
@@ -115,7 +116,7 @@ int main(){
     // 4) (선택) 통신 명령용, 로그용 큐
     SafeQueue<int> cmd_queue;
     SafeQueue<std::string> log_queue;
-    SafeQueue<int> m_cmd_queue;
+    //SafeQueue<int> dir_queue;
     SafeQueue<ImuData>    imu_queue;
     // SafeQueue<IMU::Command> imu_cmd_queue;
 
@@ -147,7 +148,7 @@ int main(){
     std::thread t_nav(
         navigation_thread,
         std::ref(map_queue),
-        std::ref(m_cmd_queue)
+        std::ref(dir_queue)
     );
 
     // Gyro 스레드 시작

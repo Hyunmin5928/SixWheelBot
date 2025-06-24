@@ -40,3 +40,10 @@ export const returnReturn = (id) =>
   axios
     .post(`/api/return/${id}/complete`, {}, { withCredentials: true })
     .then((res) => res.data);
+
+   // 로그인 사용자의 반품 전체 조회 ---------------------------- */
+export const getMyReturns = (userId) =>
+  axios.get('/api/return', {
+    withCredentials: true,
+    params: { userId }          // → ?userId=ymh
+  }).then(res => res.data);

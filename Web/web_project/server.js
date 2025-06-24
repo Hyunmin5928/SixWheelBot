@@ -361,21 +361,33 @@ app.post('/api/return', async (req, res) => {
     res.status(500).send('서버 오류');
   }
 });
-app.get('/api/return', async (_req, res) => {
-  const db   = await dbPromise;
-  const rows = await db.all(`
-    SELECT
-      RET_ID    AS id,
-      MEM_ID    AS userId,
-      SEND_ADDR AS address,
-      SEND_DETAIL AS detail,
-      ITEM_TYPE AS itemType,
-      STATUS    AS status
-    FROM RETURN_REQ
-    WHERE STATUS = 'PENDING'
-    ORDER BY REQ_TIME ASC`
-  );
-  res.json(rows);
+app.get('/api/return', async (req, res) => {
+  try {
+    const { userId } = req.query;          // 예) /api/return?userId=ymh
+    const db   = await dbPromise;
+
+    let sql = `
+      SELECT  RET_ID AS id,
+              MEM_ID AS userId,
+              (SEND_ADDR || ' ' || IFNULL(SEND_DETAIL,'')) AS address,
+              ITEM_TYPE AS itemType,
+              STATUS AS status,
+              REQ_TIME
+        FROM  RETURN_REQ`;
+
+    const params = [];
+    if (userId) {
+      sql += ' WHERE MEM_ID = ?';
+      params.push(userId);
+    }
+    sql += ' ORDER BY REQ_TIME DESC';
+
+    const rows = await db.all(sql, params);
+    res.json(rows);
+  } catch (e) {
+    console.error('return list 오류', e);
+    res.status(500).send('서버 오류');
+  }
 });
 app.post('/api/return/:id/accept', async (req, res) => {
   try {
@@ -407,9 +419,7 @@ app.post('/api/return/:id/complete', (req, res) => {
   res.json({ ok: true });
 });
 
-/************************************************************/
-/*  주문 상세 + 잠금                                         */
-/************************************************************/
+// ── 주문 상세 + 잠금 ───────────────────────────────────                                     
 
 /* GET /api/order/:id  ------------------------------------ */
 app.get('/api/order/:id', async (req, res) => {
@@ -441,6 +451,38 @@ app.get('/api/order/:id', async (req, res) => {
 app.post('/api/order/:id/lock', (req, res) => {
   // 실제 로봇 제어가 필요하면 sendControl('lock', …) 등 수행
   console.log(`🚩 잠금 요청 → 주문 ${req.params.id}`);
+  res.json({ ok:true });
+});
+
+ // ── 반품 상세 조회 ───────────────────────────────────
+app.get('/api/return/:id', async (req, res) => {
+  try {
+    const db = await dbPromise;
+    const row = await db.get(`
+      SELECT RET_ID AS id,
+             MEM_ID AS userId,
+             (SEND_ADDR || ' ' || IFNULL(SEND_DETAIL,'')) AS address,
+             ITEM_TYPE AS itemType,
+             STATUS AS status
+        FROM RETURN_REQ
+       WHERE RET_ID = ?`, [req.params.id]);
+    if (!row) return res.status(404).send('해당 반품이 없습니다.');
+    res.json({
+      id: row.id,
+      userId: row.userId,
+      sender: { address: row.address },
+      itemType: row.itemType,
+      status: row.status
+    });
+  } catch (e) {
+    console.error('반품 상세 조회 오류', e);
+    res.status(500).send('서버 오류');
+  }
+});
+
+/* POST /api/return/:id/lock  ─ 잠금 */
+app.post('/api/return/:id/lock', (req, res) => {
+  console.log(`🚩 잠금 요청 → 반품 ${req.params.id}`);
   res.json({ ok:true });
 });
 

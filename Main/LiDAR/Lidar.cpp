@@ -157,16 +157,17 @@ void Lidar::scan_oneCycle(){
                 const LaserPoint &p = scanData.points.at(i);
                 LaserPoint temp={p.angle*180.0/M_PI, p.range*1000.0, p.intensity};
                 usableData.push_back(temp);
+                std::cout<<i<<": angle:" << temp.angle<<" range : "<<temp.range<<" / ";
             }
         }
         else{
             fprintf(stderr, "Failed to get Lidar Data\n");
             fflush(stderr);
         }
+        std::cout<<"\n";
     }
     lidar.turnOff();
 }
-
 
 std::vector<LaserPoint> Lidar::get_scanData(){
     return usableData;
@@ -186,6 +187,6 @@ LaserPoint Lidar::get_nearPoint(){
             nearPoint = point;
         }
     }
-
+    std::cout<<"nearpoint : "<<nearPoint.angle<<" "<<nearPoint.range<<"\n";
     return nearPoint;
 }

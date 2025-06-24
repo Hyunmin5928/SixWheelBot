@@ -1,13 +1,14 @@
 #pragma once
-#include "../LiDAR/Lidar.h"
-#include "../LiDAR/YDLidar-SDK/src/CYdLidar.h"
+// #include "../LiDAR/YDLidar-SDK/src/CYdLidar.h"
 #include <wiringPi.h>
+#include "../LiDAR/Lidar.h"
+#include "../LiDAR/lidar_module.h"
 #include <softPwm.h>
 #include <iostream>
 #include <cmath>
 #include <vector>
 #include <functional>
-#include <core/common/ydlidar_help.h>
+// #include <core/common/ydlidar_help.h>
 #include <fstream>
 #include <ctime>
 #include <string>

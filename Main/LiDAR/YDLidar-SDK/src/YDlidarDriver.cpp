@@ -214,7 +214,7 @@ namespace ydlidar
       _serial->readSize(len);
     }
 
-    delay(20);
+    delay_ms(20);
   }
 
   void YDlidarDriver::disconnect()
@@ -227,7 +227,7 @@ namespace ydlidar
     }
 
     stop();
-    delay(10);
+    delay_ms(10);
 
     ScopedLocker l(_cmd_lock);
     if (_serial)
@@ -509,7 +509,7 @@ namespace ydlidar
              connect(m_port.c_str(), m_baudrate) != RESULT_OK)
       {
         setDriverError(NotOpenError);
-        delay(300);
+        delay_ms(300);
       }
       //如果未连接串口或者已停止扫描，则返回
       if (!isconnected() || !isscanning())
@@ -519,7 +519,7 @@ namespace ydlidar
 
       //尝试启动雷达，如果成功则返回成功，否则进入下一次循环
       {
-        delay(50);
+        delay_ms(50);
 
         if (!m_SingleChannel)
         {
@@ -1853,7 +1853,7 @@ namespace ydlidar
     stop();
     checkTransDelay();
     flushSerial();
-    delay(30);
+    delay_ms(30);
     {
       ScopedLocker l(_cmd_lock);
       // 不管单双通雷达都发送启动命令
@@ -1917,9 +1917,9 @@ namespace ydlidar
 
     ScopedLocker l(_cmd_lock);
     sendCommand(LIDAR_CMD_FORCE_STOP);
-    delay(5);
+    delay_ms(5);
     sendCommand(LIDAR_CMD_STOP);
-    delay(5);
+    delay_ms(5);
     return RESULT_OK;
   }
 
@@ -1946,7 +1946,7 @@ namespace ydlidar
     }
 
     flushSerial();
-    delay(10);
+    delay_ms(10);
     {
 
       ScopedLocker l(_cmd_lock);
@@ -2035,12 +2035,12 @@ namespace ydlidar
     if (m_SupportMotorDtrCtrl)
     {
       setDTR();
-      delay(500);
+      delay_ms(500);
     }
     else
     {
       clearDTR();
-      delay(500);
+      delay_ms(500);
     }
 
     return RESULT_OK;
@@ -2056,12 +2056,12 @@ namespace ydlidar
     if (m_SupportMotorDtrCtrl)
     {
       clearDTR();
-      delay(500);
+      delay_ms(500);
     }
     else
     {
       setDTR();
-      delay(500);
+      delay_ms(500);
     }
 
     return RESULT_OK;

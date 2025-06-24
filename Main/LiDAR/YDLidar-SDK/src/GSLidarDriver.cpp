@@ -144,7 +144,7 @@ result_t GSLidarDriver::connect(const char *port_path, uint32_t baudrate)
     }
 
     stopScan();
-    // delay(100);
+    // delay_ms(100);
     // clearDTR();
     //配置GS2模组地址（三个模组）
     setDeviceAddress(300);
@@ -183,7 +183,7 @@ void GSLidarDriver::flushSerial() {
         _comm->readSize(len);
     }
 
-    delay(20);
+    delay_ms(20);
 }
 
 void GSLidarDriver::disconnect() {
@@ -194,7 +194,7 @@ void GSLidarDriver::disconnect() {
     }
 
     stop();
-    delay(10);
+    delay_ms(10);
     ScopedLocker l(_cmd_lock);
 
     if (_comm) {
@@ -548,13 +548,13 @@ result_t GSLidarDriver::checkAutoConnecting()
                 }
             }
         }
-        delay(100); //延时
+        delay_ms(100); //延时
 
         while (isscanning() &&
                connect(m_port.c_str(), m_baudrate) != RESULT_OK)
         {
             setDriverError(NotOpenError);
-            delay(300);
+            delay_ms(300);
         }
 
         if (!isscanning()) {
@@ -563,7 +563,7 @@ result_t GSLidarDriver::checkAutoConnecting()
         //判断是否已重连，如是则尝试启动雷达
         if (isconnected()) 
         {
-            delay(100);
+            delay_ms(100);
             ans = startAutoScan();
             if (IS_OK(ans)) {
                 return ans;
@@ -1131,7 +1131,7 @@ result_t GSLidarDriver::grabScanData(
                 return RESULT_OK;
             }
         }
-        delay(1); //延时
+        delay_ms(1); //延时
     }
     return RESULT_TIMEOUT;
 }
@@ -1299,7 +1299,7 @@ result_t GSLidarDriver::getDevicePara(gs_device_para &info, uint32_t timeout) {
 
         // debug("k0 %lf k1 %lf b0 %lf b1 %lf bias %lf", 
             // k0[mdNum], k1[mdNum], b0[mdNum], b1[mdNum], bias[mdNum]);
-        delay(5);
+        delay_ms(5);
     }
   }
 
@@ -1436,7 +1436,7 @@ result_t GSLidarDriver::stopScan(uint32_t timeout)
     if ((ans = waitResponseHeaderEx(&h, GS_LIDAR_CMD_STOP, timeout)) != RESULT_OK) {
         return ans;
     }
-    delay(10);
+    delay_ms(10);
 
     return RESULT_OK;
 }
@@ -1462,7 +1462,7 @@ result_t GSLidarDriver::startAutoScan(bool force, uint32_t timeout) {
     }
 
     flushSerial();
-    delay(10);
+    delay_ms(10);
     {
         ScopedLocker l(_cmd_lock);
         if ((ans = sendCommand(GS_LIDAR_CMD_SCAN)) !=
@@ -1743,7 +1743,7 @@ result_t GSLidarDriver::setWorkMode(int mode, uint8_t addr)
     if (isscanning())
     {
         disableDataGrabbing();
-        delay(10);
+        delay_ms(10);
         stopScan();
     }
     flushSerial();

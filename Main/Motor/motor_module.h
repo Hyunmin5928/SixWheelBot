@@ -1,5 +1,5 @@
 #include "motorCtrl.h"
-#include "../LiDAR/lidar_module.h"
+// #include "../LiDAR/lidar_module.h"
 #include "../IMU/imu_module.h"
 #include "../SafeQueue.hpp"
 #include "../logger.h"

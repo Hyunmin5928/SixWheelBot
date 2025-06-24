@@ -17,7 +17,7 @@
 #include "IMU/imu_module.h"
 #include "LiDAR/lidar_module.h"
 #include "LiDAR/Lidar.h"
-// #include "Motor/motor_module.h"
+#include "Motor/motor_module.h"
 #include "logger.h"
 
 using util::Logger;
@@ -93,7 +93,7 @@ void load_config(const std::string& path) {
     ALLOW_IP     = cfg["NETWORK"]["ALLOW_IP"];
 }
 
-/*
+
 int main(){
     std::signal(SIGINT, handle_sigint);
 
@@ -171,7 +171,8 @@ int main(){
         std::ref(imu_queue),
         std::ref(arrive_queue)
     };
-    
+
+    std::thread motor(motor_rotate_thread);
 
     // running==false 될 때까지 대기
     while (running.load()) {
@@ -185,21 +186,16 @@ int main(){
     t_nav.join();
     t_imu.join();
     t_lidar.join();
-
     t_motor.join();
+    motor.join();
 
     return 0;
 }
-*/
+
 
 //motor test용으로 사용중임
 int main(){
-    std::thread motor(motor_rotate_thread);
 
-    while(running.load()){
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    }
-    motor.join();
     return 0;
 }
 

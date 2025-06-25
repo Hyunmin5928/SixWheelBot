@@ -85,16 +85,20 @@ void motor_thread(
             //장애물 위치(각도)와 거리 파악
             float dist  = pnt.range;
             float angle = pnt.angle;
+            std::ostringstream oss;
+            oss << "[motor_module] Obstacle detected: dist="  << std::to_string(dist)
+                << "cm, angle=" << std::to_string(angle);
+            Logger::instance().info("motor", oss.str());
             // 거리가 0(감지불가 임계값 이하)일 경우 무시, 거리와 각도가 회피 기준값 이내로 들어오면 회피 동작
             // std::cout<<"값 받음 :"<<dist<<" "<<angle<<"\n";
             if (dist > 10.0f
              && dist <= OBSTACLE_DISTANCE_THRESHOLD
              && std::fabs(angle) <= OBSTACLE_ANGLE_LIMIT)
             {
-                std::ostringstream oss;
-                oss << "[motor_module] Obstacle detected: dist="  << std::to_string(dist)
-                << "cm, angle=" << std::to_string(angle);
-                Logger::instance().warn("motor", oss.str());
+                // std::ostringstream oss;
+                // oss << "[motor_module] Obstacle detected: dist="  << std::to_string(dist)
+                // << "cm, angle=" << std::to_string(angle);
+                // Logger::instance().warn("motor", oss.str());
                 motor.curve_avoid(dist, DEFAULT_PWM, angle, false);
                 continue; // 장애물 처리 후 다음 루프
                 // 만약 회피 기동 중에 또 다른 장애물이 발견될 경우..? 이에 대한 대처가 존재하지 않음.. 단일 장애물 기준

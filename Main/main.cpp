@@ -172,7 +172,7 @@ int main(){
         std::ref(lidar_queue),
         std::ref(imu_queue)
     };
-
+    
     //std::thread motor(motor_rotate_thread);
 
     // running==false 될 때까지 대기

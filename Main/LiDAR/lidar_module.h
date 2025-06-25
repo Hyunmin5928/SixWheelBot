@@ -5,6 +5,8 @@
 #include "../SafeQueue.hpp"
 #include "../logger.h"
 #include "Lidar.h"
+// #include "YDLidar-SDK/src/CYdLidar.h"
+// #include "YDLidar-SDK/core/common/ydlidar_help.h"
 
 // 전역 종료 플래그
 

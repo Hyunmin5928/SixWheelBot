@@ -105,7 +105,7 @@ class DeliveryDaemon(Daemon):
         received = set()
         returned = False
         while True:
-            logger.info(f"Log recv sock activate")
+            # logger.info(f"Log recv sock activate")
             try:
                 data, addr = robot_sock.recvfrom(65536)
             except socket.timeout:

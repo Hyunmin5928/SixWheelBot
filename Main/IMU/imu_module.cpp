@@ -1,5 +1,6 @@
 // IMU/imu_module.cpp
 #include "imu_module.h"
+#include <pthread.h>
 
 //------------------------------------------------------------------------------
 // 공용 API 구현
@@ -12,6 +13,7 @@ void imureader_thread(const std::string& port,
                     unsigned int baud,
                     SafeQueue<ImuData>& queue) {
                         // 딱 한 번 초기화
+    pthread_setname_np(pthread_self(), "[THREAD]IMU_READ");
     if (!g_serial.Open(port.c_str(), baud)) {
         std::ostringstream oss;
         oss << "[IMU] Failed to open " << port << "@" << baud;
@@ -63,7 +65,7 @@ void imureader_thread(const std::string& port,
                 std::ostringstream oss;
                 oss << "[IMU] Roll : "<< std::to_string(d.roll) << ",Pitch : " << std::to_string(d.pitch) << ",Yaw : "<< std::to_string(d.yaw);
                 // 큐로 전달
-                // Logger::instance().info("imu", oss.str());
+                Logger::instance().info("imu", oss.str());
                 queue.Produce(std::move(d));
         }
 

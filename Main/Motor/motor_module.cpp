@@ -1,4 +1,5 @@
 #include "motor_module.h"
+#include <pthread.h>
 
 void motor_rotate_thread(){
     Motor motor;
@@ -61,6 +62,7 @@ void motor_thread(
     SafeQueue<LaserPoint>& point_queue,
     SafeQueue<ImuData>& imu_queue
 ) {
+    pthread_setname_np(pthread_self(), "[THREAD]MOTOR_D");
     Motor motor;
     Logger::instance().info("motor", "[motor_module] Motor Thread start");
     int status=0;
@@ -71,7 +73,8 @@ void motor_thread(
         ImuData imu;
         //  yaw값은 항상 motor.curDgr로 업데이트하도록 
         //  (non blocking 방식인 consume을 사용하여 rotate함수가 도는 와중에도 지속적으로 업데이트가 되도록 함)
-        if(!imu_queue.Consume(imu)){
+        // 다만 이 방식은 CPU 점유율을 크게 높일 가능성이 있어 테스트 해보아야함 >> 아님
+        if(!imu_queue.ConsumeSync(imu)){
             Logger::instance().info("motor","[motor_module] Imu data didn't arrive");
         }else{
             motor.curDgr=imu.yaw;
@@ -80,7 +83,7 @@ void motor_thread(
         //도착했으면 스레드 종료 >> 종료시키지 않고 복귀 로직으로 변경해야함 
         //if(is_arrive) break;
 
-        // 1순위 : 장애물 회피
+        // 1순위 : 장애물 회피 > 주석처리 결과 CPU 문제 아님
         if (point_queue.ConsumeSync(pnt)) {
             //장애물 위치(각도)와 거리 파악
             float dist  = pnt.range;
@@ -108,6 +111,7 @@ void motor_thread(
         }
         // 2순위 내비게이션 방향 처리
         float dir;
+        
         if (dir_queue.ConsumeSync(dir)) {
 
             if(dir==0.0f)
@@ -122,33 +126,10 @@ void motor_thread(
                 Logger::instance().info("motor", msg);
                 motor.rotate(DEFAULT_PWM, dir);
             }
-            /*
-            switch (dir) {
-                case 0:  // pause
-                    Logger::instance().info("motor", "[motor_module] stop");
-                    motor.stop();
-                    break;
-                case 1:  // forward
-                    
-                    break;
-                case 2:  // rotate right (예시)
-                    
-                    motor.rotate(DEFAULT_PWM,  90.0f);
-                    break;
-                case 3:  // rotate left (예시)
-                    Logger::instance().info("motor", "[motor_module] rotate -90deg");
-                    motor.rotate(DEFAULT_PWM, -90.0f);
-                    break;
-                default:
-                    std::ostringstream oss;
-                    oss << "[motor_module] Unknown dir code: "  << std::to_string(dir);
-                    Logger::instance().info("motor", oss.str());
-                    motor.stop();
-            }*/
         }
         // 10Hz 루프
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 
     // 종료 시 모터 정지

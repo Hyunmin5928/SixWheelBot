@@ -64,8 +64,8 @@ int Lidar::lidar_setup(){
     }
 
     int baudrate = 128000;
-    bool isSingleChannel = false;
-    float frequency = 6.0;
+    bool isSingleChannel = true;
+    float frequency = 4.0f; // 기존 6.0
 
     if(!ydlidar::os_isOk())
         return 0;
@@ -97,7 +97,7 @@ int Lidar::lidar_setup(){
 
     //////////////////////bool property/////////////////
     /// fixed angle resolution
-    bool b_optvalue = false;
+    bool b_optvalue = true;    // 기존 false
     lidar.setlidaropt(LidarPropFixedResolution, &b_optvalue, sizeof(bool));
     /// rotate 180
     b_optvalue = false;
@@ -108,7 +108,7 @@ int Lidar::lidar_setup(){
     b_optvalue = true;
     lidar.setlidaropt(LidarPropAutoReconnect, &b_optvalue, sizeof(bool));
     /// one-way communication
-    b_optvalue = false;
+    b_optvalue = true;  // 기존 false
     lidar.setlidaropt(LidarPropSingleChannel, &isSingleChannel, sizeof(bool));
     /// intensity
     b_optvalue = false;

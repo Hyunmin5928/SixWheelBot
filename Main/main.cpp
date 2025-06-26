@@ -19,7 +19,7 @@
 #include "LiDAR/lidar_module.h"
 #include "LiDAR/Lidar.h"
 #include "logger.h"
-
+#include "Vision/vision_module.h"
 using util::Logger;
 using util::LogLevel;
 /*
@@ -173,6 +173,12 @@ int main(){
         std::ref(arrive_queue)
     };
 
+    //비전 스레드 추가
+    std::thread t_vision(
+        vision_thread,
+        std::ref(dir_queue)           
+    );
+
     //std::thread motor(motor_rotate_thread);
 
     // running==false 될 때까지 대기
@@ -189,6 +195,7 @@ int main(){
     t_lidar.join();
     t_motor.join();
     //motor.join();
+    t_vision.join();  
 
     return 0;
 }

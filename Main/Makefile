@@ -2,10 +2,13 @@
 CXX      := g++
 CC       := gcc
 
+PKG_OCV_CFLAGS := $(shell pkg-config --cflags opencv4)
+PKG_OCV_LIBS   := $(shell pkg-config --libs   opencv4)
 SDK_ROOT      := LiDAR/YDLidar-SDK
 SDK_INC_SRC   := $(SDK_ROOT)/src             # CYdLidar.h
 SDK_INC_COMMON:= $(SDK_ROOT)/core/common     # ydlidar_help.h 등
 SDK_LIB       := $(SDK_ROOT)/build/libydlidar_sdk.a
+
 
 CXXFLAGS := -std=c++17 -Wall -pthread \
             -I$(SDK_ROOT)       \
@@ -18,9 +21,11 @@ CXXFLAGS := -std=c++17 -Wall -pthread \
             -I./IMU             \
             -I./IMU/lib         \
             -I./LiDAR           \
-            -I./Motor
+            -I./Motor           \
+            $(PKG_OCV_CFLAGS)   
 
-LDFLAGS  := -pthread -lwiringPi
+LDFLAGS  := $(SDK_LIB) $(PKG_OCV_LIBS) -pthread -lwiringPi
+#LIBS := $(SDK_LIB) $(PKG_OCV_LIBS) -lpthread -lwiringPi
 
 # 2. 소스 파일 리스트
 CPP_SRCS := main.cpp \
@@ -33,7 +38,8 @@ CPP_SRCS := main.cpp \
             IMU/lib/SerialPort.cpp \
             Motor/motor_module.cpp  \
             Motor/motorCtrl.cpp     \
-            logger.cpp
+            logger.cpp \
+            Vision/vision_module.cpp
 # C_SRCS   := logger.c
 
 # 3. 오브젝트 파일 리스트

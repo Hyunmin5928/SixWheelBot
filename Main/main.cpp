@@ -19,6 +19,7 @@
 #include "IMU/imu_module.h"
 #include "Motor/motor_module.h"
 #include "LiDAR/lidar_module.h"
+#include "Command/command_module.h"
 #include "LiDAR/Lidar.h"
 #include "logger.h"
 
@@ -77,6 +78,7 @@ std::atomic<bool> run_imu{false};
 std::atomic<bool> run_lidar{false};
 std::atomic<bool> run_gps{false};
 std::atomic<bool> run_motor{false};
+std::atomic<bool> run_command{false};
 
 // 기존 SafeQueue<LaserPoint> lidar_queue 외에…
 SafeQueue<std::vector<LaserPoint>> raw_scan_queue;
@@ -101,6 +103,7 @@ void handle_sigint(int) {
     run_imu.store(false);
     running.store(false);
     run_motor.store(false);
+    run_command.store(false);
 }
 
 void load_config(const std::string& path) {
@@ -138,6 +141,8 @@ int main(){
     Logger::instance().addFile("lidar",  LIDAR_LOG_FILE, static_cast<LogLevel>(LOG_LEVEL));
     Logger::instance().addFile("motor",  MOTOR_LOG_FILE, static_cast<LogLevel>(LOG_LEVEL));
     Logger::instance().addFile("imu",    IMU_LOG_FILE,   static_cast<LogLevel>(LOG_LEVEL));
+    //아래 모터 커맨드 로그 파일 설정 넣어야함
+    Logger::instance().addFile("m_comm",  COMMAND_LOG_FILE, static_cast<LogLevel>(LOG_LEVEL));
     // Logger::instance().addFile("vision", VISION_LOG_FILE,static_cast<LogLevel>(LOG_LEVEL));
 
     // 1) 경로(map) → Route 리스트
@@ -147,7 +152,7 @@ int main(){
     // 3) 방향 코드만
     SafeQueue<float> dir_queue;
     // 4) (선택) 통신 명령용, 로그용 큐
-    SafeQueue<int> cmd_queue;
+    SafeQueue<std::string> cmd_queue;
     SafeQueue<std::string> log_queue;
     //SafeQueue<int> dir_queue;
     SafeQueue<ImuData>    imu_queue;
@@ -199,13 +204,23 @@ int main(){
         std::ref(imu_queue)
     );
 
-    // 6) LiDAR 스캔 프로듀서 -> 2
+    // 6) Motor Command  스레드 -> 1
+    std::thread t_mcomm = start_thread_with_affinity(
+        1,
+        std::ref(dir_queue),
+        cmd::ref(lidar_queue),
+        std::ref(imu_queue),
+        std::ref(cmd_queue)
+    )
+    
+
+    // 7) LiDAR 스캔 프로듀서 -> 2
     std::thread t_lidar_prod = start_thread_with_affinity(
         2, 
         lidar_producer
     );
 
-    // 7) LiDAR near-point 컨슈머 -> 3
+    // 8) LiDAR near-point 컨슈머 -> 3
     std::thread t_lidar_cons = start_thread_with_affinity(
         3,
         lidar_consumer,
@@ -213,7 +228,7 @@ int main(){
         std::ref(lidar_queue)
     );
 
-    // 8) 모터 스레드 -> 0
+    // 9) 모터 스레드 -> 0
     std::thread t_motor = start_thread_with_affinity(
         0, 
         motor_thread,
@@ -237,6 +252,7 @@ int main(){
     t_imu.join();
     t_lidar_prod.join();
     t_lidar_cons.join();
+    t_mcomm.join()l
     t_motor.join();
 
     // // 통신 스레드: map_queue, cmd_queue, log_queue

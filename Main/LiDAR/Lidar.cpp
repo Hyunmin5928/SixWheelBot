@@ -64,8 +64,8 @@ int Lidar::lidar_setup(){
     }
 
     int baudrate = 128000;
-    bool isSingleChannel = false;
-    float frequency = 6.0;
+    bool isSingleChannel = true;
+    float frequency = 4.0f; // 기존 6.0
 
     if(!ydlidar::os_isOk())
         return 0;
@@ -97,7 +97,7 @@ int Lidar::lidar_setup(){
 
     //////////////////////bool property/////////////////
     /// fixed angle resolution
-    bool b_optvalue = false;
+    bool b_optvalue = true;    // 기존 false
     lidar.setlidaropt(LidarPropFixedResolution, &b_optvalue, sizeof(bool));
     /// rotate 180
     b_optvalue = false;
@@ -108,7 +108,7 @@ int Lidar::lidar_setup(){
     b_optvalue = true;
     lidar.setlidaropt(LidarPropAutoReconnect, &b_optvalue, sizeof(bool));
     /// one-way communication
-    b_optvalue = false;
+    b_optvalue = true;  // 기존 false
     lidar.setlidaropt(LidarPropSingleChannel, &isSingleChannel, sizeof(bool));
     /// intensity
     b_optvalue = false;
@@ -148,8 +148,28 @@ int Lidar::lidar_setup(){
     return 0;
 }
 
+// void Lidar::scan_oneCycle() {
+//     lidar.turnOn();
+//     LaserPoint nearPoint = {0.0f, 800.0f, 0.0f}; // 초기값
+//     if (ydlidar::os_isOk()) {
+//         if (lidar.doProcessSimple(scanData)) {
+//             // std::cout << "scanData.points.size(): " << scanData.points.size() << std::endl;
+//             usableData.clear();
+//             for (const auto& p : scanData.points) {
+//                 std::printf("raw angle: %.2f, raw range: %.5f\n", p.angle * 180.0 / M_PI, p.range);
+//                 LaserPoint temp = {p.angle * 180.0 / M_PI, p.range * 1000.0, p.intensity};
+//                 usableData.push_back(temp);
+//             }
+//             std::printf("nearpoint : angle %.02f  range %.02f\n", nearPoint.angle, nearPoint.range);
+//         } else {
+//             fprintf(stderr, "Failed to get Lidar Data\n");
+//             fflush(stderr);
+//         }
+//     }
+// }
+
 void Lidar::scan_oneCycle(){
-    lidar.turnOn();
+    LaserPoint nearPoint = {0.0f, 800.0f, 0.0f}; // 초기값
     if(ydlidar::os_isOk()){
         if(lidar.doProcessSimple(scanData)){
             usableData.clear();
@@ -158,34 +178,48 @@ void Lidar::scan_oneCycle(){
                 LaserPoint temp={p.angle*180.0/M_PI, p.range*1000.0, p.intensity};
                 usableData.push_back(temp);
             }
+            // std::printf("usableData : %.02f",usableData.at(0).angle);
         }
         else{
             fprintf(stderr, "Failed to get Lidar Data\n");
             fflush(stderr);
         }
+        std::cout<<"\n";
     }
-    lidar.turnOff();
 }
-
 
 std::vector<LaserPoint> Lidar::get_scanData(){
     return usableData;
 }
 
 LaserPoint Lidar::get_nearPoint(){
-    LaserPoint nearPoint;
-    float minRange = get_scanData()[0].range;
-
+    LaserPoint nearPoint = {0.0f, 800.0f, 0.0f};
+    float minRange = 800.0f;
     for (const auto& point : usableData) {
         if (point.range < minRange && 
             point.range > 0.0f && 
             point.angle < 60.0f && 
-            point.angle>-60.0f) 
+            point.angle> -60.0f) 
         {
             minRange = point.range;
             nearPoint = point;
         }
     }
-
+    // std::printf("nearpoint : angle %.02f  range %.02f", nearPoint.angle, nearPoint.range);
     return nearPoint;
+}
+
+// int main(){
+//     Lidar lidar;
+//     lidar.scan_oneCycle();
+//     lidar.get_scanData();
+//     lidar.get_nearPoint();
+// }
+
+bool Lidar::turnOn() {
+    return lidar.turnOn();  // CYdLidar의 turnOn 호출
+}
+
+bool Lidar::turnOff() {
+    return lidar.turnOff(); // CYdLidar의 turnOff 호출
 }

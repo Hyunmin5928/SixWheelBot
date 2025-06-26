@@ -29,8 +29,7 @@ constexpr int   DEFAULT_PWM                 = 50;
 void motor_thread(
     SafeQueue<float>&    dir_queue,
     SafeQueue<LaserPoint>& point_queue,
-    SafeQueue<ImuData>& imu_queue,
-    SafeQueue<bool>& arrive_queue
+    SafeQueue<ImuData>& imu_queue
 );
 
 void motor_test_thread(

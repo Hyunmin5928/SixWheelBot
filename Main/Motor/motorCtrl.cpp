@@ -1,6 +1,7 @@
 #include "motorCtrl.h"
 #define DISABLE_WIRINGPI_DELAY
 #include <wiringPi.h>
+#include <sstream>
 #define PI 3.1415926 
 
 #define L_RPWM 23   //1     왼쪽 아래서     4번째
@@ -29,9 +30,10 @@
 //@brief pwm값 유효성 확인
 #define validate_pwm(pwm)                         \
     if (!pwm_isvalid(pwm)) {                            \
-        std::cout << "pwm value is invaild\n";       \
+        Logger::instance().info("motor","[Motor] pwm value is invaild");       \
         return;                                                      \
     }
+
 
 // private
 #pragma region Private functions
@@ -63,14 +65,14 @@ void Motor::calculate_twin_pwm(float coredistance, int pwm, float degree, int* p
     *pwm1 = pwm * pwm1_r/coredistance;
     *pwm2 = pwm * pwm2_r/coredistance;
     if(pwm_isvalid(*pwm1)==false){
-        std::cout<<"watch out : pwm1 is over maxPwm value\n";
+        // std::cout<<"watch out : pwm1 is over maxPwm value\n";
     }
     
 }
 
 void Motor::lmotor_run(int pwm, bool front=true)
 {
-    std::cout<<"Lmotor_run\n";
+    // std::cout<<"Lmotor_run\n";
     validate_pwm(pwm);
     if (front) {
 
@@ -86,7 +88,7 @@ void Motor::lmotor_run(int pwm, bool front=true)
 
 void Motor::rmotor_run(int pwm, bool front = true)
 {
-    std::cout << "Rmotor_run\n";
+    // std::cout << "Rmotor_run\n";
     validate_pwm(pwm);
     if (front) {
 
@@ -101,7 +103,7 @@ void Motor::rmotor_run(int pwm, bool front = true)
 
 void Motor::motor_setup(int lr_pwmPin, int ll_pwmPin, int rr_pwmPin, int rl_pwmPin, int rrenPin, int rlenPin, int lrenPin, int llenPin) {
     wiringPiSetup();
-    std::cout<<"setup\n";
+    // std::cout<<"setup\n";
     L_RpwmPin = lr_pwmPin;
     L_LpwmPin = ll_pwmPin;
     R_RpwmPin = rr_pwmPin;
@@ -152,7 +154,7 @@ Motor::Motor()
 
 Motor::Motor(int lr_pwmPin, int ll_pwmPin,int rr_pwmPin, int rl_pwmPin, int rr_enPin, int rl_enPin, int lr_enPin, int ll_enPin){
     motor_setup(lr_pwmPin, ll_pwmPin, rr_pwmPin, rl_pwmPin, rr_enPin, rl_enPin, lr_enPin, ll_enPin);
-    std::cout << "motor set up : user setting\n";
+    // std::cout << "motor set up : user setting\n";
 }
 
 Motor::~Motor(){
@@ -330,16 +332,43 @@ void Motor::motor_delay(int time){
 #pragma endregion
 
 
-int Operation() {
-    Motor motor;
-    Lidar lidar;
-    lidar.scan_oneCycle();
-    const LaserPoint lsp = lidar.get_nearPoint();
-    if(lidar.get_nearPoint().angle<detectDegree && lidar.get_nearPoint().angle > -detectDegree && lidar.get_nearPoint().range < avoidDistance_trigger){
-        motor.curve_avoid(lidar.get_nearPoint().range, 40, lidar.get_nearPoint().angle);
-    }
-    delay_ms(2000);
+// int Operation() {
+//     Motor motor;
+//     Lidar lidar;
+//     lidar.scan_oneCycle();
+//     const LaserPoint lsp = lidar.get_nearPoint();
+//     if(lidar.get_nearPoint().angle<detectDegree && lidar.get_nearPoint().angle > -detectDegree && lidar.get_nearPoint().range < avoidDistance_trigger){
+//         motor.curve_avoid(lidar.get_nearPoint().range, 40, lidar.get_nearPoint().angle);
+//     }
+//     delay_ms(2000);
 
-    motor.stop();
-    return 0;
-}
+//     motor.stop();
+//     return 0;
+// }
+
+// int main(){
+//     Motor motor;
+//     Lidar lidar;
+//     Logger::instance().addFile("motor",  "motor_log", static_cast<LogLevel>(1));
+//     bool first =true;
+//     motor.stop();
+//     while(true){
+//         if(first){
+//             lidar.turnOn();
+//             first=false;
+//         }
+//         lidar.scan_oneCycle();
+//         LaserPoint scans = lidar.get_nearPoint();
+//         std::ostringstream msg;
+//         msg << "angle : " << scans.angle << ", range: "  << scans.range;
+//         Logger::instance().info("motor", msg.str());
+//         if(scans.range < 300.0f && scans.range != 0.0f){
+//             motor.stop();
+//             motor.curve_avoid(scans.range, 50, scans.angle);
+//             break;
+//         }
+//     }
+//     motor.motor_delay(100);
+//     motor.stop();
+//     lidar.turnOff();
+// }

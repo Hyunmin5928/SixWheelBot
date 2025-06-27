@@ -20,6 +20,7 @@ CXXFLAGS := -std=c++17 -Wall -pthread \
             -I./GPS/lib          \
             -I./LiDAR           \
             -I./Motor           \
+            -I./Motor/lib       \
             $(PKG_OCV_CFLAGS)
 
 LDFLAGS  := $(SDK_LIB) $(PKG_OCV_LIBS) -pthread -lwiringPi

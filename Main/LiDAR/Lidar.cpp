@@ -65,6 +65,7 @@ int Lidar::lidar_setup(){
 
     int baudrate = 128000;
     bool isSingleChannel = true;
+
     float frequency = 4.0f; // 기존 6.0
 
     if(!ydlidar::os_isOk())

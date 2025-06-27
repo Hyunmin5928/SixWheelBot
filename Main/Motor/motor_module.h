@@ -1,29 +1,37 @@
-#include "motorCtrl.h"
-// #include "../LiDAR/lidar_module.h"
-//#include "../IMU/imu_module.h"
-#include "../SafeQueue.hpp"
-#include "../logger.h"
 #include <atomic>
 #include <chrono>
 #include <thread>
-#include <limits>
-#include <iostream>
-#include <atomic>
-#include <cmath>
-#include <sstream>
-#include <string>
+//#include "../Motor/motor_module.h"
+#include "../SafeQueue.hpp"
+#include "../logger.h"
+#include "../LiDAR/YDLidar-SDK/core/common/ydlidar_def.h"
 
-// 외부에서 선언된 전역 플래그
-extern int         LOG_LEVEL;
+extern std::string          COMMAND_LOG_FILE;
+extern int                  LOG_LEVEL;
 extern std::atomic<bool>    running;
-extern std::atomic<bool>    run_motor;
-using util::Logger;
+extern std::atomic<bool>    run_command;
+
+
+// 시리얼 포트 객체 (전역)
+//static CSerialPort g_serial;
+
+// 임계거리 / 각도 범위는 필요에 따라 조정하세요
+constexpr float OBSTACLE_DISTANCE_THRESHOLD = 500.0f; // mm
+constexpr float OBSTACLE_ANGLE_LIMIT        = 60.0f;  // deg
+constexpr int   DEFAULT_PWM                 = 50;
+
+using util::Logger;                             
 using util::LogLevel;
 
-// 모듈 진입점
+struct ImuData {
+  double roll;
+  double pitch;
+  double yaw;
+};
 
 void motor_thread(
-    SafeQueue<std::string>&    cmd_queue,
-    SafeQueue<LaserPoint> avoid_queue
+    SafeQueue<float> dir_queue,
+    SafeQueue<LaserPoint>& point_queue,
+    SafeQueue<ImuData>& imu_queue.
+    SafeQueue<std::string> mcmd_queue
 );
-

@@ -26,7 +26,7 @@ struct ImuData {
 //------------------------------------------------------------------------------
 // 전역 상태
 //------------------------------------------------------------------------------
-static CSerialPort   g_serial;
+//static CSerialPort   g_serial;
 // static SafeQueue<ImuData>* g_queue = nullptr;
 extern std::atomic<bool>    running;
 extern std::atomic<bool>    run_imu;

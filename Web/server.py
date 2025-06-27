@@ -3,7 +3,7 @@ from daemon_base import Daemon
 
 # ── 설정 로드 ────────────────────────────────────────────────────────────────
 BASE_DIR    = os.path.dirname(os.path.abspath(__file__))
-CONFIG_PATH = os.path.join(BASE_DIR, 'config', 'config.json')
+CONFIG_PATH = os.path.join(BASE_DIR, '../Config', 'config.json')
 with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
     config = json.load(f)
 

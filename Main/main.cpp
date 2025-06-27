@@ -113,7 +113,7 @@ void load_config(const std::string& path) {
 int main(){
     std::signal(SIGINT, handle_sigint);
 
-    load_config("config/config.json");
+    load_config("../Config/config.json");
 
     Logger::instance().addFile("comm",   CLI_LOG_FILE,   static_cast<LogLevel>(LOG_LEVEL));
     Logger::instance().addFile("gps",    GPS_LOG_FILE,   static_cast<LogLevel>(LOG_LEVEL));

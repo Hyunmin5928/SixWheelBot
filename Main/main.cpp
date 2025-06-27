@@ -40,16 +40,6 @@ std::thread start_thread_with_affinity(int core_id, F&& f, Args&&... args) {
 
 using util::Logger;
 using util::LogLevel;
-/*
-    로그 함수 사용 법
-    // 로그 초기화: 파일 경로, 최소 출력 레벨 지정
-    util::Logger::instance().init("app.log", util::LogLevel::Debug);
-
-    util::Logger::instance().info("프로그램 시작");
-    util::Logger::instance().debug("디버그 메시지");
-    util::Logger::instance().warn("경고 메시지");
-    util::Logger::instance().error("오류 메시지");
-*/
 
 using json = nlohmann::json;
 
@@ -59,13 +49,13 @@ int         SERVER_PORT;
 std::string CLIENT_IP;
 int         CLIENT_PORT;
 std::string ALLOW_IP;
+std::string AI_SERVER;
 
 int         LOG_LEVEL;
 std::string CLI_LOG_FILE;
 std::string GPS_LOG_FILE;
 std::string LIDAR_LOG_FILE;
 std::string MOTOR_LOG_FILE;
-std::string IMU_LOG_FILE;
 std::string VISION_LOG_FILE;
 std::string COMMAND_LOG_FILE;
 
@@ -74,11 +64,10 @@ double      ACK_TIMEOUT;
 int         sock_fd = -1;
 
 std::atomic<bool> running{true};
-// std::atomic<bool> run_imu{false};
 std::atomic<bool> run_lidar{false};
 std::atomic<bool> run_gps{false};
 std::atomic<bool> run_motor{false};
-std::atomic<bool> run_command{false};
+std::atomic<bool> run_vision(false);
 
 // 기존 SafeQueue<LaserPoint> lidar_queue 외에…
 SafeQueue<std::vector<LaserPoint>> raw_scan_queue;
@@ -89,7 +78,6 @@ static constexpr const char cmd_stop1 [] = "stop\n";
 void handle_sigint(int) {
     run_lidar.store(false);
     run_gps.store(false);
-    // run_imu.store(false);
     running.store(false);
     run_motor.store(false);
     run_command.store(false);
@@ -110,13 +98,14 @@ void load_config(const std::string& path) {
     GPS_LOG_FILE    = cfg["LOG"]["GPS_LOG_FILE"];
     LIDAR_LOG_FILE  = cfg["LOG"]["LIDAR_LOG_FILE"];
     MOTOR_LOG_FILE  = cfg["LOG"]["MOTOR_LOG_FILE"];
-    // IMU_LOG_FILE    = cfg["LOG"]["IMU_LOG_FILE"];
     VISION_LOG_FILE = cfg["LOG"]["VISION_LOG_FILE"];
 
     // 통신 패킷 관련 설정
     RETRY_LIMIT  = cfg["NETWORK"]["RETRY_LIMIT"];
     ACK_TIMEOUT  = cfg["NETWORK"]["ACK_TIMEOUT"];
     ALLOW_IP     = cfg["NETWORK"]["ALLOW_IP"];
+    AI_SERVER_IP   = cfg["NETWORK"]["AI_SERVER_IP"];
+    AI_SERVER_PORT = cfg["NETWORK"]["AI_SERVER_PORT"];
 }
 
 
@@ -129,8 +118,7 @@ int main(){
     Logger::instance().addFile("gps",    GPS_LOG_FILE,   static_cast<LogLevel>(LOG_LEVEL));
     Logger::instance().addFile("lidar",  LIDAR_LOG_FILE, static_cast<LogLevel>(LOG_LEVEL));
     Logger::instance().addFile("motor",  MOTOR_LOG_FILE, static_cast<LogLevel>(LOG_LEVEL));
-    // Logger::instance().addFile("imu",    IMU_LOG_FILE,   static_cast<LogLevel>(LOG_LEVEL));
-    // Logger::instance().addFile("vision", VISION_LOG_FILE,static_cast<LogLevel>(LOG_LEVEL));
+    Logger::instance().addFile("vision", VISION_LOG_FILE,static_cast<LogLevel>(LOG_LEVEL));
 
     // 1) 경로(map) → Route 리스트
     SafeQueue<std::vector<std::tuple<double,double,int>>> map_queue;
@@ -208,7 +196,6 @@ int main(){
         vision_thread,
         std::ref(dir_queue)           
     );
-
 
     // 메인 루프
     while (running.load()) {

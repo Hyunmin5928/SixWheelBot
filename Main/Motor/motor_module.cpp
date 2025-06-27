@@ -28,16 +28,14 @@ void motor_thread(
     int status=0;
     char linebuf[128]; // 혹시 모를 SerialRead 용
     float angle = 0.0f;
-    bool setup = false;
+    bool setup = true;
 
     while(true){
-        if(g_serial.ReadLine(linebuf, sizeof(linebuf))){
-            Logger::instance().info("motor", linebuf);
-            setup = true;
-        }
-        if(setup){
-            g_serial.Write(cmd_straight, sizeof(cmd_straight) - 1);
-        }
+        // if(g_serial.ReadLine(linebuf, sizeof(linebuf))){
+        //     Logger::instance().info("motor", linebuf);
+        //     setup = true;
+        // }
+        g_serial.Write(cmd_straight, sizeof(cmd_straight) - 1);
         if(run_motor.load()){
             Logger::instance().info("motor", "on");
         }

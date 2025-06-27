@@ -85,17 +85,6 @@ SafeQueue<std::vector<LaserPoint>> raw_scan_queue;
 
 static constexpr const char cmd_stop1 [] = "stop\n";
 
-// 스레드 affinity 설정 헬퍼
-// inline void set_thread_affinity(std::thread &thr, int core_id) {
-//     cpu_set_t cpuset;
-//     CPU_ZERO(&cpuset);
-//     CPU_SET(core_id, &cpuset);
-//     int rc = pthread_setaffinity_np(thr.native_handle(), sizeof(cpuset), &cpuset);
-//     if (rc != 0) {
-//         std::cerr << "Error calling pthread_setaffinity_np: " << rc << "\n";
-//     }
-// }
-
 // SIGINT 핸들러: Ctrl+C 시 running 플래그만 false 로 전환
 void handle_sigint(int) {
     run_lidar.store(false);
@@ -150,7 +139,7 @@ int main(){
     // 3) 방향 코드만
     SafeQueue<float> dir_queue;
     // 4) (선택) 통신 명령용, 로그용 큐
-    SafeQueue<std::string> cmd_queue;
+    SafeQueue<int> cmd_queue;
     SafeQueue<std::string> log_queue;
     //SafeQueue<int> dir_queue;
     // SafeQueue<IMU::Command> imu_cmd_queue;

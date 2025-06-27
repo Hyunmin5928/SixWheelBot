@@ -32,10 +32,11 @@ void motor_thread(
         if(run_motor.load()){
             // 직진인 경우
             g_serial.Write(cmd_straight, sizeof(cmd_straight) - 1);
+
             // 후진인 경우
-            g_serial.Write(cmd_backoff, sizeof(cmd_backoff) - 1);
-            // 정지인 경우
-            g_serial.Write(cmd_stop, sizeof(cmd_stop) - 1);
+            // g_serial.Write(cmd_backoff, sizeof(cmd_backoff) - 1);
+            // // 정지인 경우
+            // g_serial.Write(cmd_stop, sizeof(cmd_stop) - 1);
             // 회전인 경우
             angle = 124.3;
             // cmd_rotate = std::to_string(angle) // 회전 값(float 형) string으로 변경

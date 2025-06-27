@@ -63,7 +63,7 @@ void motor_thread(
     //     // 10Hz 루프
     //     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     // }
-
+    g_serial.Write(cmd_stop, sizeof(cmd_stop) - 1);
     // 종료 시 모터 정지
     // motor.stop();
     // 큐에 더 이상 값이 들어오지 않음을 알림;

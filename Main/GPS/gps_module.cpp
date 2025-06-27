@@ -4,6 +4,7 @@
 #include <cmath>
 #include <iostream>
 #include "cal_distance.h"
+#include <pthread.h>
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
@@ -44,6 +45,7 @@ void navigation_thread(
     SafeQueue<std::vector<Waypoint>>& map_q,
     SafeQueue<float>& dir_queue
 ) {
+    pthread_setname_np(pthread_self(), "[THREAD]GPS_NAVD");
     // 1) MAP 수신 
     std::vector<Waypoint> path;
     if (!map_q.ConsumeSync(path)) {
@@ -268,6 +270,7 @@ void navigation_thread(
 void gps_reader_thread(
     SafeQueue<GpsPos>& gps_q
 ) {
+    pthread_setname_np(pthread_self(), "[THREAD]GPS_READ");
     GPS gpsSensor;
     sGPS  raw;
     // 읽기 루프

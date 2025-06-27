@@ -8,6 +8,8 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <pthread.h>
+#include <sched.h>
 
 #include <nlohmann/json.hpp>
 
@@ -17,8 +19,25 @@
 #include "IMU/imu_module.h"
 #include "Motor/motor_module.h"
 #include "LiDAR/lidar_module.h"
+#include "Command/command_module.h"
 #include "LiDAR/Lidar.h"
 #include "logger.h"
+
+// main.cpp 맨 위, includes 아래에 추가
+template<typename F, typename... Args>
+std::thread start_thread_with_affinity(int core_id, F&& f, Args&&... args) {
+  return std::thread([=]() {
+    // 1) 자신(POSIX 스레드)의 affinity 설정
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    CPU_SET(core_id, &cpuset);
+    if (pthread_setaffinity_np(pthread_self(), sizeof(cpuset), &cpuset) != 0) {
+      perror("pthread_setaffinity_np");
+    }
+    // 2) 실제 스레드 함수 호출
+    std::invoke(f, args...);
+  });
+}
 
 using util::Logger;
 using util::LogLevel;
@@ -59,8 +78,23 @@ std::atomic<bool> run_imu{false};
 std::atomic<bool> run_lidar{false};
 std::atomic<bool> run_gps{false};
 std::atomic<bool> run_motor{false};
+std::atomic<bool> run_command{false};
+
+// 기존 SafeQueue<LaserPoint> lidar_queue 외에…
+SafeQueue<std::vector<LaserPoint>> raw_scan_queue;
 
 static constexpr const char cmd_stop1 [] = "stop\n";
+
+// 스레드 affinity 설정 헬퍼
+// inline void set_thread_affinity(std::thread &thr, int core_id) {
+//     cpu_set_t cpuset;
+//     CPU_ZERO(&cpuset);
+//     CPU_SET(core_id, &cpuset);
+//     int rc = pthread_setaffinity_np(thr.native_handle(), sizeof(cpuset), &cpuset);
+//     if (rc != 0) {
+//         std::cerr << "Error calling pthread_setaffinity_np: " << rc << "\n";
+//     }
+// }
 
 // SIGINT 핸들러: Ctrl+C 시 running 플래그만 false 로 전환
 void handle_sigint(int) {
@@ -69,6 +103,7 @@ void handle_sigint(int) {
     run_imu.store(false);
     running.store(false);
     run_motor.store(false);
+    run_command.store(false);
 }
 
 void load_config(const std::string& path) {
@@ -106,6 +141,8 @@ int main(){
     Logger::instance().addFile("lidar",  LIDAR_LOG_FILE, static_cast<LogLevel>(LOG_LEVEL));
     Logger::instance().addFile("motor",  MOTOR_LOG_FILE, static_cast<LogLevel>(LOG_LEVEL));
     Logger::instance().addFile("imu",    IMU_LOG_FILE,   static_cast<LogLevel>(LOG_LEVEL));
+    //아래 모터 커맨드 로그 파일 설정 넣어야함
+    Logger::instance().addFile("m_comm",  COMMAND_LOG_FILE, static_cast<LogLevel>(LOG_LEVEL));
     // Logger::instance().addFile("vision", VISION_LOG_FILE,static_cast<LogLevel>(LOG_LEVEL));
 
     // 1) 경로(map) → Route 리스트
@@ -115,7 +152,7 @@ int main(){
     // 3) 방향 코드만
     SafeQueue<float> dir_queue;
     // 4) (선택) 통신 명령용, 로그용 큐
-    SafeQueue<int> cmd_queue;
+    SafeQueue<std::string> cmd_queue;
     SafeQueue<std::string> log_queue;
     //SafeQueue<int> dir_queue;
     SafeQueue<ImuData>    imu_queue;
@@ -126,69 +163,161 @@ int main(){
 
     // 6) Motor 큐
     SafeQueue<bool> arrive_queue;    //네비게이션 도착여부에 대한 bool값
-    // 통신 스레드: map_queue, cmd_queue, log_queue
-    std::thread t_comm(
+    
+    // 1) 통신 스레드 -> 1
+    std::thread t_comm =  start_thread_with_affinity(
+        1,
         comm_thread,
         std::ref(map_queue),
         std::ref(cmd_queue),
-        std::ref(log_queue));
+        std::ref(log_queue)
+    );
 
-    // GPS 읽기 스레드 : gps_queue
-    std::thread t_gps_reader(
+    // 2) GPS 읽기 스레드 -> 0
+    std::thread t_gps_reader =  start_thread_with_affinity(
+        0,
         gps_reader_thread,
         std::ref(gps_queue)
     );
 
-    // 통신 모듈에서 GPS 데이터를 서버로 전송하는 스레드 : gps_queue
-    std::thread t_gps_sender(
+    // 3) GPS 송신 스레드 -> 0 
+    std::thread t_gps_sender = start_thread_with_affinity(
+        0, 
         gps_sender_thread,
         std::ref(gps_queue)
     );
 
-    // 네비게이션 스레드
-    std::thread t_nav(
+    // 4) 네비게이션 스레드 -> 1
+    std::thread t_nav = start_thread_with_affinity(
+        1, 
         navigation_thread,
         std::ref(map_queue),
         std::ref(dir_queue)
     );
 
-    // Gyro 스레드 시작
-    std::thread t_imu(
+    // 5) IMU 스레드 -> 1
+    std::thread t_imu = start_thread_with_affinity(
+        1,
         imureader_thread,
         "/dev/ttyUSB0",
         115200u,
         std::ref(imu_queue)
     );
 
-    std::thread t_lidar{
-        lidar_thread,
-        std::ref(lidar_queue)
-    };
-
+    // 6) Motor Command  스레드 -> 1
+    std::thread t_mcomm = start_thread_with_affinity(
+        1,
+        std::ref(dir_queue),
+        cmd::ref(lidar_queue),
+        std::ref(imu_queue),
+        std::ref(cmd_queue)
+    )
     
-    std::thread t_motor{
+
+    // 7) LiDAR 스캔 프로듀서 -> 2
+    std::thread t_lidar_prod = start_thread_with_affinity(
+        2, 
+        lidar_producer
+    );
+
+    // 8) LiDAR near-point 컨슈머 -> 3
+    std::thread t_lidar_cons = start_thread_with_affinity(
+        3,
+        lidar_consumer,
+        std::ref(raw_scan_queue),
+        std::ref(lidar_queue)
+    );
+
+    // 9) 모터 스레드 -> 0
+    std::thread t_motor = start_thread_with_affinity(
+        0, 
         motor_thread,
         std::ref(dir_queue),
         std::ref(lidar_queue),
         std::ref(imu_queue)
-    };
+    );
 
-    //std::thread motor(motor_rotate_thread);
-
-    // running==false 될 때까지 대기
+    // 메인 루프
     while (running.load()) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
+
     g_serial.Write(cmd_stop1, sizeof(cmd_stop1) - 1);
-    // 종료
+
+    // 종료 대기
     t_comm.join();
     t_gps_reader.join();
     t_gps_sender.join();
     t_nav.join();
     t_imu.join();
-    t_lidar.join();
+    t_lidar_prod.join();
+    t_lidar_cons.join();
+    t_mcomm.join()l
     t_motor.join();
-    //motor.join();
+
+    // // 통신 스레드: map_queue, cmd_queue, log_queue
+    // std::thread t_comm(
+    //     comm_thread,
+    //     std::ref(map_queue),
+    //     std::ref(cmd_queue),
+    //     std::ref(log_queue));
+
+    // // GPS 읽기 스레드 : gps_queue
+    // std::thread t_gps_reader(
+    //     gps_reader_thread,
+    //     std::ref(gps_queue)
+    // );
+
+    // // 통신 모듈에서 GPS 데이터를 서버로 전송하는 스레드 : gps_queue
+    // std::thread t_gps_sender(
+    //     gps_sender_thread,
+    //     std::ref(gps_queue)
+    // );
+
+    // // 네비게이션 스레드
+    // std::thread t_nav(
+    //     navigation_thread,
+    //     std::ref(map_queue),
+    //     std::ref(dir_queue)
+    // );
+
+    // // Gyro 스레드 시작
+    // std::thread t_imu(
+    //     imureader_thread,
+    //     "/dev/ttyUSB0",
+    //     115200u,
+    //     std::ref(imu_queue)
+    // );
+
+    // std::thread t_lidar{
+    //     lidar_thread,
+    //     std::ref(lidar_queue)
+    // };
+
+    
+    // std::thread t_motor{
+    //     motor_thread,
+    //     std::ref(dir_queue),
+    //     std::ref(lidar_queue),
+    //     std::ref(imu_queue)
+    // };
+    
+    // //std::thread motor(motor_rotate_thread);
+
+    // // running==false 될 때까지 대기
+    // while (running.load()) {
+    //     std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    // }
+    // g_serial.Write(cmd_stop1, sizeof(cmd_stop1) - 1);
+    // // 종료
+    // t_comm.join();
+    // t_gps_reader.join();
+    // t_gps_sender.join();
+    // t_nav.join();
+    // t_imu.join();
+    // t_lidar.join();
+    // t_motor.join();
+    // //motor.join();
 
     return 0;
 }

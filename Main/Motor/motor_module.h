@@ -1,6 +1,6 @@
 #include "motorCtrl.h"
 // #include "../LiDAR/lidar_module.h"
-#include "../IMU/imu_module.h"
+//#include "../IMU/imu_module.h"
 #include "../SafeQueue.hpp"
 #include "../logger.h"
 #include <atomic>
@@ -11,6 +11,7 @@
 #include <atomic>
 #include <cmath>
 #include <sstream>
+#include <string>
 
 // 외부에서 선언된 전역 플래그
 extern int         LOG_LEVEL;
@@ -19,21 +20,10 @@ extern std::atomic<bool>    run_motor;
 using util::Logger;
 using util::LogLevel;
 
-// 임계거리 / 각도 범위는 필요에 따라 조정하세요
-constexpr float OBSTACLE_DISTANCE_THRESHOLD = 500.0f; // mm
-constexpr float OBSTACLE_ANGLE_LIMIT        = 60.0f;  // deg
-constexpr int   DEFAULT_PWM                 = 50;
-
 // 모듈 진입점
 
 void motor_thread(
-    SafeQueue<float>&    dir_queue,
-    SafeQueue<LaserPoint>& point_queue,
-    SafeQueue<ImuData>& imu_queue
+    SafeQueue<std::string>&    cmd_queue,
+    SafeQueue<LaserPoint> avoid_queue
 );
 
-void motor_test_thread(
-    SafeQueue<std::string>& cmd_queue
-);
-
-void motor_rotate_thread();

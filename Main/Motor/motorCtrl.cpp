@@ -1,6 +1,7 @@
 #include "motorCtrl.h"
 #define DISABLE_WIRINGPI_DELAY
 #include <wiringPi.h>
+#include <sstream>
 #define PI 3.1415926 
 
 #define L_RPWM 23   //1     왼쪽 아래서     4번째
@@ -331,16 +332,43 @@ void Motor::motor_delay(int time){
 #pragma endregion
 
 
-int Operation() {
-    Motor motor;
-    Lidar lidar;
-    lidar.scan_oneCycle();
-    const LaserPoint lsp = lidar.get_nearPoint();
-    if(lidar.get_nearPoint().angle<detectDegree && lidar.get_nearPoint().angle > -detectDegree && lidar.get_nearPoint().range < avoidDistance_trigger){
-        motor.curve_avoid(lidar.get_nearPoint().range, 40, lidar.get_nearPoint().angle);
-    }
-    delay_ms(2000);
+// int Operation() {
+//     Motor motor;
+//     Lidar lidar;
+//     lidar.scan_oneCycle();
+//     const LaserPoint lsp = lidar.get_nearPoint();
+//     if(lidar.get_nearPoint().angle<detectDegree && lidar.get_nearPoint().angle > -detectDegree && lidar.get_nearPoint().range < avoidDistance_trigger){
+//         motor.curve_avoid(lidar.get_nearPoint().range, 40, lidar.get_nearPoint().angle);
+//     }
+//     delay_ms(2000);
 
-    motor.stop();
-    return 0;
-}
+//     motor.stop();
+//     return 0;
+// }
+
+// int main(){
+//     Motor motor;
+//     Lidar lidar;
+//     Logger::instance().addFile("motor",  "motor_log", static_cast<LogLevel>(1));
+//     bool first =true;
+//     motor.stop();
+//     while(true){
+//         if(first){
+//             lidar.turnOn();
+//             first=false;
+//         }
+//         lidar.scan_oneCycle();
+//         LaserPoint scans = lidar.get_nearPoint();
+//         std::ostringstream msg;
+//         msg << "angle : " << scans.angle << ", range: "  << scans.range;
+//         Logger::instance().info("motor", msg.str());
+//         if(scans.range < 300.0f && scans.range != 0.0f){
+//             motor.stop();
+//             motor.curve_avoid(scans.range, 50, scans.angle);
+//             break;
+//         }
+//     }
+//     motor.motor_delay(100);
+//     motor.stop();
+//     lidar.turnOff();
+// }

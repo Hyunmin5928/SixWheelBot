@@ -4,7 +4,6 @@
 
     command에서는 mcmd_queue를 내보냄, Motor 쪽에서 mcmd_queue 값에 따라서 운전되도록 하면 됨
 */
-static CSerialPort   g_serial;
 
 void motor_thread(
     const std::string& port,

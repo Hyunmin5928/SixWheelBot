@@ -22,6 +22,7 @@
 #include "Command/command_module.h"
 #include "LiDAR/Lidar.h"
 #include "logger.h"
+#include "Vision/vision_module.h"
 
 // main.cpp 맨 위, includes 아래에 추가
 template<typename F, typename... Args>
@@ -236,6 +237,14 @@ int main(){
         std::ref(lidar_queue),
         std::ref(imu_queue)
     );
+      
+
+    //비전 스레드 추가
+    std::thread t_vision = start_thread_with_affinity(
+        0,
+        vision_thread,
+        std::ref(dir_queue)           
+    );
 
     // 메인 루프
     while (running.load()) {
@@ -252,8 +261,9 @@ int main(){
     t_imu.join();
     t_lidar_prod.join();
     t_lidar_cons.join();
-    t_mcomm.join()l
+    t_mcomm.join();
     t_motor.join();
+    t_vision.join();  
 
     // // 통신 스레드: map_queue, cmd_queue, log_queue
     // std::thread t_comm(
@@ -318,6 +328,8 @@ int main(){
     // t_lidar.join();
     // t_motor.join();
     // //motor.join();
+    //motor.join();
+    
 
     return 0;
 }

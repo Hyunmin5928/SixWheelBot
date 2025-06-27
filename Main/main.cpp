@@ -197,22 +197,13 @@ int main(){
     );
 
     // 5) IMU 스레드 -> 1
-    std::thread t_imu = start_thread_with_affinity(
-        1,
-        imureader_thread,
-        "/dev/ttyUSB0",
-        115200u,
-        std::ref(imu_queue)
-    );
-
-    // 6) Motor Command  스레드 -> 0
-    std::thread t_motor = start_thread_with_affinity(
-        0,
-        std::ref(dir_queue),
-        cmd::ref(lidar_queue),
-        std::ref(imu_queue),
-        std::ref(mcmd_queue)
-    )
+    // std::thread t_imu = start_thread_with_affinity(
+    //     1,
+    //     imureader_thread,
+    //     "/dev/ttyUSB0",
+    //     115200u,
+    //     std::ref(imu_queue)
+    // );
     
 
     // 7) LiDAR 스캔 프로듀서 -> 2
@@ -233,12 +224,9 @@ int main(){
     std::thread t_motor = start_thread_with_affinity(
         0,
         std::ref(dir_queue),
-        cmd::ref(lidar_queue),
-        std::ref(imu_queue),
+        std::ref(lidar_queue),
         std::ref(mcmd_queue)
-    )
-    
-      
+    ) 
 
     //비전 스레드 추가
     std::thread t_vision = start_thread_with_affinity(
@@ -260,7 +248,7 @@ int main(){
     t_gps_reader.join();
     t_gps_sender.join();
     t_nav.join();
-    t_imu.join();
+    // t_imu.join();
     t_lidar_prod.join();
     t_lidar_cons.join();
     t_motor.join();

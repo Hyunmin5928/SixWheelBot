@@ -373,3 +373,4 @@ build/
 Web/web_project/*.db
 app
 config.json
+server.pid

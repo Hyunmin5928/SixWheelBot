@@ -1,4 +1,5 @@
 #include "comm_module.h"
+#include <pthread.h>
 
 void send_and_wait_ack(int sock, 
                        const std::string& data,
@@ -39,6 +40,7 @@ void send_and_wait_ack(int sock,
 }
 
 void log_sender_thread(SafeQueue<std::string>& log_q) {
+    pthread_setname_np(pthread_self(), "[THREAD]COMM_LOGD");
     sockaddr_in srv{};
     srv.sin_family = AF_INET;
     srv.sin_port   = htons(SERVER_PORT);
@@ -61,6 +63,7 @@ void log_sender_thread(SafeQueue<std::string>& log_q) {
 }
 
 void cmd_receiver_thread(SafeQueue<int>& cmd_q) {
+    pthread_setname_np(pthread_self(), "[THREAD]COMM_CMDD");
     char buf[4096];
     sockaddr_in from{};
     socklen_t   fromlen = sizeof(from);
@@ -102,6 +105,7 @@ void comm_thread(
     SafeQueue<int>&                                        cmd_q,
     SafeQueue<std::string>&                                log_q)
 {
+    pthread_setname_np(pthread_self(), "[THREAD]COMM_D");
     // 1) 소켓 생성·바인드
     sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
     sockaddr_in cli{}, srv{};
@@ -170,8 +174,8 @@ void comm_thread(
             // log_msg("INFO", "Map data received and ACK sent");
             Logger::instance().info("comm", "[comm_thread]Map data received and ACK sent");
             run_imu.store(true);
-            run_gps.store(true);
             run_lidar.store(true);
+            run_gps.store(true);
             break;
         }
         // CPU 살짝 쉬어주기
@@ -201,6 +205,7 @@ void comm_thread(
 
 void gps_sender_thread(SafeQueue<std::pair<double,double>>& gps_q) {
     // 서버 주소 셋업
+    pthread_setname_np(pthread_self(), "[THREAD]COMM_SEND");
     sockaddr_in srv{};
     srv.sin_family = AF_INET;
     srv.sin_port   = htons(SERVER_PORT);

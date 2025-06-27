@@ -19,6 +19,20 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(requestIp.mw());
 
+const liveCoord = {};  // { orderId: { lat, lng } }
+
+const coordUdpSock = dgram.createSocket('udp4');
+coordUdpSock.on('message', (msg) => {
+  try {
+    const data = JSON.parse(msg.toString());
+    // orderId 같이 포함되면 좋지만 없으면 마지막 값 하나만 유지
+    liveCoord.latest = { lat: data.lat, lng: data.lng };
+  } catch (e) {
+    console.error('좌표 파싱 에러:', e);
+  }
+});
+coordUdpSock.bind(6002); // Python이 보내는 포트
+
 // ── SSE: 좌표 스트리밍 endpoint ───────────────────────
 app.get('/api/v1/orders/:id/coords/stream', (req, res) => {
   res.set({
@@ -29,7 +43,9 @@ app.get('/api/v1/orders/:id/coords/stream', (req, res) => {
   res.flushHeaders();
   // 예제: 2초마다 테스트 좌표
   const timer = setInterval(() => {
-    res.write(`data: {"lat":37.339775,"lng":127.108942}\n\n`);
+    if (liveCoord.latest) {
+      res.write(`data: ${JSON.stringify(liveCoord.latest)}\n\n`);
+    }
   }, 2000);
   req.on('close', () => clearInterval(timer));
 });
@@ -40,21 +56,27 @@ app.get('/api/v1/returns/:id/coords/stream', (req, res) => {
     'Connection': 'keep-alive'
   });
   res.flushHeaders();
-
-  const points = [
-    { lat: 37.566826,  lng: 126.9786567 },   // 광화문
-    { lat: 37.567400,  lng: 126.9791000 },   // 북서쪽
-    { lat: 37.566300,  lng: 126.9798000 },   // 남서쪽
-    { lat: 37.566900,  lng: 126.9778000 },   // 동쪽
-    { lat: 37.567600,  lng: 126.9783000 },   // 북동쪽
-  ];
-  let idx = 0;
-
+  // 예제: 2초마다 테스트 좌표
   const timer = setInterval(() => {
-    const { lat, lng } = points[idx];
-    res.write(`data: {"lat":${lat},"lng":${lng}}\n\n`);
-    idx = (idx + 1) % points.length;         // 0→4 순환
-  }, 1000);
+    if (liveCoord.latest) {
+      res.write(`data: ${JSON.stringify(liveCoord.latest)}\n\n`);
+    }
+  }, 2000);
+
+  // const points = [
+  //   { lat: 37.566826,  lng: 126.9786567 },   // 광화문
+  //   { lat: 37.567400,  lng: 126.9791000 },   // 북서쪽
+  //   { lat: 37.566300,  lng: 126.9798000 },   // 남서쪽
+  //   { lat: 37.566900,  lng: 126.9778000 },   // 동쪽
+  //   { lat: 37.567600,  lng: 126.9783000 },   // 북동쪽
+  // ];
+  // let idx = 0;
+
+  // const timer = setInterval(() => {
+  //   const { lat, lng } = points[idx];
+  //   res.write(`data: {"lat":${lat},"lng":${lng}}\n\n`);
+  //   idx = (idx + 1) % points.length;         // 0→4 순환
+  // }, 1000);
 
   req.on('close', () => clearInterval(timer));
 });

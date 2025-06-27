@@ -43,6 +43,9 @@ float iAccPitch = 0, prevErrPitch = 0;
 // IMU 타이밍
 unsigned long lastIMU = 0;
 
+// 플래그
+bool imuEnabled = false;
+
 void setup() {
   Serial.begin(115200);
 
@@ -67,44 +70,45 @@ void setup() {
 }
 
 void loop() {
-  // IMU 샘플링 주기 체크
+  // --- 1) RPi로부터 “start”/“stop” 명령 수신 및 플래그 제어 ---
+  if (Serial.available()) {
+    String cmd = Serial.readStringUntil('\n');
+    cmd.trim();
+    if      (cmd == "start") imuEnabled = true;
+    else if (cmd == "stop")  imuEnabled = false;
+  }
+  // imuEnabled가 false면 루프 전체 스킵
+  if (!imuEnabled) return;
+
+  // --- 2) IMU 샘플링 주기 체크 ---
   unsigned long now = millis();
   if (now - lastIMU < IMU_INTERVAL_MS) return;
   lastIMU = now;
 
-  // Euler 읽기 & 영점 보정
+  // --- 3) Euler 읽기 & 영점 보정 ---
   imu::Vector<3> e = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
   float rawYaw   = e.x();
   float rawRoll  = e.y();
   float rawPitch = e.z();
 
-  // 보정값 적용
   float corrRoll  = rawRoll  - offRoll;
   float corrPitch = rawPitch - offPitch;
   float corrYaw   = rawYaw;  // yaw는 영점 보정 없음
 
-  // Dead-band 적용 (roll, pitch만)
+  // Dead-band 적용
   if (fabs(corrRoll)  < THRESHOLD_ROLL_DEG)  corrRoll  = 0;
   if (fabs(corrPitch) < THRESHOLD_PITCH_DEG) corrPitch = 0;
 
-  // PID 제어 (서보 동작용) 
+  // --- 4) PID 제어 & 서보 업데이트 ---
   float uRoll  = pidControl(corrRoll,  prevErrRoll,  iAccRoll);
   float uPitch = pidControl(corrPitch, prevErrPitch, iAccPitch);
   updateServo(servoRoll,  -uRoll);
   updateServo(servoPitch, uPitch);
 
-  // 시리얼 출력: 원데이터와 보정된 값
-  Serial.print("Raw Euler [deg]    -> "); 
-    Serial.print("Roll: ");  Serial.print(rawRoll,  2);
-    Serial.print("  Pitch: "); Serial.print(rawPitch, 2);
-    Serial.print("  Yaw: ");   Serial.println(rawYaw,   2);
-
-  Serial.print("Corrected Euler -> ");
-    Serial.print("Roll: ");  Serial.print(corrRoll,  2);
-    Serial.print("  Pitch: "); Serial.print(corrPitch, 2);
-    Serial.print("  Yaw: ");   Serial.println(corrYaw,   2);
-
-  Serial.println("---------------------------------");
+  // --- 5) 시리얼 출력 (원데이터 + 보정값) ---
+  Serial.print("ROLL = ");   Serial.print(rawRoll,  2);
+  Serial.print(", PITCH = "); Serial.print(rawPitch, 2);
+  Serial.print(", YAW = ");   Serial.println(rawYaw,   2);
 
   delay(1000);
 }

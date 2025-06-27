@@ -1,5 +1,5 @@
 {
-    "cmake.sourceDirectory": "/home/hyunmin/SixWheelBot/mjpg-streamer/mjpg-streamer-experimental",
+    "cmake.sourceDirectory": "/home/hyunmin/SixWheelBot/Main/LiDAR/YDLidar-SDK/core/network",
     "files.associations": {
         "array": "cpp",
         "atomic": "cpp",

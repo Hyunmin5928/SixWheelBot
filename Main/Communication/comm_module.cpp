@@ -176,6 +176,7 @@ void comm_thread(
             // run_imu.store(true);
             run_lidar.store(true);
             run_gps.store(true);
+            run_motor.store(true);
             break;
         }
         // CPU 살짝 쉬어주기

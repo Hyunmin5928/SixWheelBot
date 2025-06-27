@@ -226,7 +226,7 @@ int main(){
         std::ref(dir_queue),
         std::ref(lidar_queue),
         std::ref(mcmd_queue)
-    ) 
+    );
 
     //비전 스레드 추가
     std::thread t_vision = start_thread_with_affinity(

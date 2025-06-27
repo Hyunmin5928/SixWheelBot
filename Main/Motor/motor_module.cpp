@@ -26,8 +26,10 @@ void motor_thread(
 
     while(run_motor.load()){    
         
-        if(g_serial.ReadLine(linebuf, linebuf.size())=="cmd_done\n"){
-            cmd_active=false;
+        if(g_serial.ReadLine(linebuf, sizeof(linebuf))){
+            if(linebuf == "cmd_done\n"){
+                cmd_active=false;
+            }
         } //serial.readline( ) == "행동종료문구" >> cmd_active=false;
         
         if (point_queue.ConsumeSync(pnt) && !cmd_active) {

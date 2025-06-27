@@ -165,7 +165,7 @@ int main(){
         navigation_thread,
         std::ref(map_queue),
         std::ref(dir_queue)
-    );    
+
 
     // 5) LiDAR 스캔 프로듀서 -> 2
     std::thread t_lidar_prod = start_thread_with_affinity(

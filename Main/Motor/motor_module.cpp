@@ -9,7 +9,7 @@ static CSerialPort   g_serial;
 void motor_thread(
     const std::string& port,
     unsigned int baud,
-    SafeQueue<float> dir_queue,
+    SafeQueue<float>& dir_queue,
     SafeQueue<LaserPoint>& point_queue
 ){
     pthread_setname_np(pthread_self(),"[THREAD] command_D");

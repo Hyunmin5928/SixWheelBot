@@ -32,6 +32,6 @@ using util::LogLevel;
 void motor_thread(
     const std::string& port,
     unsigned int baud,
-    SafeQueue<float> dir_queue,
+    SafeQueue<float>& dir_queue,
     SafeQueue<LaserPoint>& point_queue
 );

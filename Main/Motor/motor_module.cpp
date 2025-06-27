@@ -6,7 +6,8 @@
 void motor_thread(
     const std::string& port,
     unsigned int baud,
-    SafeQueue<float>& dir_queue,
+    SafeQueue<float>& dir_queue_g,
+    SafeQueue<float>& dir_queue_v,
     SafeQueue<LaserPoint>& point_queue
 ){
     pthread_setname_np(pthread_self(),"[THREAD] command_D");
@@ -18,7 +19,7 @@ void motor_thread(
     }
     Logger::instance().info("motor","[MOTOR] Command Thread start");
     std::string cmd="";
-    float dir;
+    float dir_g, dir_v;
     LaserPoint pnt;
     char linebuf[128];
 
@@ -50,10 +51,10 @@ void motor_thread(
                 //     >> 인도 폭 인식하여 너무 끝단에 가지 않는 방향으로 조정하여 회피하도록 해야함
             }
         }
-    
         // 2순위 네비게이션 방향 처리
-        if (dir_queue.ConsumeSync(dir)){
-            if(dir==0.0f)
+        else if (dir_queue_g.ConsumeSync(dir_g) && 
+                !point_queue.ConsumeSync(pnt)){
+            if(dir_g==0.0f)
             {
                 Logger::instance().info("motor", "[MOTOR] send straight");
                 cmd="straight\n";
@@ -61,15 +62,27 @@ void motor_thread(
             else
             {
                 cmd="rotate ";
-                std::string msg = "[MOTOR] send rotate ";
-                msg+=dir;
+                std::string msg = "[MOTOR] g send rotate ";
+                msg+=dir_g;
                 Logger::instance().info("motor", msg);
-                cmd+=std::to_string(dir)+"\n";
+                cmd+=std::to_string(dir_g)+"\n";
             }
             g_serial.Write(cmd.c_str(), sizeof(cmd)-1);
         }
+
+        // 3순위 비전 방향 처리
+        else if(dir_queue_v.ConsumeSync(dir_v) &&
+                !point_queue.ConsumeSync(pnt)){
+            std::string msg = "[MOTOR] v send rotate ";
+            msg+=dir_v;
+            Logger::instance().info("motor", msg);
+            cmd="rotate ";
+            cmd+=std::to_string(dir_v)+"\n";
+            g_serial.Write(cmd.c_str(),sizeof(cmd)-1);
+        }
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
-    dir_queue.Finish();
+    dir_queue_g.Finish();
+    dir_queue_v.Finish();
     point_queue.Finish();
 }

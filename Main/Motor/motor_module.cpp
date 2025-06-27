@@ -44,7 +44,7 @@ void motor_thread(
                 Logger::instance().warn("motor", oss.str());
                 cmd="avoid ";
                 cmd+=std::to_string(dist)+" "+std::to_string(angle)+"\n";
-                g_serial.Write(cmd.c_str(), sizeof(cmd)-1);
+                g_serial.Write(cmd.c_str(), cmd.size());
                 continue; // 장애물 처리 후 다음 루프
                 // 만약 회피 기동 중에 또 다른 장애물이 발견될 경우..? 이에 대한 대처가 존재하지 않음.. 단일 장애물 기준
                 // 장애물 회피할 때 인도 끝자락에 있을 경우 도로로 떨어질 가능성 있음 
@@ -67,7 +67,7 @@ void motor_thread(
                 Logger::instance().info("motor", msg);
                 cmd+=std::to_string(dir_g)+"\n";
             }
-            g_serial.Write(cmd.c_str(), sizeof(cmd)-1);
+            g_serial.Write(cmd.c_str(), cmd.size());
         }
 
         // 3순위 비전 방향 처리
@@ -78,7 +78,7 @@ void motor_thread(
             Logger::instance().info("motor", msg);
             cmd="rotate ";
             cmd+=std::to_string(dir_v)+"\n";
-            g_serial.Write(cmd.c_str(),sizeof(cmd)-1);
+            g_serial.Write(cmd.c_str(),cmd.size());
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }

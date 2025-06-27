@@ -15,7 +15,7 @@
 extern std::string          COMMAND_LOG_FILE;
 extern int                  LOG_LEVEL;
 extern std::atomic<bool>    running;
-extern std::atomic<bool>    run_command;
+extern std::atomic<bool>    run_motor;
 
 
 // 시리얼 포트 객체 (전역)

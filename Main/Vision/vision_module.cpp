@@ -1,6 +1,5 @@
 #include "vision_module.h"
 
-
 // ---- 외부 전역 & 상수 ------------------------------------------------
 // extern std::atomic<bool> running;       // 메인에서 true/false 로 전체 종료 제어
 // extern int               SERVER_PORT;   // 기본 9999, 필요 시 변경
@@ -78,7 +77,7 @@ void vision_thread(SafeQueue<float>& dir_queue)
         sockaddr_in srv{};                           // 서버 주소 구조체
         srv.sin_family = AF_INET;
         srv.sin_port   = htons(static_cast<uint16_t>(AI_SERVER_PORT)); // 포트 네트워크 바이트오더
-        if (::inet_pton(AF_INET, AI_SERVER, &srv.sin_addr) != 1) {  // 고정 IP 사용
+        if (::inet_pton(AF_INET, AI_SERVER_IP.c_str(), &srv.sin_addr) != 1) {  // 고정 IP 사용
             std::cerr << "[vision] invalid server IP constant\n";
             ::close(sock);
             std::this_thread::sleep_for(retry_delay);
@@ -122,4 +121,5 @@ void vision_thread(SafeQueue<float>& dir_queue)
         if (elapsed < loop_delay)
             std::this_thread::sleep_for(loop_delay - elapsed);        // 20 FPS 유지
     }
+    dir_queue.Finish();
 }

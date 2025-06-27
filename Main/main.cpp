@@ -49,7 +49,8 @@ int         SERVER_PORT;
 std::string CLIENT_IP;
 int         CLIENT_PORT;
 std::string ALLOW_IP;
-std::string AI_SERVER;
+std::string AI_SERVER_IP;
+int         AI_SERVER_PORT;
 
 int         LOG_LEVEL;
 std::string CLI_LOG_FILE;
@@ -67,7 +68,7 @@ std::atomic<bool> running{true};
 std::atomic<bool> run_lidar{false};
 std::atomic<bool> run_gps{false};
 std::atomic<bool> run_motor{false};
-std::atomic<bool> run_vision(false);
+std::atomic<bool> run_vision{false};
 
 // 기존 SafeQueue<LaserPoint> lidar_queue 외에…
 SafeQueue<std::vector<LaserPoint>> raw_scan_queue;
@@ -80,7 +81,7 @@ void handle_sigint(int) {
     run_gps.store(false);
     running.store(false);
     run_motor.store(false);
-    run_command.store(false);
+    run_vision.store(false);
 }
 
 void load_config(const std::string& path) {

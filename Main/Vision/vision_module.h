@@ -1,7 +1,8 @@
 #pragma once
 #include "../SafeQueue.hpp"
 #include "../logger.h"
-#include <opencv2/opencv.hpp>            // OpenCV 핵심 헤더 (영상 캡처·인코딩)
+#include <fcntl.h>
+#include <opencv2/opencv.hpp>           // OpenCV 핵심 헤더 (영상 캡처·인코딩)
 #include <arpa/inet.h>                  // htonl, htons, inet_pton 등 IP/포트 변환
 #include <sys/socket.h>                 // socket, connect, send, recv
 #include <unistd.h>                     // close
@@ -19,7 +20,7 @@ extern std::string          LIDAR_LOG_FILE;
 extern int                  LOG_LEVEL;
 extern std::atomic<bool>    running;
 extern std::atomic<bool>    run_vision;
-extern std::string          AI_SERVER_IP
+extern std::string          AI_SERVER_IP;
 extern int                  AI_SERVER_PORT;
 
 using util::Logger;                             

@@ -22,7 +22,7 @@ void motor_thread(
     LaserPoint pnt;
     char linebuf[128];
 
-    while(run_command.load()){    
+    while(run_motor.load()){    
         if (point_queue.ConsumeSync(pnt)) {
             //장애물 위치(각도)와 거리 파악
             float dist  = pnt.range;
@@ -42,7 +42,7 @@ void motor_thread(
                 << "cm, angle=" << std::to_string(angle);
                 Logger::instance().warn("motor", oss.str());
                 cmd="avoid ";
-                cmd+=to_string(dist)+" "+to_string(angle)+"\n";
+                cmd+=std::to_string(dist)+" "+std::to_string(angle)+"\n";
                 g_serial.Write(cmd.c_str(), sizeof(cmd)-1);
                 continue; // 장애물 처리 후 다음 루프
                 // 만약 회피 기동 중에 또 다른 장애물이 발견될 경우..? 이에 대한 대처가 존재하지 않음.. 단일 장애물 기준

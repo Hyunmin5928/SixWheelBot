@@ -1,0 +1,45 @@
+{
+  
+  "SERVER":{  
+    "_comment": "실제 라즈베리파이 서버 주소", 
+    "IP"      : "192.168.0.191",
+    "PORT"    : 5000
+  },
+  "CLIENT":{
+    "_comment": "실제 라즈베리파이 클라이언트 주소",
+    "IP"      :"192.168.0.208",
+    "PORT"    : 5001
+  },
+  "NETWORK":{
+    "_comment"   : "UDP 통신 설정",
+    "ALLOW_IP"   : "0.0.0.0",
+    "ACK_TIMEOUT": 1.0,
+    "RETRY_LIMIT": 5
+  },
+  "LOG":{
+    "_comment"       : "로그 모드, 파일 위치 지정",
+    "LOG_MODE"       : "debug",
+    "SERVER_LOG_FILE": "log/srv_comm_log.txt",
+    "CLIENT_LOG_FILE": "log/cli_comm_log.txt"
+  },
+  "DB":{
+    "_comment"      : "DB 파일 위치",
+    "ROBOT_DB_FILE" : "log/robot_log.db"
+  },
+  "MAP":{
+    "_comment" : "이동 경로 파일 위치",
+    "MAP_FILE" : "../GPS/map_data.txt"
+  },
+  "WIN_LOG":{
+    "_comment"       : "WINDOW 환경",
+    "LOG_MODE"       : "debug",
+    "SERVER_LOG_FILE": "log\\srv_comm_log.txt",
+    "CLIENT_LOG_FILE": "log\\cli_comm_log.txt"
+  },
+  "WIN_DB":{
+    "ROBOT_DB_FILE" : "log\\robot_log.db"
+  },
+  "WIN_MAP":{
+    "MAP_FILE" : "..\\GPS\\map_data.txt"
+  }
+}

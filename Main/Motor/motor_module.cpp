@@ -28,7 +28,6 @@ void motor_thread(
     bool cmd_active = false;
 
     while(run_motor.load()){    
-        
         if(g_serial.ReadLine(linebuf, sizeof(linebuf))){
             if(linebuf == "cmd_done\n"){
                 cmd_active=false;

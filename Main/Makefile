@@ -20,7 +20,7 @@ CXXFLAGS := -std=c++17 -Wall -pthread \
             -I./GPS/lib          \
             -I./LiDAR           \
             -I./Motor           \
-            $(PKG_OCV_CFLAGS)   
+            $(PKG_OCV_CFLAGS)
 
 LDFLAGS  := $(SDK_LIB) $(PKG_OCV_LIBS) -pthread -lwiringPi
 #LIBS := $(SDK_LIB) $(PKG_OCV_LIBS) -lpthread -lwiringPi
@@ -34,7 +34,6 @@ CPP_SRCS := main.cpp \
             LiDAR/lidar_module.cpp \
             Motor/lib/SerialPort.cpp \
             Motor/motor_module.cpp  \
-
             logger.cpp \
             Vision/vision_module.cpp
 # C_SRCS   := logger.c

@@ -1,8 +1,6 @@
 #include "motor_module.h"
 /*
     command key :   straight stop rotate avoid backoff 
-
-    command에서는 mcmd_queue를 내보냄, Motor 쪽에서 mcmd_queue 값에 따라서 운전되도록 하면 됨
 */
 
 void motor_thread(
@@ -25,12 +23,6 @@ void motor_thread(
     char linebuf[128];
 
     while(run_command.load()){    
-        // if(!imu_queue.ConsumeSync(imu)){
-        //     Logger::instance().info("command","[command_module] Imu data didn't arrive");
-        // }else{
-        //     //imu.yaw가 motor.curDgr로 업데이트 되어야함
-        // }
-
         if (point_queue.ConsumeSync(pnt)) {
             //장애물 위치(각도)와 거리 파악
             float dist  = pnt.range;
@@ -49,8 +41,9 @@ void motor_thread(
                 oss << "[MOTOR] Obstacle detected: dist="  << std::to_string(dist)
                 << "cm, angle=" << std::to_string(angle);
                 Logger::instance().warn("motor", oss.str());
-                cmd="avoid";
-                g_serial.Write(cmd.c_str(), sizeof(cmd));
+                cmd="avoid ";
+                cmd+=to_string(dist)+" "+to_string(angle)+"\n";
+                g_serial.Write(cmd.c_str(), sizeof(cmd)-1);
                 continue; // 장애물 처리 후 다음 루프
                 // 만약 회피 기동 중에 또 다른 장애물이 발견될 경우..? 이에 대한 대처가 존재하지 않음.. 단일 장애물 기준
                 // 장애물 회피할 때 인도 끝자락에 있을 경우 도로로 떨어질 가능성 있음 
@@ -63,16 +56,17 @@ void motor_thread(
             if(dir==0.0f)
             {
                 Logger::instance().info("motor", "[MOTOR] send straight");
-                cmd="straight";
+                cmd="straight\n";
             }
             else
             {
+                cmd="rotate ";
                 std::string msg = "[MOTOR] send rotate ";
                 msg+=dir;
                 Logger::instance().info("motor", msg);
-                cmd=std::to_string(dir);
+                cmd+=std::to_string(dir)+"\n";
             }
-            g_serial.Write(cmd.c_str(), sizeof(cmd));
+            g_serial.Write(cmd.c_str(), sizeof(cmd)-1);
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }

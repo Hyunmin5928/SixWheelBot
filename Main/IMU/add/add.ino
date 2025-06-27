@@ -4,6 +4,7 @@
 #include <utility/imumaths.h>
 #include <Servo.h>
 #include <SoftwareSerial.h>
+#include <WString.h>
 
 /*==============================================================================
  1) 설정 파라미터
@@ -62,6 +63,7 @@ const float ANGLE_TOLERANCE = 2.0f;
 
 void set_motor_on();
 void set_motor_off();
+void set_pwm_zero();
 void driveStraight();
 void driveStop();
 void driveBack();
@@ -117,13 +119,17 @@ void set_motor_off(){
   digitalWrite(R_R_EN_PIN, LOW);
 }
 
-// 전진
-void driveStraight() {
-  set_motor_on();
+void set_pwm_zero(){
   analogWrite(L_L_PWM_PIN, 0);
   analogWrite(L_R_PWM_PIN, 0);
   analogWrite(R_L_PWM_PIN, 0);
   analogWrite(R_R_PWM_PIN, 0);
+}
+
+// 전진
+void driveStraight() {
+  set_motor_on();
+  set_pwm_zero();
   analogWrite(L_L_PWM_PIN, 0);
   analogWrite(L_R_PWM_PIN, DEFAULT_PWM);
   analogWrite(R_L_PWM_PIN, DEFAULT_PWM);
@@ -133,10 +139,7 @@ void driveStraight() {
 
 // 정지
 void driveStop() {
-  analogWrite(L_L_PWM_PIN, 0);
-  analogWrite(L_R_PWM_PIN, 0);
-  analogWrite(R_L_PWM_PIN, 0);
-  analogWrite(R_R_PWM_PIN, 0);
+  set_pwm_zero();
   set_motor_off();
   Serial.println(">> stop");
 }
@@ -144,10 +147,7 @@ void driveStop() {
 // 후진
 void driveBack() {
   set_motor_on();
-  analogWrite(L_L_PWM_PIN, 0);
-  analogWrite(L_R_PWM_PIN, 0);
-  analogWrite(R_L_PWM_PIN, 0);
-  analogWrite(R_R_PWM_PIN, 0);
+  set_pwm_zero();
   analogWrite(L_L_PWM_PIN, DEFAULT_PWM);
   analogWrite(L_R_PWM_PIN, 0);
   analogWrite(R_L_PWM_PIN, 0);
@@ -155,44 +155,41 @@ void driveBack() {
   Serial.println(">> back");
 }
 
-// 회전: 현재 yaw와 목표 yaw 비교하며 회전
-// void rotateToAngle(float targetAngle) {
-//   Serial.print(">> rotate to ");
-//   Serial.println(targetAngle);
-//   set_motor_on();
-//   while (true) {
-//     imu::Vector<3> e = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
-//     float currYaw = e.x();  // 0~360 범위
-
-//     // 오차 계산 (−180~180)
-//     float err = targetAngle - currYaw;
-//     if (err > 180)  err -= 360;
-//     if (err < -180) err += 360;
-
-//     // 목표 도달 시 정지
-//     if (fabs(err) < ANGLE_TOLERANCE) {
-//       driveStop();
-//       Serial.println(">> reached");
-//       break;
-//     }
-
-//     // 회전 방향에 따라 모터 반대회전
-//     if (err > 0) {
-//       // 오른쪽 회전: 왼쪽 전진, 오른쪽 후진
-//       analogWrite(L_L_PWM_PIN, DEFAULT_PWM);
-//       analogWrite(L_R_PWM_PIN, 0);
-//       analogWrite(R_L_PWM_PIN, 0);
-//       analogWrite(R_R_PWM_PIN, DEFAULT_PWM);
-//     } else {
-//       // 왼쪽 회전: 왼쪽 후진, 오른쪽 전진
-//       analogWrite(L_L_PWM_PIN, 0);
-//       analogWrite(L_R_PWM_PIN, DEFAULT_PWM);
-//       analogWrite(R_L_PWM_PIN, DEFAULT_PWM);
-//       analogWrite(R_R_PWM_PIN, 0);
-//     }
-//     delay(20);  // 짧게 대기
-//   }
-// }
+//  회전: 현재 yaw와 목표 yaw 비교하며 회전
+ void rotateToAngle(float targetAngle) {
+   Serial.print(">> rotate to ");
+   Serial.println(targetAngle);
+   set_motor_on();
+   while (true) {
+     imu::Vector<3> e = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
+     float currYaw = e.x();  // 0~360 범위
+     // 오차 계산 (−180~180)
+     float err = targetAngle - currYaw;
+     if (err > 180)  err -= 360;
+     if (err < -180) err += 360;
+     // 목표 도달 시 정지
+     if (fabs(err) < ANGLE_TOLERANCE) {
+       driveStop();
+       Serial.println(">> reached");
+       break;
+     }
+     // 회전 방향에 따라 모터 반대회전
+     if (err > 0) {
+       // 오른쪽 회전: 왼쪽 전진, 오른쪽 후진
+       analogWrite(L_L_PWM_PIN, DEFAULT_PWM);
+       analogWrite(L_R_PWM_PIN, 0);
+       analogWrite(R_L_PWM_PIN, 0);
+       analogWrite(R_R_PWM_PIN, DEFAULT_PWM);
+     } else {
+       // 왼쪽 회전: 왼쪽 후진, 오른쪽 전진
+       analogWrite(L_L_PWM_PIN, 0);
+       analogWrite(L_R_PWM_PIN, DEFAULT_PWM);
+       analogWrite(R_L_PWM_PIN, DEFAULT_PWM);
+       analogWrite(R_R_PWM_PIN, 0);
+     }
+     delay(20);  // 짧게 대기
+   }
+ }
 
 void calibrateZero() {
   const int N = 50;
@@ -240,6 +237,25 @@ void loop(){
     // else if (cmd == "stopIMU")  { imuEnabled = false; }
     else {
       // avoid 또는 angle string으로 구별
+      // rotate <float> or avoid <float>형태 
+      // cmd에서 rotate인지 avoid인지 구별 우선
+      String sep = Serial.readStringUntil(' ');
+      String info = cmd.substring(sep.length() + 1); 
+      if(sep == "rotate")
+      {
+        //  rotate 뒤에 있는 숫자 읽기
+        targetAngle = info.r
+      }
+      else if (sep=="avoid")
+      {
+        //  avoid 뒤에 있는 숫자 읽기
+        //  1) 라이다에서 감지된 장애물 각도 + 거리 가져오기
+        //  2) 장애물 반대쪽 방향으로 각도만큼 rotate하기
+        //  3) n초 straight하기
+        //  4) 장애물 피하기 위해 튼 각도 *-1.0f만큼 rotate하기
+        //  5) 종료 >> gps dir 따르기
+      }
+
       float a = cmd.toFloat();
       if (cmd=="0" || a!=0.0f){
         targetAngle = a;       // 회전 모드 진입

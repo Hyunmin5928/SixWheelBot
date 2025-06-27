@@ -13,10 +13,13 @@ void motor_thread(
     pthread_setname_np(pthread_self(),"[THREAD] command_D");
     if (!g_serial.Open(port.c_str(), baud)) {
         std::ostringstream oss;
-        oss << "[IMU] Failed to open " << port << "@" << baud;
-        Logger::instance().error("imu", oss.str());
+        oss << "[motor] Failed to open " << port << "@" << baud;
+        Logger::instance().error("motor", oss.str());
         running.store(false);
     }
+    std::ostringstream oss;
+    oss << "[motor] Success to open " << port << "@" << baud;
+    Logger::instance().info("motor", oss.str());
     Logger::instance().info("motor","[MOTOR] Command Thread start");
     std::string cmd="";
     float dir_g, dir_v;

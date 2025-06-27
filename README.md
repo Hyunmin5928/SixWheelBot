@@ -5,6 +5,8 @@
 
 ## 📁 SixWheelBot 디렉토리 구조
 
+```plaintext
+
 SixWheelBot/
 ├── AI_Server/              # AI 모델 서버 통신 모듈
 ├── Config/                 # 설정 파일
@@ -20,3 +22,4 @@ SixWheelBot/
 └── Web/                    # 웹 서버 및 배달 로봇 통신 모듈
 │   ├── web_project         # Node.js + react 기반 웹 서버
 └───└── serer.py            # 웹 서버 <> 배달 로봇 통신 모듈
+```

@@ -253,6 +253,8 @@ void loop(){
       {
         //  rotate 뒤에 있는 숫자 읽기
         targetAngle=info.toFloat();
+        rotateToAngle(targetAngle);
+        Serial.println("cmd_done");
       }
       else if (sep=="avoid")
       {
@@ -289,7 +291,7 @@ void loop(){
         rotateToAngle(token[0].toFloat()*(-1.0f));
         Serial.println("회피 이전 각도로 회복");
         //  5) 종료 >> gps dir 따르기
-        
+        Serial.println("cmd_done");
       }
     }
   }

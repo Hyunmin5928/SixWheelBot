@@ -16,12 +16,12 @@
 using util::Logger;
 using util::LogLevel;
 
-// IMU에서 뽑아낼 데이터 포맷
-struct ImuData {
-  double roll;
-  double pitch;
-  double yaw;
-};
+// // IMU에서 뽑아낼 데이터 포맷
+// struct ImuData {
+//   double roll;
+//   double pitch;
+//   double yaw;
+// };
 
 //------------------------------------------------------------------------------
 // 전역 상태

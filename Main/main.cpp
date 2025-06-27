@@ -16,10 +16,8 @@
 #include "SafeQueue.hpp"
 #include "Communication/comm_module.h"
 #include "GPS/gps_module.h"
-#include "IMU/imu_module.h"
 #include "Motor/motor_module.h"
 #include "LiDAR/lidar_module.h"
-#include "Command/command_module.h"
 #include "LiDAR/Lidar.h"
 #include "logger.h"
 
@@ -68,6 +66,7 @@ std::string LIDAR_LOG_FILE;
 std::string MOTOR_LOG_FILE;
 std::string IMU_LOG_FILE;
 std::string VISION_LOG_FILE;
+std::string COMMAND_LOG_FILE;
 
 int         RETRY_LIMIT;
 double      ACK_TIMEOUT;
@@ -142,7 +141,7 @@ int main(){
     Logger::instance().addFile("motor",  MOTOR_LOG_FILE, static_cast<LogLevel>(LOG_LEVEL));
     Logger::instance().addFile("imu",    IMU_LOG_FILE,   static_cast<LogLevel>(LOG_LEVEL));
     //아래 모터 커맨드 로그 파일 설정 넣어야함
-    Logger::instance().addFile("m_comm",  COMMAND_LOG_FILE, static_cast<LogLevel>(LOG_LEVEL));
+    Logger::instance().addFile("m_cmd",  COMMAND_LOG_FILE, static_cast<LogLevel>(LOG_LEVEL));
     // Logger::instance().addFile("vision", VISION_LOG_FILE,static_cast<LogLevel>(LOG_LEVEL));
 
     // 1) 경로(map) → Route 리스트
@@ -161,8 +160,9 @@ int main(){
     // 5) LiDAR 센서 큐
     SafeQueue<LaserPoint> lidar_queue;
 
-    // 6) Motor 큐
-    SafeQueue<bool> arrive_queue;    //네비게이션 도착여부에 대한 bool값
+    // 6) 모터 커맨드 큐
+    SafeQueue<std::string> mcmd_queue;
+
     
     // 1) 통신 스레드 -> 1
     std::thread t_comm =  start_thread_with_affinity(
@@ -204,13 +204,13 @@ int main(){
         std::ref(imu_queue)
     );
 
-    // 6) Motor Command  스레드 -> 1
-    std::thread t_mcomm = start_thread_with_affinity(
-        1,
+    // 6) Motor Command  스레드 -> 0
+    std::thread t_motor = start_thread_with_affinity(
+        0,
         std::ref(dir_queue),
         cmd::ref(lidar_queue),
         std::ref(imu_queue),
-        std::ref(cmd_queue)
+        std::ref(mcmd_queue)
     )
     
 
@@ -228,14 +228,14 @@ int main(){
         std::ref(lidar_queue)
     );
 
-    // 9) 모터 스레드 -> 0
-    std::thread t_motor = start_thread_with_affinity(
-        0, 
-        motor_thread,
-        std::ref(dir_queue),
-        std::ref(lidar_queue),
-        std::ref(imu_queue)
-    );
+    // // 9) 모터 스레드 -> 0
+    // std::thread t_motor = start_thread_with_affinity(
+    //     0, 
+    //     motor_thread,
+    //     std::ref(dir_queue),
+    //     std::ref(lidar_queue),
+    //     std::ref(imu_queue)
+    // );
 
     // 메인 루프
     while (running.load()) {
@@ -252,7 +252,7 @@ int main(){
     t_imu.join();
     t_lidar_prod.join();
     t_lidar_cons.join();
-    t_mcomm.join()l
+
     t_motor.join();
 
     // // 통신 스레드: map_queue, cmd_queue, log_queue

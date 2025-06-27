@@ -45,10 +45,9 @@ void motor_thread(
                 cmd="avoid ";
                 cmd+=std::to_string(dist)+" "+std::to_string(angle)+"\n";
                 g_serial.Write(cmd.c_str(), cmd.size());
-                continue; // 장애물 처리 후 다음 루프
-                // 만약 회피 기동 중에 또 다른 장애물이 발견될 경우..? 이에 대한 대처가 존재하지 않음.. 단일 장애물 기준
-                // 장애물 회피할 때 인도 끝자락에 있을 경우 도로로 떨어질 가능성 있음 
-                //     >> 인도 폭 인식하여 너무 끝단에 가지 않는 방향으로 조정하여 회피하도록 해야함
+                //너무 빠르게 도는거 방지
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                continue;
             }
         }
         // 2순위 네비게이션 방향 처리

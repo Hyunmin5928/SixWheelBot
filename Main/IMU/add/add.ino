@@ -230,6 +230,8 @@ void loop(){
   if (Serial.available()) {
     String cmd = Serial.readStringUntil('\n');
     cmd.trim();
+    Serial.print("cmd receive : ");
+    Serial.println(cmd);
     if      (cmd == "straight") { driveStraight();  targetAngle = NAN; }
     else if (cmd == "stop")     { driveStop();      targetAngle = NAN; }
     else if (cmd == "back")     { driveBack();      targetAngle = NAN; }
@@ -239,26 +241,55 @@ void loop(){
       // avoid 또는 angle string으로 구별
       // rotate <float> or avoid <float>형태 
       // cmd에서 rotate인지 avoid인지 구별 우선
-      String sep = Serial.readStringUntil(' ');
-      String info = cmd.substring(sep.length() + 1); 
+      String sep = Serial.readStringUntil(' '); // rotate 또는 avoid만 추출
+      String info = cmd.substring(sep.length() + 1); //명령인자 뒤의 숫자들만 추출(개행문자 제거)
+      info.trim(); // 앞에 있는 공백 문자 제거
+      String log = "cmd seperate : ";
+      log+=sep;
+      log+=", ";
+      log+=info;
+      Serial.println(log);
       if(sep == "rotate")
       {
         //  rotate 뒤에 있는 숫자 읽기
-        targetAngle = info.r
+        targetAngle=info.toFloat();
       }
       else if (sep=="avoid")
       {
+        //token[0] : 장애물과의 각도
+        //token[1] : pwm
+        //token[2] : 장애물과의 거리
+        String token[3]; 
+        int tokenCount=0;
         //  avoid 뒤에 있는 숫자 읽기
         //  1) 라이다에서 감지된 장애물 각도 + 거리 가져오기
+        while(tokenCount<3)
+        {
+          int spaceIndex = info.indexOf(' ');
+          token[tokenCount] = info.substring(0, spaceIndex);
+          info=info.substring(spaceIndex+1);
+          info.trim();
+          tokenCount++;
+        }
+        log="avoid sep : ";
+        log += token[0];
+        log +=", ";
+        log+=token[1];
+        log+=", ";
+        log+=token[2];
+        Serial.println(log);
         //  2) 장애물 반대쪽 방향으로 각도만큼 rotate하기
-        //  3) n초 straight하기
+        rotateToAngle(token[0].toFloat());
+        Serial.println("회피 회전");
+        //  3) 1초 straight하기
+        driveStraight();
+        Serial.println("앞으로 이동");
+        delay(1000);
         //  4) 장애물 피하기 위해 튼 각도 *-1.0f만큼 rotate하기
+        rotateToAngle(token[0].toFloat()*(-1.0f));
+        Serial.println("회피 이전 각도로 회복");
         //  5) 종료 >> gps dir 따르기
-      }
-
-      float a = cmd.toFloat();
-      if (cmd=="0" || a!=0.0f){
-        targetAngle = a;       // 회전 모드 진입
+        
       }
     }
   }

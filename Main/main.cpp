@@ -218,7 +218,7 @@ int main(){
         0, 
         motor_thread,
         "/dev/ttyUSB0",
-        115200u,
+        115200,
         std::ref(dir_queue),
         std::ref(lidar_queue)
     );

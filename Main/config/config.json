@@ -11,12 +11,14 @@
     "PORT"    : 5001
   },
   "NETWORK":{
-    "_comment"      : "UDP 통신 모듈 설정",
-    "LOCAL_HOST"    : "127.0.0.1",
-    "ALLOW_IP"      : "0.0.0.0",
-    "CONTROL_PORT"  : 6001,
-    "ACK_TIMEOUT"   : 1.0,
-    "RETRY_LIMIT"   : 5
+    "_comment"        : "UDP 통신 모듈 설정",
+    "LOCAL_HOST"      : "127.0.0.1",
+    "ALLOW_IP"        : "0.0.0.0",
+    "CONTROL_PORT"    : 6001,
+    "ACK_TIMEOUT"     : 1.0,
+    "RETRY_LIMIT"     : 5,
+    "AI_SERVER_IP"       : "100.68.185.3",
+    "AI_SERVER_PORT"  : 9999
   },
   "IMU":{
     "_comment"       : "IMU 모듈 설정",

@@ -1,8 +1,8 @@
 #include "motorCtrl.h"
 // #include "../LiDAR/lidar_module.h"
-#include "../IMU/imu_module.h"
 #include "../SafeQueue.hpp"
 #include "../logger.h"
+#include "lib/SerialPort.h"
 #include <atomic>
 #include <chrono>
 #include <thread>

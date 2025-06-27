@@ -16,7 +16,7 @@
 #include "SafeQueue.hpp"
 #include "Communication/comm_module.h"
 #include "GPS/gps_module.h"
-#include "IMU/imu_module.h"
+// #include "IMU/imu_module.h"
 #include "Motor/motor_module.h"
 #include "LiDAR/lidar_module.h"
 #include "LiDAR/Lidar.h"
@@ -73,7 +73,7 @@ double      ACK_TIMEOUT;
 int         sock_fd = -1;
 
 std::atomic<bool> running{true};
-std::atomic<bool> run_imu{false};
+// std::atomic<bool> run_imu{false};
 std::atomic<bool> run_lidar{false};
 std::atomic<bool> run_gps{false};
 std::atomic<bool> run_motor{false};
@@ -98,7 +98,7 @@ static constexpr const char cmd_stop1 [] = "stop\n";
 void handle_sigint(int) {
     run_lidar.store(false);
     run_gps.store(false);
-    run_imu.store(false);
+    // run_imu.store(false);
     running.store(false);
     run_motor.store(false);
 }
@@ -118,7 +118,7 @@ void load_config(const std::string& path) {
     GPS_LOG_FILE    = cfg["LOG"]["GPS_LOG_FILE"];
     LIDAR_LOG_FILE  = cfg["LOG"]["LIDAR_LOG_FILE"];
     MOTOR_LOG_FILE  = cfg["LOG"]["MOTOR_LOG_FILE"];
-    IMU_LOG_FILE    = cfg["LOG"]["IMU_LOG_FILE"];
+    // IMU_LOG_FILE    = cfg["LOG"]["IMU_LOG_FILE"];
     VISION_LOG_FILE = cfg["LOG"]["VISION_LOG_FILE"];
 
     // 통신 패킷 관련 설정
@@ -137,7 +137,7 @@ int main(){
     Logger::instance().addFile("gps",    GPS_LOG_FILE,   static_cast<LogLevel>(LOG_LEVEL));
     Logger::instance().addFile("lidar",  LIDAR_LOG_FILE, static_cast<LogLevel>(LOG_LEVEL));
     Logger::instance().addFile("motor",  MOTOR_LOG_FILE, static_cast<LogLevel>(LOG_LEVEL));
-    Logger::instance().addFile("imu",    IMU_LOG_FILE,   static_cast<LogLevel>(LOG_LEVEL));
+    // Logger::instance().addFile("imu",    IMU_LOG_FILE,   static_cast<LogLevel>(LOG_LEVEL));
     // Logger::instance().addFile("vision", VISION_LOG_FILE,static_cast<LogLevel>(LOG_LEVEL));
 
     // 1) 경로(map) → Route 리스트
@@ -150,7 +150,7 @@ int main(){
     SafeQueue<int> cmd_queue;
     SafeQueue<std::string> log_queue;
     //SafeQueue<int> dir_queue;
-    SafeQueue<ImuData>    imu_queue;
+    // SafeQueue<ImuData>    imu_queue;
     // SafeQueue<IMU::Command> imu_cmd_queue;
 
     // 5) LiDAR 센서 큐
@@ -191,13 +191,13 @@ int main(){
     );
 
     // 5) IMU 스레드 -> 1
-    std::thread t_imu = start_thread_with_affinity(
-        1,
-        imureader_thread,
-        "/dev/ttyUSB0",
-        115200u,
-        std::ref(imu_queue)
-    );
+    // std::thread t_imu = start_thread_with_affinity(
+    //     1,
+    //     imureader_thread,
+    //     "/dev/ttyUSB0",
+    //     115200u,
+    //     std::ref(imu_queue)
+    // );
 
     // 6) LiDAR 스캔 프로듀서 -> 2
     std::thread t_lidar_prod = start_thread_with_affinity(
@@ -217,9 +217,10 @@ int main(){
     std::thread t_motor = start_thread_with_affinity(
         0, 
         motor_thread,
+        "/dev/ttyUSB0",
+        115200u,
         std::ref(dir_queue),
-        std::ref(lidar_queue),
-        std::ref(imu_queue)
+        std::ref(lidar_queue)
     );
 
     // 메인 루프
@@ -234,7 +235,7 @@ int main(){
     t_gps_reader.join();
     t_gps_sender.join();
     t_nav.join();
-    t_imu.join();
+    // t_imu.join();
     t_lidar_prod.join();
     t_lidar_cons.join();
     t_motor.join();

@@ -20,7 +20,7 @@ using util::Logger;
 using util::LogLevel;
 
 extern std::atomic<bool> running;
-extern std::atomic<bool> run_imu;
+// extern std::atomic<bool> run_imu;
 extern std::atomic<bool> run_lidar;
 extern std::atomic<bool> run_gps;
 extern int         sock_fd;

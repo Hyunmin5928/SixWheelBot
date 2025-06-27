@@ -173,7 +173,7 @@ void comm_thread(
             );
             // log_msg("INFO", "Map data received and ACK sent");
             Logger::instance().info("comm", "[comm_thread]Map data received and ACK sent");
-            run_imu.store(true);
+            // run_imu.store(true);
             run_lidar.store(true);
             run_gps.store(true);
             break;

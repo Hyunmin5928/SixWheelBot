@@ -19,6 +19,8 @@ extern std::atomic<bool>    run_motor;
 using util::Logger;
 using util::LogLevel;
 
+static CSerialPort   g_serial;
+
 // 임계거리 / 각도 범위는 필요에 따라 조정하세요
 constexpr float OBSTACLE_DISTANCE_THRESHOLD = 500.0f; // mm
 constexpr float OBSTACLE_ANGLE_LIMIT        = 60.0f;  // deg
@@ -27,13 +29,8 @@ constexpr int   DEFAULT_PWM                 = 50;
 // 모듈 진입점
 
 void motor_thread(
+    const std::string& port,
+    unsigned int baud,
     SafeQueue<float>&    dir_queue,
-    SafeQueue<LaserPoint>& point_queue,
-    SafeQueue<ImuData>& imu_queue
+    SafeQueue<LaserPoint>& point_queue
 );
-
-void motor_test_thread(
-    SafeQueue<std::string>& cmd_queue
-);
-
-void motor_rotate_thread();

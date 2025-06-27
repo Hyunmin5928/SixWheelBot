@@ -176,25 +176,15 @@ int main(){
         navigation_thread,
         std::ref(map_queue),
         std::ref(dir_queue)
-    );
+    );    
 
-    // 5) IMU 스레드 -> 1
-    // std::thread t_imu = start_thread_with_affinity(
-    //     1,
-    //     imureader_thread,
-    //     "/dev/ttyUSB0",
-    //     115200u,
-    //     std::ref(imu_queue)
-    // );
-    
-
-    // 7) LiDAR 스캔 프로듀서 -> 2
+    // 5) LiDAR 스캔 프로듀서 -> 2
     std::thread t_lidar_prod = start_thread_with_affinity(
         2, 
         lidar_producer
     );
 
-    // 8) LiDAR near-point 컨슈머 -> 3
+    // 6) LiDAR near-point 컨슈머 -> 3
     std::thread t_lidar_cons = start_thread_with_affinity(
         3,
         lidar_consumer,
@@ -202,7 +192,7 @@ int main(){
         std::ref(lidar_queue)
     );
 
-    // 9) 모터 스레드 -> 0
+    // 7) 모터 스레드 -> 0
     std::thread t_motor = start_thread_with_affinity(
         0,
         motor_thread,
@@ -212,9 +202,9 @@ int main(){
         std::ref(lidar_queue)
     );
 
-    //비전 스레드 추가
+    // 8) 비전 스레드 추가 -> 2
     std::thread t_vision = start_thread_with_affinity(
-        0,
+        2,
         vision_thread,
         std::ref(dir_queue)           
     );

@@ -28,24 +28,43 @@ void motor_thread(
     int status=0;
     char linebuf[128]; // 혹시 모를 SerialRead 용
     float angle = 0.0f;
-    g_serial.Write(cmd_straight, sizeof(cmd_straight) - 1);
-    while (running.load()) {
-        if(run_motor.load()){
-            // 직진인 경우
-            g_serial.Write(cmd_straight, sizeof(cmd_straight) - 1);
+    bool setup = false;
 
-            // 후진인 경우
-            // g_serial.Write(cmd_backoff, sizeof(cmd_backoff) - 1);
-            // // 정지인 경우
-            // g_serial.Write(cmd_stop, sizeof(cmd_stop) - 1);
-            // 회전인 경우
-            angle = 124.3;
-            // cmd_rotate = std::to_string(angle) // 회전 값(float 형) string으로 변경
-            // g_serial.Write(cmd_rotate, sizeof(cmd_rotate) - 1);
+    while(true){
+        if(g_serial.ReadLine(linebuf, sizeof(linebuf))){
+            Logger::instance().info("motor", linebuf);
+            setup = true;
         }
-        // 10Hz 루프
+        if(setup){
+            g_serial.Write(cmd_straight, sizeof(cmd_straight) - 1);
+        }
+        if(run_motor.load()){
+            Logger::instance().info("motor", "on");
+        }
+        if(!running.load()){
+            break;
+        }
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
+    // while (running.load()) {
+    //     // g_serial.ReadLine(linebuf, sizeof(linebuf));
+    //     // Logger::instance().info("motor", linebuf);
+    //     if(run_motor.load()){
+    //         // 직진인 경우
+    //         g_serial.Write(cmd_straight, sizeof(cmd_straight) - 1);
+
+    //         // 후진인 경우
+    //         // g_serial.Write(cmd_backoff, sizeof(cmd_backoff) - 1);
+    //         // // 정지인 경우
+    //         // g_serial.Write(cmd_stop, sizeof(cmd_stop) - 1);
+    //         // 회전인 경우
+    //         angle = 124.3;
+    //         // cmd_rotate = std::to_string(angle) // 회전 값(float 형) string으로 변경
+    //         // g_serial.Write(cmd_rotate, sizeof(cmd_rotate) - 1);
+    //     }
+    //     // 10Hz 루프
+    //     std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    // }
 
     // 종료 시 모터 정지
     // motor.stop();

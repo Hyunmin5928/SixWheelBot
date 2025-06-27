@@ -47,8 +47,7 @@
     "LIDAR_LOG_FILE" : "log/lidar_log.txt",
     "MOTOR_LOG_FILE" : "log/motor_log.txt",
     "IMU_LOG_FILE"   : "log/imu_log.txt",
-    "VISION_LOG_FILE": "log/vision_log.txt",
-    "COMMAND_LOG_FILE" : "log/mot_comm_log.txt"
+    "VISION_LOG_FILE": "log/vision_log.txt"
   },
   "DB":{
     "_comment"      : "DB 파일 주소 저장",

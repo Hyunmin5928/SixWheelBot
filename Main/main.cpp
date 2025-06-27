@@ -74,7 +74,7 @@ double      ACK_TIMEOUT;
 int         sock_fd = -1;
 
 std::atomic<bool> running{true};
-std::atomic<bool> run_imu{false};
+// std::atomic<bool> run_imu{false};
 std::atomic<bool> run_lidar{false};
 std::atomic<bool> run_gps{false};
 std::atomic<bool> run_motor{false};
@@ -100,7 +100,7 @@ static constexpr const char cmd_stop1 [] = "stop\n";
 void handle_sigint(int) {
     run_lidar.store(false);
     run_gps.store(false);
-    run_imu.store(false);
+    // run_imu.store(false);
     running.store(false);
     run_motor.store(false);
     run_command.store(false);
@@ -121,7 +121,7 @@ void load_config(const std::string& path) {
     GPS_LOG_FILE    = cfg["LOG"]["GPS_LOG_FILE"];
     LIDAR_LOG_FILE  = cfg["LOG"]["LIDAR_LOG_FILE"];
     MOTOR_LOG_FILE  = cfg["LOG"]["MOTOR_LOG_FILE"];
-    IMU_LOG_FILE    = cfg["LOG"]["IMU_LOG_FILE"];
+    // IMU_LOG_FILE    = cfg["LOG"]["IMU_LOG_FILE"];
     VISION_LOG_FILE = cfg["LOG"]["VISION_LOG_FILE"];
 
     // 통신 패킷 관련 설정
@@ -140,7 +140,7 @@ int main(){
     Logger::instance().addFile("gps",    GPS_LOG_FILE,   static_cast<LogLevel>(LOG_LEVEL));
     Logger::instance().addFile("lidar",  LIDAR_LOG_FILE, static_cast<LogLevel>(LOG_LEVEL));
     Logger::instance().addFile("motor",  MOTOR_LOG_FILE, static_cast<LogLevel>(LOG_LEVEL));
-    Logger::instance().addFile("imu",    IMU_LOG_FILE,   static_cast<LogLevel>(LOG_LEVEL));
+    // Logger::instance().addFile("imu",    IMU_LOG_FILE,   static_cast<LogLevel>(LOG_LEVEL));
     // Logger::instance().addFile("vision", VISION_LOG_FILE,static_cast<LogLevel>(LOG_LEVEL));
 
     // 1) 경로(map) → Route 리스트

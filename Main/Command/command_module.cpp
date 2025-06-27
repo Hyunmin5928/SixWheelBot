@@ -2,6 +2,8 @@
 
 /*
     command key :   straight stop rotate avoid backoff 
+
+    command에서는 cmd_queue를 내보냄, Motor 쪽에서 cmd_queue 값에 따라서 운전되도록 하면 됨
 */
 
 void command_thread(

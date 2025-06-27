@@ -3,8 +3,10 @@
 
 
 void motor_thread(
-    SafeQueue<std::string>& cmd_queue
-    SafeQueue<LaserPoint> avoid_queue
+    SafeQueue<int>& status_queue,
+    SafeQueue<ImuData>& imu_queue,
+    SafeQueue<std::string>& cmd_queue,
+    SafeQueue<LaserPoint>& avoid_queue
 ) {
     pthread_setname_np(pthread_self(), "[THREAD]MOTOR_D");
     Motor motor;
@@ -13,9 +15,13 @@ void motor_thread(
     // 0 : 출발 1 : 도착 2: 복귀
     
     std::string cmd="";
+    ImuData rcv_curDgr;
     // 이 스레드가 돌아가는 중이고, 아직 도착하지 않았다면
-    while (running.load()) {
-
+    while (running.load() && status <3) {
+        // 다른 명령어가 업데이트되기 전까지 yaw값 업데이트 하도록 함
+        if(cmd == "rotate" || cmd == "avoid"){
+            if(imu_queue.ConsumeSync(rcv_curDgr)) motor.curDgr = rcv_curDgr.yaw;
+        }
         if(cmd_queue.ConsumeSync(cmd)){
             if (cmd  ==  "straight"){
                 motor.straight(DEFAULT_PWM);

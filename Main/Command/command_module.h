@@ -22,7 +22,6 @@ constexpr int   DEFAULT_PWM                 = 50;
 using util::Logger;                             
 using util::LogLevel;
 
-
 void command_thread(
     SafeQueue<float> dir_queue,
     SafeQueue<LaserPoint>& point_queue,

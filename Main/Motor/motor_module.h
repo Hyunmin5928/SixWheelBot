@@ -20,6 +20,12 @@ extern std::atomic<bool>    run_motor;
 using util::Logger;
 using util::LogLevel;
 
+struct ImuData {
+  double roll;
+  double pitch;
+  double yaw;
+};
+
 // 모듈 진입점
 
 void motor_thread(

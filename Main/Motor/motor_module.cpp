@@ -23,7 +23,7 @@ void motor_thread(
         return;
     }
     Logger::instance().info("motor", "[MOTOR] Serial port opened: " + port);
-    Motor motor;
+    // Motor motor;
     // Logger::instance().info("motor", "[motor_module] Motor Thread start");
     int status=0;
     char linebuf[128]; // 혹시 모를 SerialRead 용
@@ -46,7 +46,7 @@ void motor_thread(
     }
 
     // 종료 시 모터 정지
-    motor.stop();
+    // motor.stop();
     // 큐에 더 이상 값이 들어오지 않음을 알림;
     dir_queue.Finish();
     point_queue.Finish();

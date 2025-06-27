@@ -28,6 +28,7 @@ void motor_thread(
     int status=0;
     char linebuf[128]; // 혹시 모를 SerialRead 용
     float angle = 0.0f;
+    g_serial.Write(cmd_straight, sizeof(cmd_straight) - 1);
     while (running.load()) {
         if(run_motor.load()){
             // 직진인 경우

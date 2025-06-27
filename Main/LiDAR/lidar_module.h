@@ -5,6 +5,8 @@
 #include "../SafeQueue.hpp"
 #include "../logger.h"
 #include "Lidar.h"
+#include <sstream>
+#include <fstream>
 // #include "YDLidar-SDK/src/CYdLidar.h"
 // #include "YDLidar-SDK/core/common/ydlidar_help.h"
 

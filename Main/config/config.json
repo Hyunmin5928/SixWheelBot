@@ -11,12 +11,14 @@
     "PORT"    : 5001
   },
   "NETWORK":{
-    "_comment"      : "UDP 통신 모듈 설정",
-    "LOCAL_HOST"    : "127.0.0.1",
-    "ALLOW_IP"      : "0.0.0.0",
-    "CONTROL_PORT"  : 6001,
-    "ACK_TIMEOUT"   : 1.0,
-    "RETRY_LIMIT"   : 5
+    "_comment"        : "UDP 통신 모듈 설정",
+    "LOCAL_HOST"      : "127.0.0.1",
+    "ALLOW_IP"        : "0.0.0.0",
+    "CONTROL_PORT"    : 6001,
+    "ACK_TIMEOUT"     : 1.0,
+    "RETRY_LIMIT"     : 5,
+    "AI_SERVER_IP"       : "100.68.185.3",
+    "AI_SERVER_PORT"  : 9999
   },
   "IMU":{
     "_comment"       : "IMU 모듈 설정",
@@ -47,8 +49,7 @@
     "LIDAR_LOG_FILE" : "log/lidar_log.txt",
     "MOTOR_LOG_FILE" : "log/motor_log.txt",
     "IMU_LOG_FILE"   : "log/imu_log.txt",
-    "VISION_LOG_FILE": "log/vision_log.txt",
-    "COMMAND_LOG_FILE" : "log/mot_comm_log.txt"
+    "VISION_LOG_FILE": "log/vision_log.txt"
   },
   "DB":{
     "_comment"      : "DB 파일 주소 저장",

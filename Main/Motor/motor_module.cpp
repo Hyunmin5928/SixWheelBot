@@ -27,12 +27,48 @@ void motor_thread(
     char linebuf[128];
     bool cmd_active = false;
 
-    while(run_motor.load()){    
-        if(cmd_active==false){
-            cmd_active=true;
-            cmd="straight\n";
-            g_serial.Write(cmd.c_str(), cmd.size());
+    while(runnning.load()){    
+        if(run_motor.load){
+            if(cmd_active==false){
+                if(!point_queue.ConsumeSync(pnt) && !cmd_active){
+                    cmd_active=true;
+                    cmd="straight\n";
+                    g_serial.Write(cmd.c_str(),cmd.size());
+                }
+                if(point_queue.ConsumeSync(pnt)){
+                    cmd_active=false;
+                }
+                if (point_queue.ConsumeSync(pnt) && !cmd_active) {
+                    //장애물 위치(각도)와 거리 파악
+                    cmd_active = true;
+                    float dist  = pnt.range;
+                    float angle = pnt.angle;
+                    std::ostringstream oss;
+                    oss << "[MOTOR] Obstacle detected: dist="  << std::to_string(dist)
+                        << "cm, angle=" << std::to_string(angle);
+                    Logger::instance().info("motor", oss.str());
+                    // 거리가 0(감지불가 임계값 이하)일 경우 무시, 거리와 각도가 회피 기준값 이내로 들어오면 회피 동작
+                    // std::cout<<"값 받음 :"<<dist<<" "<<angle<<"\n";
+                    if (dist > 10.0f
+                    && dist <= OBSTACLE_DISTANCE_THRESHOLD
+                    && std::fabs(angle) <= OBSTACLE_ANGLE_LIMIT)
+                    {
+                        std::ostringstream oss;
+                        oss << "[MOTOR] Obstacle detected: dist="  << std::to_string(dist)
+                        << "cm, angle=" << std::to_string(angle);
+                        Logger::instance().warn("motor", oss.str());
+                        cmd="avoid ";
+                        cmd+=std::to_string(dist)+" "+std::to_string(angle)+"\n";
+                        g_serial.Write(cmd.c_str(), cmd.size());
+                        //장애물 코드가 너무 자주 도는 것 방지
+                        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+                        
+                        continue;
+                    }
+                }
+            }
         }
+        
         
         /*
         if(g_serial.ReadLine(linebuf, sizeof(linebuf))){

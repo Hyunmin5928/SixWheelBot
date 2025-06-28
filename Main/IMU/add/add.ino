@@ -56,7 +56,7 @@ float iAccPitch = 0, prevErrPitch = 0;
 unsigned long lastIMU = 0;
 
 // 기본 PWM 세기 (0~255)
-const int DEFAULT_PWM = 200;
+const int DEFAULT_PWM = 100;
 
 float targetAngle = NAN;   // NaN 이면 회전 모드 아님
 const float ANGLE_TOLERANCE = 2.0f;

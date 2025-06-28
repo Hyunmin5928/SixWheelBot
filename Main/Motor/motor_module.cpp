@@ -25,7 +25,13 @@ void motor_thread(
     bool cmd_active = false;
 
     while(run_motor.load()){    
+        if(cmd_active==false){
+            cmd_active=true;
+            cmd="straight\n";
+            g_serial.Write(cmd.c_str(), cmd.size());
+        }
         
+        /*
         if(g_serial.ReadLine(linebuf, linebuf.size())=="cmd_done\n"){
             cmd_active=false;
         } //serial.readline( ) == "행동종료문구" >> cmd_active=false;
@@ -94,6 +100,7 @@ void motor_thread(
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
+    */
     dir_queue_g.Finish();
     dir_queue_v.Finish();
     point_queue.Finish();

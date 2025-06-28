@@ -126,7 +126,8 @@ int main(){
     // 2) 현재 위치 (필요시 로깅용)
     SafeQueue<std::pair<double,double>> gps_queue;
     // 3) 방향 코드만
-    SafeQueue<float> dir_queue;
+    SafeQueue<float> dir_queue_g;
+    SafeQueue<float> dir_queue_v;
     // 4) (선택) 통신 명령용, 로그용 큐
     SafeQueue<int> cmd_queue;
     SafeQueue<std::string> log_queue;
@@ -164,8 +165,8 @@ int main(){
         1, 
         navigation_thread,
         std::ref(map_queue),
-        std::ref(dir_queue)
-
+        std::ref(dir_queue_g)
+    );
 
     // 5) LiDAR 스캔 프로듀서 -> 2
     std::thread t_lidar_prod = start_thread_with_affinity(
@@ -187,7 +188,8 @@ int main(){
         motor_thread,
         "/dev/ttyUSB0",
         115200,
-        std::ref(dir_queue),
+        std::ref(dir_queue_g),
+        std::ref(dir_queue_v),
         std::ref(lidar_queue)
     );
 
@@ -195,7 +197,7 @@ int main(){
     std::thread t_vision = start_thread_with_affinity(
         2,
         vision_thread,
-        std::ref(dir_queue)           
+        std::ref(dir_queue_v)           
     );
 
     // 메인 루프

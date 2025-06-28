@@ -13,10 +13,13 @@ void motor_thread(
     pthread_setname_np(pthread_self(),"[THREAD] command_D");
     if (!g_serial.Open(port.c_str(), baud)) {
         std::ostringstream oss;
-        oss << "[IMU] Failed to open " << port << "@" << baud;
-        Logger::instance().error("imu", oss.str());
+        oss << "[motor] Failed to open " << port << "@" << baud;
+        Logger::instance().error("motor", oss.str());
         running.store(false);
     }
+    std::ostringstream oss;
+    oss << "[motor] Success to open " << port << "@" << baud;
+    Logger::instance().info("motor", oss.str());
     Logger::instance().info("motor","[MOTOR] Command Thread start");
     std::string cmd="";
     float dir_g, dir_v;
@@ -32,8 +35,10 @@ void motor_thread(
         }
         
         /*
-        if(g_serial.ReadLine(linebuf, linebuf.size())=="cmd_done\n"){
-            cmd_active=false;
+        if(g_serial.ReadLine(linebuf, sizeof(linebuf))){
+            if(linebuf == "cmd_done\n"){
+                cmd_active=false;
+            }
         } //serial.readline( ) == "행동종료문구" >> cmd_active=false;
         
         if (point_queue.ConsumeSync(pnt) && !cmd_active) {
@@ -78,7 +83,7 @@ void motor_thread(
             else
             {
                 cmd="rotate ";
-                std::string msg = "[MOTOR] g send rotate ";
+                std::string msg = "[MOTOR] gps send rotate ";
                 msg+=dir_g;
                 Logger::instance().info("motor", msg);
                 cmd+=std::to_string(dir_g)+"\n";
@@ -91,7 +96,7 @@ void motor_thread(
                 !point_queue.ConsumeSync(pnt) &&
                 !cmd_active){
             cmd_active = true;
-            std::string msg = "[MOTOR] v send rotate ";
+            std::string msg = "[MOTOR] vision send rotate ";
             msg+=dir_v;
             Logger::instance().info("motor", msg);
             cmd="rotate ";

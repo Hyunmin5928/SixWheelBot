@@ -38,7 +38,7 @@ void lidar_consumer(SafeQueue<std::vector<LaserPoint>>& in_q,
         std::ostringstream msg;
         msg << std::fixed << std::setprecision(2);
         msg << "[LiDAR Near Point] ang : " << nearPoint.angle
-            << ", range : " << nearPoint.range
+            << ", range : " << nearPoint.range;
         Logger::instance().info("lidar", msg.str());
 
         out_q.Produce(std::move(nearPoint));                  // 최종 결과 생산

@@ -23,6 +23,8 @@ static const int R_R_PWM_PIN = 11;
 
 static const uint8_t PIN_SERVO_PITCH  = 10;
 
+const float max_dist = 500.0f;
+
 // IMU 샘플링 주기 (ms 단위, 20ms → 50Hz)
 static const uint16_t IMU_INTERVAL_MS      = 20;
 
@@ -279,7 +281,15 @@ void loop(){
         log+=token[1];
         Serial.println(log);
         //  2) 장애물 반대쪽 방향으로 각도만큼 rotate하기
-        rotateToAngle(token[0].toFloat());
+        float dgr_w = 1.0f-*token[1]*toFloat()/max_dist;
+        float angle = fabs(token[0].toFloat());  
+        float dgr_a = 1.0f - angle / 120.0f; 
+        if (w_angle < 0.5f) w_angle = 0.5f;
+        if(weight < 0.5f) weight = 0.5f;
+        float weight = w_dist * w_angle;
+
+        float dgr = token[0].toFloat() * weight *(-1.0f);
+        rotateToAngle(dgr);
         Serial.println("회피 회전");
         //  3) 1초 straight하기
         driveStraight();

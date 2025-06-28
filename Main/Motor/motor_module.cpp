@@ -45,6 +45,7 @@ void motor_thread(
             // 3) 순수 비교
             if (msg == "setup") {
                 Logger::instance().info("motor", "[MOTOR] Arduino Setup done");
+                run_motor.store(true);
                 break;
             }
         }
@@ -52,58 +53,58 @@ void motor_thread(
     }
 
     while(running.load()){    
-        if(run_motor.load()){
+        Logger::instance().info("motor", "[MOTOR] RUN loop");
+        if (g_serial.ReadLine(linebuf, sizeof(linebuf))) {
+            // 1) std::string 으로 복사
+            std::string msg(linebuf);
+            while (!msg.empty() && (msg.back() == '\r' || msg.back() == '\n')) {
+                msg.pop_back();
+            }
+            std::ostringstream oss;
+            oss << "[MOTOR] Arduino send message trimmed: '" << msg << "'";
+            Logger::instance().info("motor", oss.str());
+            // "cmd_done" 을 받으면 cmd_active = false
+            // if (msg == "cmd_done") {
+            //     cmd_active = false;
+            // }
+            cmd_active = false;
+        }
+        if(run_motor.load() && !cmd_active){
+            Logger::instance().info("motor", "[MOTOR] RUN_MOTOR loop");
             got_queue = point_queue.ConsumeSync(pnt);
             if(got_queue){
-                cmd_active == false;
+                cmd_active = true;
                 Logger::instance().info("motor", "[MOTOR] DIR queue received");
+                //장애물 위치(각도)와 거리 파악
+                float dist  = pnt.range;
+                float angle = pnt.angle;
+                // std::ostringstream oss;
+                // oss << "[MOTOR] Obstacle detected: dist="  << std::to_string(dist)
+                //     << "cm, angle=" << std::to_string(angle);
+                // Logger::instance().info("motor", oss.str());
+                // 거리가 0(감지불가 임계값 이하)일 경우 무시, 거리와 각도가 회피 기준값 이내로 들어오면 회피 동작
+                // std::cout<<"값 받음 :"<<dist<<" "<<angle<<"\n";
+                if (dist > 10.0f
+                && dist <= OBSTACLE_DISTANCE_THRESHOLD
+                && std::fabs(angle) <= OBSTACLE_ANGLE_LIMIT)
+                {
+                    std::ostringstream oss;
+                    oss << "[MOTOR] Obstacle detected: dist="  << std::to_string(dist)
+                    << "cm, angle=" << std::to_string(angle);
+                    Logger::instance().warn("motor", oss.str());
+                    cmd="avoid ";
+                    cmd+=std::to_string(dist)+" "+std::to_string(angle)+"\n";
+                    g_serial.Write(cmd.c_str(), cmd.size());
+                    //장애물 코드가 너무 자주 도는 것 방지
+                    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+                }
             }
-            if(!cmd_active){
-                if (!got_queue){
+            else {
                     cmd_active=true;
                     cmd="straight\n";
                     g_serial.Write(cmd.c_str(),cmd.size());
                     Logger::instance().info("motor", "[MOTOR] Straight command send");
                     std::this_thread::sleep_for(std::chrono::milliseconds(50));
-                }
-                else {
-                    //장애물 위치(각도)와 거리 파악
-                    cmd_active = true;
-                    float dist  = pnt.range;
-                    float angle = pnt.angle;
-                    // std::ostringstream oss;
-                    // oss << "[MOTOR] Obstacle detected: dist="  << std::to_string(dist)
-                    //     << "cm, angle=" << std::to_string(angle);
-                    // Logger::instance().info("motor", oss.str());
-                    // 거리가 0(감지불가 임계값 이하)일 경우 무시, 거리와 각도가 회피 기준값 이내로 들어오면 회피 동작
-                    // std::cout<<"값 받음 :"<<dist<<" "<<angle<<"\n";
-                    if (dist > 10.0f
-                    && dist <= OBSTACLE_DISTANCE_THRESHOLD
-                    && std::fabs(angle) <= OBSTACLE_ANGLE_LIMIT)
-                    {
-                        std::ostringstream oss;
-                        oss << "[MOTOR] Obstacle detected: dist="  << std::to_string(dist)
-                        << "cm, angle=" << std::to_string(angle);
-                        Logger::instance().warn("motor", oss.str());
-                        cmd="avoid ";
-                        cmd+=std::to_string(dist)+" "+std::to_string(angle)+"\n";
-                        g_serial.Write(cmd.c_str(), cmd.size());
-                        //장애물 코드가 너무 자주 도는 것 방지
-                        std::this_thread::sleep_for(std::chrono::milliseconds(50));
-                        
-                        continue;
-                    }
-                }
-            }
-            if (g_serial.ReadLine(linebuf, sizeof(linebuf))) {
-            // 1) std::string 으로 복사
-                std::string msg(linebuf);
-                while (!msg.empty() && (msg.back() == '\r' || msg.back() == '\n')) {
-                    msg.pop_back();
-                }
-                std::ostringstream oss;
-                oss << "[MOTOR] Arduino send message trimmed: '" << msg << "'";
-                Logger::instance().info("motor", oss.str());
             }
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(50));

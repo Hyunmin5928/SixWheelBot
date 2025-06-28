@@ -152,7 +152,8 @@ void navigation_thread(
                     dir_queue.Produce(std::move(dir2));
                     Logger::instance().info("gps", "[navigation_thread] DIR = " + std::to_string(dir2));
                     idx++;
-                } else {
+                } 
+                else {
                     // (선택) 전진 명령 보내기
                     // m_cmd_q.Produce(FORWARD_CMD);
                     // Logger::instance().info("gps", "[navigation_thread] case 201");
@@ -164,17 +165,19 @@ void navigation_thread(
                     Logger::instance().info("gps", "[navigation_thread] DIR = " + std::to_string(angle));
                     dir_queue.Produce(std::move(angle));
                 }
-            }   else {
+            }   
+            else {
                 // 경로 완료: PAUSE
                 Logger::instance().info("gps", "[navigation_thread] Complete Path");
                 finish = true;
                 //dir_queue.Produce(1000);
-             }
-             if(finish){ //목적지 도착 -> 정지
-             run_motor.store(false);
-              flag = false;
-              idx = path.size()-1;
-              finish = false;
+            }
+            if(finish){ //목적지 도착 -> 정지
+                run_motor.store(false);
+                Logger::instance().info("gps", "[navigation_thread] Done && run_motor -> false");
+                flag = false;
+                idx = path.size()-1;
+                finish = false;
             }
         }
         else{  // 복귀하는 경우 (2. 사용자 -> 출발지)
@@ -250,7 +253,8 @@ void navigation_thread(
                     Logger::instance().info("gps", "[navigation_thread] DIR = " + std::to_string(dir2));
                     dir_queue.Produce(std::move(dir2));
                     idx--;
-                } else {
+                } 
+                else {
                     // (선택) 전진 명령 보내기
                     // m_cmd_q.Produce(FORWARD_CMD);
                     double angle = bearing(lat, lon, wlat, wlon);
@@ -259,11 +263,13 @@ void navigation_thread(
                         dir_queue.Produce(std::move(angle));
                     }
                 }
-            }   else {
+            }   
+            else {
                 // 경로 완료: PAUSE
                 finish = true;
                 //dir_queue.Produce(1000);
                 run_motor.store(false);
+                Logger::instance().info("gps", "[navigation_thread] Finish -> true && run_motor -> false");
             }
         }
         

@@ -76,7 +76,7 @@ void motor_thread(
             else
             {
                 cmd="rotate ";
-                std::string msg = "[MOTOR] g send rotate ";
+                std::string msg = "[MOTOR] gps send rotate ";
                 msg+=dir_g;
                 Logger::instance().info("motor", msg);
                 cmd+=std::to_string(dir_g)+"\n";
@@ -89,7 +89,7 @@ void motor_thread(
                 !point_queue.ConsumeSync(pnt) &&
                 !cmd_active){
             cmd_active = true;
-            std::string msg = "[MOTOR] v send rotate ";
+            std::string msg = "[MOTOR] vision send rotate ";
             msg+=dir_v;
             Logger::instance().info("motor", msg);
             cmd="rotate ";

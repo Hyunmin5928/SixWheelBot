@@ -82,6 +82,7 @@ void navigation_thread(
 
         if(flag){ // 목적지로 가는 경우 (1. 출발지 -> 사용자 ) 
             run_motor.store(true);
+            Logger::instance().info("motor", "[navigation_thread] RUN_MOTOR store true");
             if (idx < path.size()) {
             auto [wlat, wlon, dir] = path[idx];
             double dist = haversine(lat, lon, wlat, wlon);
@@ -149,21 +150,25 @@ void navigation_thread(
                     }
                     // 도달: 방향 코드 전송
                     dir_queue.Produce(std::move(dir2));
+                    Logger::instance().info("gps", "[navigation_thread] DIR = " + std::to_string(dir2));
                     idx++;
                 } else {
                     // (선택) 전진 명령 보내기
                     // m_cmd_q.Produce(FORWARD_CMD);
-                    double angle = bearing(lat, lon, wlat, wlon);
-                    if(angle>45){
+                    // Logger::instance().info("gps", "[navigation_thread] case 201");
+                    //double angle = bearing(lat, lon, wlat, wlon);
+                    /*if(angle>45){
                         dir_queue.Produce(std::move(angle));
-                    }
+                    }*/
+                    double angle = 0;
+                    Logger::instance().info("gps", "[navigation_thread] DIR = " + std::to_string(angle));
+                    dir_queue.Produce(std::move(angle));
                 }
             }   else {
                 // 경로 완료: PAUSE
                 Logger::instance().info("gps", "[navigation_thread] Complete Path");
-                //finish = true;
+                finish = true;
                 //dir_queue.Produce(1000);
-                break;
              }
              if(finish){ //목적지 도착 -> 정지
              run_motor.store(false);
@@ -174,6 +179,7 @@ void navigation_thread(
         }
         else{  // 복귀하는 경우 (2. 사용자 -> 출발지)
             run_motor.store(true);
+            Logger::instance().info("motor", "[navigation_thread] RUN_MOTOR store true");
             if (idx > -1) {
             auto [wlat, wlon, dir] = path[idx];
             double dist = haversine(lat, lon, wlat, wlon);
@@ -241,23 +247,23 @@ void navigation_thread(
                         }
                     }
                     // 도달: 방향 코드 전송
+                    Logger::instance().info("gps", "[navigation_thread] DIR = " + std::to_string(dir2));
                     dir_queue.Produce(std::move(dir2));
                     idx--;
                 } else {
                     // (선택) 전진 명령 보내기
                     // m_cmd_q.Produce(FORWARD_CMD);
                     double angle = bearing(lat, lon, wlat, wlon);
+                    Logger::instance().info("gps", "[navigation_thread] DIR = " + std::to_string(angle));
                     if(angle>45){
                         dir_queue.Produce(std::move(angle));
                     }
                 }
             }   else {
                 // 경로 완료: PAUSE
-                Logger::instance().info("gps", "[navigation_thread] Complete Path");
                 finish = true;
                 //dir_queue.Produce(1000);
                 run_motor.store(false);
-                break;
             }
         }
         

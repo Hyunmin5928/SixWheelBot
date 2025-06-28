@@ -34,6 +34,7 @@ void motor_thread(
                     cmd_active=true;
                     cmd="straight\n";
                     g_serial.Write(cmd.c_str(),cmd.size());
+                    Logger::instance().info("motor", "[MOTOR] Straight command send");
                 }
                 if(point_queue.ConsumeSync(pnt)){
                     cmd_active=false;

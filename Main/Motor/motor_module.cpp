@@ -27,8 +27,8 @@ void motor_thread(
     char linebuf[128];
     bool cmd_active = false;
 
-    while(runnning.load()){    
-        if(run_motor.load){
+    while(running.load()){    
+        if(run_motor.load()){
             if(cmd_active==false){
                 if(!point_queue.ConsumeSync(pnt) && !cmd_active){
                     cmd_active=true;

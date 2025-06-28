@@ -28,8 +28,9 @@ using Waypoint = std::tuple<double,double,int>;      // {lat, lon, dirCode}
  *   - running이 false가 되면 정지 명령 후 종료
  */
 void navigation_thread(
-    SafeQueue<std::vector<Waypoint>>& map_q,
-    SafeQueue<float>&                  dir_queue
+    SafeQueue<std::vector<Waypoint>>&   map_q,
+    SafeQueue<float>&                   dir_queue,
+    SafeQueue<bool>&                    m_stop_queue
 );
 
 // GPS 읽기 전용 스레드 함수

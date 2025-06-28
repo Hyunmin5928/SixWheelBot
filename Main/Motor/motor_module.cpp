@@ -8,7 +8,8 @@ void motor_thread(
     unsigned int baud,
     SafeQueue<float>& dir_queue_g,
     SafeQueue<float>& dir_queue_v,
-    SafeQueue<LaserPoint>& point_queue
+    SafeQueue<LaserPoint>& point_queue,
+    SafeQueue<bool>&       m_stop_queue
 ){
     pthread_setname_np(pthread_self(),"[THREAD] command_D");
     if (!g_serial.Open(port.c_str(), baud)) {

@@ -79,9 +79,9 @@ static constexpr const char cmd_stop1 [] = "stop\n";
 void handle_sigint(int) {
     run_lidar.store(false);
     run_gps.store(false);
-    running.store(false);
     run_motor.store(false);
     run_vision.store(false);
+    running.store(false);
 }
 
 void load_config(const std::string& path) {
@@ -131,12 +131,11 @@ int main(){
     // 4) (선택) 통신 명령용, 로그용 큐
     SafeQueue<int> cmd_queue;
     SafeQueue<std::string> log_queue;
-    //SafeQueue<int> dir_queue;
-    // SafeQueue<IMU::Command> imu_cmd_queue;
-
     // 5) LiDAR 센서 큐
     SafeQueue<LaserPoint> lidar_queue;
-    
+    // 6) GPS 센서 -> 배달지 도착 및 복귀 장소 도착 구분 플래그 큐
+    SafeQueue<bool> m_stop_queue;
+    m_stop_queue.Produce(true);
     // 1) 통신 스레드 -> 1
     std::thread t_comm =  start_thread_with_affinity(
         1,
@@ -165,7 +164,8 @@ int main(){
         0, 
         navigation_thread,
         std::ref(map_queue),
-        std::ref(dir_queue_g)
+        std::ref(dir_queue_g),
+        std::ref(m_stop_queue)
     );
 
     // 5) LiDAR 스캔 프로듀서 -> 2
@@ -190,7 +190,8 @@ int main(){
         115200,
         std::ref(dir_queue_g),
         std::ref(dir_queue_v),
-        std::ref(lidar_queue)
+        std::ref(lidar_queue),
+        std::ref(m_stop_queue)
     );
 
     // 8) 비전 스레드 추가 -> 2

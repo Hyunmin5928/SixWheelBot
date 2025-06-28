@@ -35,5 +35,6 @@ void motor_thread(
     unsigned int baud,
     SafeQueue<float>& dir_queue_g,
     SafeQueue<float>& dir_queue_v,
-    SafeQueue<LaserPoint>& point_queue
+    SafeQueue<LaserPoint>& point_queue,
+    SafeQueue<bool>&       m_stop_queue
 );

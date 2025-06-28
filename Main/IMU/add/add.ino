@@ -76,20 +76,20 @@ void setup() {
   Serial.begin(115200);
 
   // 1) BNO055 초기화
-  // if (!bno.begin(OPERATION_MODE_NDOF)) {
-  //   Serial.println("ERROR: BNO055 not found");
-  //   while (1);
-  // }
+  if (!bno.begin(OPERATION_MODE_NDOF)) {
+    Serial.println("ERROR: BNO055 not found");
+    while (1);
+  }
   delay(1000);
-  // bno.setExtCrystalUse(true);
+  bno.setExtCrystalUse(true);
 
   // 2) 서보 초기화
-  // servoPitch.attach(PIN_SERVO_PITCH, 500, 2500);
-  // servoPitch.write(90);
+  servoPitch.attach(PIN_SERVO_PITCH, 500, 2500);
+  servoPitch.write(90);
   delay(500);
 
   // // 3) 영점 캘리브레이션
-  // calibrateZero();
+  calibrateZero();
   // Serial.println("=== 캘리브레이션 완료 ===");
 
   // 4) 모터 드라이버 핀 출력 설정
@@ -101,6 +101,7 @@ void setup() {
   pinMode(R_R_EN_PIN,  OUTPUT);
   pinMode(R_L_PWM_PIN, OUTPUT);
   pinMode(R_R_PWM_PIN, OUTPUT);
+  Serial.println("setup");
 }
 
 // 모터 시작
@@ -204,8 +205,8 @@ void calibrateZero() {
   }
   offRoll  = sumR / N;
   offPitch = sumP / N;
-  Serial.print("offRoll=");  Serial.print(offRoll, 2);
-  Serial.print("  offPitch="); Serial.println(offPitch, 2);
+  // Serial.print("offRoll=");  Serial.print(offRoll, 2);
+  // Serial.print("  offPitch="); Serial.println(offPitch, 2);
 }
 
 float pidControl(float measured, float &prevErr, float &iAcc) {
@@ -294,6 +295,7 @@ void loop(){
         Serial.println("cmd_done");
       }
     }
+    
   }
 
   // // IMU 제어

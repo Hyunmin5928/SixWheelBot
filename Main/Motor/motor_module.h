@@ -6,6 +6,7 @@
 #include <sstream>
 #include <iostream>
 #include <string.h>
+#include <cstring>
 #include <cmath>
 #include "../SafeQueue.hpp"
 #include "../logger.h"

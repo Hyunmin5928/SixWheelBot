@@ -18,7 +18,7 @@ void motor_thread(
         running.store(false);
     }
     std::ostringstream oss;
-    oss << "[motor] Success to open " << port << "@" << baud;
+    oss << "[MOTOR] Success to open " << port << "@" << baud;
     Logger::instance().info("motor", oss.str());
     Logger::instance().info("motor","[MOTOR] Command Thread start");
     std::string cmd="";
@@ -26,28 +26,55 @@ void motor_thread(
     LaserPoint pnt;
     char linebuf[128];
     bool cmd_active = false;
+    bool got_queue = false;
+
+    while (true) {
+        if (g_serial.ReadLine(linebuf, sizeof(linebuf))) {
+            // 1) std::string 으로 복사
+            std::string msg(linebuf);
+            // 2) 뒤쪽에 붙은 \r, \n 전부 제거
+            while (!msg.empty() && (msg.back() == '\r' || msg.back() == '\n')) {
+                msg.pop_back();
+            }
+
+            // 로그 찍어 보기
+            std::ostringstream oss;
+            oss << "[MOTOR] Arduino send message trimmed: '" << msg << "'";
+            Logger::instance().info("motor", oss.str());
+
+            // 3) 순수 비교
+            if (msg == "setup") {
+                Logger::instance().info("motor", "[MOTOR] Arduino Setup done");
+                break;
+            }
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
 
     while(running.load()){    
         if(run_motor.load()){
-            if(cmd_active==false){
-                if(!point_queue.ConsumeSync(pnt) && !cmd_active){
+            got_queue = point_queue.ConsumeSync(pnt);
+            if(got_queue){
+                cmd_active == false;
+                Logger::instance().info("motor", "[MOTOR] DIR queue received");
+            }
+            if(!cmd_active){
+                if (!got_queue){
                     cmd_active=true;
                     cmd="straight\n";
                     g_serial.Write(cmd.c_str(),cmd.size());
                     Logger::instance().info("motor", "[MOTOR] Straight command send");
+                    std::this_thread::sleep_for(std::chrono::milliseconds(50));
                 }
-                if(point_queue.ConsumeSync(pnt)){
-                    cmd_active=false;
-                }
-                if (point_queue.ConsumeSync(pnt) && !cmd_active) {
+                else {
                     //장애물 위치(각도)와 거리 파악
                     cmd_active = true;
                     float dist  = pnt.range;
                     float angle = pnt.angle;
-                    std::ostringstream oss;
-                    oss << "[MOTOR] Obstacle detected: dist="  << std::to_string(dist)
-                        << "cm, angle=" << std::to_string(angle);
-                    Logger::instance().info("motor", oss.str());
+                    // std::ostringstream oss;
+                    // oss << "[MOTOR] Obstacle detected: dist="  << std::to_string(dist)
+                    //     << "cm, angle=" << std::to_string(angle);
+                    // Logger::instance().info("motor", oss.str());
                     // 거리가 0(감지불가 임계값 이하)일 경우 무시, 거리와 각도가 회피 기준값 이내로 들어오면 회피 동작
                     // std::cout<<"값 받음 :"<<dist<<" "<<angle<<"\n";
                     if (dist > 10.0f
@@ -62,14 +89,25 @@ void motor_thread(
                         cmd+=std::to_string(dist)+" "+std::to_string(angle)+"\n";
                         g_serial.Write(cmd.c_str(), cmd.size());
                         //장애물 코드가 너무 자주 도는 것 방지
-                        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+                        std::this_thread::sleep_for(std::chrono::milliseconds(50));
                         
                         continue;
                     }
                 }
             }
+            if (g_serial.ReadLine(linebuf, sizeof(linebuf))) {
+            // 1) std::string 으로 복사
+                std::string msg(linebuf);
+                while (!msg.empty() && (msg.back() == '\r' || msg.back() == '\n')) {
+                    msg.pop_back();
+                }
+                std::ostringstream oss;
+                oss << "[MOTOR] Arduino send message trimmed: '" << msg << "'";
+                Logger::instance().info("motor", oss.str());
+            }
         }
-        
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
         
         /*
         if(g_serial.ReadLine(linebuf, sizeof(linebuf))){
@@ -143,7 +181,7 @@ void motor_thread(
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
     */
-    }
+    
     dir_queue_g.Finish();
     dir_queue_v.Finish();
     point_queue.Finish();

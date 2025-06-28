@@ -82,7 +82,7 @@ void navigation_thread(
 
         if(flag){ // 목적지로 가는 경우 (1. 출발지 -> 사용자 ) 
             run_motor.store(true);
-            Logger::instance().info("motor", "[navigation_thread] RUN_MOTOR store true");
+            // Logger::instance().info("motor", "[navigation_thread] RUN_MOTOR store true");
             if (idx < path.size()) {
             auto [wlat, wlon, dir] = path[idx];
             double dist = haversine(lat, lon, wlat, wlon);
@@ -179,7 +179,7 @@ void navigation_thread(
         }
         else{  // 복귀하는 경우 (2. 사용자 -> 출발지)
             run_motor.store(true);
-            Logger::instance().info("motor", "[navigation_thread] RUN_MOTOR store true");
+            // Logger::instance().info("motor", "[navigation_thread] RUN_MOTOR store true");
             if (idx > -1) {
             auto [wlat, wlon, dir] = path[idx];
             double dist = haversine(lat, lon, wlat, wlon);

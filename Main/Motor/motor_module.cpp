@@ -23,11 +23,13 @@ void motor_thread(
     Logger::instance().info("motor", oss.str());
     Logger::instance().info("motor","[MOTOR] Command Thread start");
     std::string cmd="";
+    std::string last_cmd="";
     float dir_g, dir_v;
     LaserPoint pnt;
     char linebuf[128];
     bool cmd_active = false;
     bool got_queue = false;
+    bool stop = false;
 
     while (true) {
         if (g_serial.ReadLine(linebuf, sizeof(linebuf))) {
@@ -55,6 +57,13 @@ void motor_thread(
 
     while(running.load()){    
         Logger::instance().info("motor", "[MOTOR] RUN loop");
+
+        if(m_stop_queue.ConsumeSync(stop) && stop && !cmd_active){
+            Logger::instance().info("motor", "[MOTOR] send stop");
+            cmd="stop\n";
+            g_serial.Write(cmd.c_str(), cmd.size());    
+        }
+
         if (g_serial.ReadLine(linebuf, sizeof(linebuf))) {
             // 1) std::string 으로 복사
             std::string msg(linebuf);
@@ -65,13 +74,13 @@ void motor_thread(
             oss << "[MOTOR] Arduino send message trimmed: '" << msg << "'";
             Logger::instance().info("motor", oss.str());
             // "cmd_done" 을 받으면 cmd_active = false
-            // if (msg == "cmd_done") {
-            //     cmd_active = false;
-            // }
-            cmd_active = false;
+            if (msg == "cmd_done") {
+                cmd_active = false;
+            }
         }
         if(run_motor.load() && !cmd_active){
             Logger::instance().info("motor", "[MOTOR] RUN_MOTOR loop");
+            // 라이다 큐 들어왔을 경우
             got_queue = point_queue.ConsumeSync(pnt);
             if(got_queue){
                 cmd_active = true;
@@ -100,12 +109,44 @@ void motor_thread(
                     std::this_thread::sleep_for(std::chrono::milliseconds(50));
                 }
             }
-            else {
-                    cmd_active=true;
+            // GPS 큐 들어왔을 경우
+            got_queue = dir_queue_g.ConsumeSync(dir_g);
+            // GPS 큐는 항상 존재하므로, GPS 이외의 상황에서의 기동 상태가 아닐 경우 동작하도록 해야함
+            if(got_queue && !cmd_active){
+                if(dir_g==0.0f){
                     cmd="straight\n";
-                    g_serial.Write(cmd.c_str(),cmd.size());
-                    Logger::instance().info("motor", "[MOTOR] Straight command send");
-                    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+                    if(last_cmd != cmd){
+                         Logger::instance().info("motor", "[MOTOR] send straight");
+                        last_cmd = cmd;
+                        g_serial.Write(cmd.c_str(), cmd.size());    
+                    }
+                    
+                }
+                else{
+                    // 이 경우는 rotate가 되어야하므로 cmd_active = true로 회전 완료까지는 다른 명령어 차단
+                    cmd_active=true;
+                    cmd="rotate ";
+                    std::string msg = "[MOTOR] gps send rotate ";
+                    msg+=std::to_string(dir_g);
+                    Logger::instance().info("motor", msg);
+                    cmd+=std::to_string(dir_g)+"\n";
+                    last_cmd = cmd;
+                    g_serial.Write(cmd.c_str(), cmd.size());
+                }
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            }
+            // Vision 큐 들어왔을 경우
+            got_queue = dir_queue_v.ConsumeSync(dir_v);
+    
+            if(got_queue && !cmd_active){
+                cmd_active = true;
+                std::string msg = "[MOTOR] vision send rotate ";
+                msg+=std::to_string(dir_v);
+                Logger::instance().info("motor", msg);
+                cmd="rotate ";
+                cmd+=std::to_string(dir_v)+"\n";
+                g_serial.Write(cmd.c_str(),cmd.size());
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
             }
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(50));

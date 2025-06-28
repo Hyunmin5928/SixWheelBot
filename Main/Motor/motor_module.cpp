@@ -28,7 +28,12 @@ void motor_thread(
     LaserPoint pnt;
     char linebuf[128];
     bool cmd_active = false;
-    bool got_queue = false;
+    bool l_cmd      = false;
+    bool g_cmd      = false;
+    bool v_cmd      = false;
+    bool got_l_queue = false;
+    bool got_g_queue = false;
+    bool got_v_queue = false;
     bool stop = false;
 
     while (true) {
@@ -56,12 +61,19 @@ void motor_thread(
     }
 
     while(running.load()){    
-        Logger::instance().info("motor", "[MOTOR] RUN loop");
+        // Logger::instance().info("motor", "[MOTOR] RUN loop");
 
-        if(m_stop_queue.ConsumeSync(stop) && stop && !cmd_active){
-            Logger::instance().info("motor", "[MOTOR] send stop");
-            cmd="stop\n";
-            g_serial.Write(cmd.c_str(), cmd.size());    
+        if(m_stop_queue.ConsumeSync(stop) && !cmd_active){
+            if (stop){
+                Logger::instance().info("motor", "[MOTOR] send stop");
+                cmd="stop\n";
+                g_serial.Write(cmd.c_str(), cmd.size());    
+                run_motor.store(false);
+            }
+            else {
+                // Logger::instance().info("motor", "[MOTOR] Return cmd recv");
+                run_motor.store(true);
+            }
         }
 
         if (g_serial.ReadLine(linebuf, sizeof(linebuf))) {
@@ -81,46 +93,42 @@ void motor_thread(
         if(run_motor.load() && !cmd_active){
             Logger::instance().info("motor", "[MOTOR] RUN_MOTOR loop");
             // 라이다 큐 들어왔을 경우
-            got_queue = point_queue.ConsumeSync(pnt);
-            if(got_queue){
-                cmd_active = true;
+            got_l_queue = point_queue.ConsumeSync(pnt);
+            if(got_l_queue){
                 Logger::instance().info("motor", "[MOTOR] DIR queue received");
                 //장애물 위치(각도)와 거리 파악
                 float dist  = pnt.range;
                 float angle = pnt.angle;
-                // std::ostringstream oss;
-                // oss << "[MOTOR] Obstacle detected: dist="  << std::to_string(dist)
-                //     << "cm, angle=" << std::to_string(angle);
-                // Logger::instance().info("motor", oss.str());
                 // 거리가 0(감지불가 임계값 이하)일 경우 무시, 거리와 각도가 회피 기준값 이내로 들어오면 회피 동작
                 // std::cout<<"값 받음 :"<<dist<<" "<<angle<<"\n";
                 if (dist > 10.0f
                 && dist <= OBSTACLE_DISTANCE_THRESHOLD
                 && std::fabs(angle) <= OBSTACLE_ANGLE_LIMIT)
                 {
+                    cmd_active = true;
                     std::ostringstream oss;
                     oss << "[MOTOR] Obstacle detected: dist="  << std::to_string(dist)
                     << "cm, angle=" << std::to_string(angle);
                     Logger::instance().warn("motor", oss.str());
                     cmd="avoid ";
                     cmd+=std::to_string(dist)+" "+std::to_string(angle)+"\n";
+                    last_cmd = cmd;
                     g_serial.Write(cmd.c_str(), cmd.size());
                     //장애물 코드가 너무 자주 도는 것 방지
                     std::this_thread::sleep_for(std::chrono::milliseconds(50));
                 }
             }
             // GPS 큐 들어왔을 경우
-            got_queue = dir_queue_g.ConsumeSync(dir_g);
+            got_g_queue = dir_queue_g.ConsumeSync(dir_g);
             // GPS 큐는 항상 존재하므로, GPS 이외의 상황에서의 기동 상태가 아닐 경우 동작하도록 해야함
-            if(got_queue && !cmd_active){
+            if(got_g_queue && !cmd_active){
                 if(dir_g==0.0f){
                     cmd="straight\n";
                     if(last_cmd != cmd){
-                         Logger::instance().info("motor", "[MOTOR] send straight");
+                        Logger::instance().info("motor", "[MOTOR] send straight");
                         last_cmd = cmd;
                         g_serial.Write(cmd.c_str(), cmd.size());    
                     }
-                    
                 }
                 else{
                     // 이 경우는 rotate가 되어야하므로 cmd_active = true로 회전 완료까지는 다른 명령어 차단
@@ -136,15 +144,16 @@ void motor_thread(
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
             }
             // Vision 큐 들어왔을 경우
-            got_queue = dir_queue_v.ConsumeSync(dir_v);
+            got_v_queue = dir_queue_v.ConsumeSync(dir_v);
     
-            if(got_queue && !cmd_active){
+            if(got_v_queue && !cmd_active){
                 cmd_active = true;
                 std::string msg = "[MOTOR] vision send rotate ";
                 msg+=std::to_string(dir_v);
                 Logger::instance().info("motor", msg);
                 cmd="rotate ";
                 cmd+=std::to_string(dir_v)+"\n";
+                last_cmd = cmd;
                 g_serial.Write(cmd.c_str(),cmd.size());
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
             }

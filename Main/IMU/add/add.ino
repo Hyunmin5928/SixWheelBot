@@ -67,7 +67,7 @@ void set_pwm_zero();
 void driveStraight();
 void driveStop();
 void driveBack();
-// void rotateToAngle(float targetAngle);
+void rotateToAngle(float targetAngle);
 void calibrateZero();
 float pidControl(float measured, float &prevErr, float &iAcc);
 void updateServo(Servo &sv, float u);
@@ -260,9 +260,8 @@ void loop(){
       else if (sep=="avoid")
       {
         //token[0] : 장애물과의 각도
-        //token[1] : pwm
-        //token[2] : 장애물과의 거리
-        String token[3]; 
+        //token[1] : 장애물과의 거리
+        String token[2]; 
         int tokenCount=0;
         //  avoid 뒤에 있는 숫자 읽기
         //  1) 라이다에서 감지된 장애물 각도 + 거리 가져오기
@@ -275,11 +274,9 @@ void loop(){
           tokenCount++;
         }
         log="avoid sep : ";
-        log += token[0];
-        log +=", ";
-        log+=token[1];
+        log+= token[0];
         log+=", ";
-        log+=token[2];
+        log+=token[1];
         Serial.println(log);
         //  2) 장애물 반대쪽 방향으로 각도만큼 rotate하기
         rotateToAngle(token[0].toFloat());

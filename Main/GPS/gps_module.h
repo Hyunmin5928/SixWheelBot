@@ -6,6 +6,12 @@
 #include "../SafeQueue.hpp"
 #include "../logger.h"
 #include "lib/GPS_parse.h"     // sGPS, GPS 클래스
+#include <optional>
+#include <chrono>
+#include <thread>
+#include <cmath>
+#include <iostream>
+#include <pthread.h>
 // using Route = std::vector<std::tuple<double,double,int>>;
 // sudo ln -sf /dev/ttyAMA0 /dev/serial0
 
@@ -30,7 +36,8 @@ using Waypoint = std::tuple<double,double,int>;      // {lat, lon, dirCode}
 void navigation_thread(
     SafeQueue<std::vector<Waypoint>>&   map_q,
     SafeQueue<float>&                   dir_queue,
-    SafeQueue<bool>&                    m_stop_queue
+    SafeQueue<bool>&                    m_stop_queue,
+    SafeQueue<int>&                     cmd_queue
 );
 
 // GPS 읽기 전용 스레드 함수

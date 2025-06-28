@@ -128,7 +128,7 @@ int main(){
     // 3) 방향 코드만
     SafeQueue<float> dir_queue_g;
     SafeQueue<float> dir_queue_v;
-    // 4) (선택) 통신 명령용, 로그용 큐
+    // 4) 통신 명령용, 로그용 큐
     SafeQueue<int> cmd_queue;
     SafeQueue<std::string> log_queue;
     // 5) LiDAR 센서 큐
@@ -165,7 +165,8 @@ int main(){
         navigation_thread,
         std::ref(map_queue),
         std::ref(dir_queue_g),
-        std::ref(m_stop_queue)
+        std::ref(m_stop_queue),
+        std::ref(cmd_queue)
     );
 
     // 5) LiDAR 스캔 프로듀서 -> 2

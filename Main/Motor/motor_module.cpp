@@ -142,6 +142,7 @@ void motor_thread(
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
     */
+    }
     dir_queue_g.Finish();
     dir_queue_v.Finish();
     point_queue.Finish();

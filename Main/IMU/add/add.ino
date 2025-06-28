@@ -286,7 +286,7 @@ void loop(){
         //  3) 1초 straight하기
         driveStraight();
         Serial.println("앞으로 이동");
-        delay(1000);
+        delay(1500);
         //  4) 장애물 피하기 위해 튼 각도 *-1.0f만큼 rotate하기
         rotateToAngle(token[0].toFloat()*(-1.0f));
         Serial.println("회피 이전 각도로 회복");

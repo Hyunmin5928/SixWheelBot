@@ -13,11 +13,27 @@ int main(){
     // UDP
     Lidar lidar;
     lidar.turnOn();
+    LaserPoint nearPoint;
     while(true) // running.load()
     {
         lidar.scan_oneCycle();
         auto pts = lidar.get_scanData();
-        sendto(sockfd, pts.data(), pts.size() * sizeof(LaserPoint),0, (sockaddr*)&main_addr, sizeof(main_addr));
+
+        float minR = std::numeric_limits<float>::infinity();
+        for (auto &p : pts) {
+            if (p.range > 0 && p.range < minR &&
+               p.angle > -60.0f && p.angle < 60.0f) {
+                minR = p.range;
+                nearPoint = p;
+            }
+        }
+        std::ostringstream msg;
+        msg << std::fixed << std::setprecision(2);
+        msg << "[LiDAR Near Point] ang : " << nearPoint.angle
+            << ", range : " << nearPoint.range;
+        std::cout << msg.str() << std::endl;
+
+        sendto(sockfd, &nearPoint, sizeof(LaserPoint),0, (sockaddr*)&main_addr, sizeof(main_addr));
         usleep(10000);
     }
     close(sockfd);

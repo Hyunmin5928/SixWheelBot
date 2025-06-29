@@ -3,17 +3,17 @@
 // 전역 종료 플래그
 
 // 1) 스캔만 담당: raw_scan_queue 에 vector<LaserPoint> 생산
-void lidar_producer() {
+void lidar_producer(SafeQueue<LaserPoint>& lidar_queue) {
     pthread_setname_np(pthread_self(), "[THREAD]LIDAR_PROD");
 
     int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
     if (sockfd < 0) {
         perror("socket creation failed");
+        return;
     }
     //192.168.61.139
     // 2. 수신할 주소 및 포트 설정
-    sockaddr_in my_addr;
-    memset(&my_addr, 0, sizeof(my_addr));
+    sockaddr_in my_addr{};
     my_addr.sin_family = AF_INET;
     my_addr.sin_addr.s_addr = INADDR_ANY;     // 모든 인터페이스에서 수신
     my_addr.sin_port = htons(5005);           // LiDAR Pi가 보내는 포트
@@ -25,53 +25,69 @@ void lidar_producer() {
         return;
     }
 
-    constexpr int MAX_POINTS = 1000;
-    std::vector<LaserPoint> point(MAX_POINTS);
+    // 타임아웃 설정 (옵션: 블록 방지)
+    timeval tv{1, 0}; // 1초 대기
+    setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+
+    // constexpr int MAX_POINTS = 1000;
+    LaserPoint point;
     sockaddr_in sender_addr;
     socklen_t sender_len = sizeof(sender_addr);
     
     while (running.load()) {
-
-        ssize_t len = recvfrom(sockfd, point.data(), point.size() * sizeof(LaserPoint), 0,
+        ssize_t len = recvfrom(sockfd, &point, sizeof(LaserPoint), 0,
                                (sockaddr*)&sender_addr, &sender_len);
-
-        if (len % sizeof(LaserPoint) == 0 && len > 0) {
-            int count = len / sizeof(LaserPoint);
-            point.resize(count);
-            std::cout << "Received " << count << " LaserPoints" << std::endl;
-            raw_scan_queue.Produce(std::move(point));
-        } else {
-            std::cerr << "Received unexpected packet size: " << len << " bytes" << std::endl;
+        // 1) 오류(-1) 처리
+        if (len == -1) {
+            if (errno == EWOULDBLOCK || errno == EAGAIN) {
+                // 타임아웃 또는 데이터 없음: 잠깐 대기 후 루프 유지
+                continue;
+            }
+            perror("[THREAD]LIDAR_PROD recvfrom failed");
+            continue;
         }
+        // 2) 길이 0 처리 (선택 사항)
+        if (len == 0) {
+            // 빈 패킷: 스킵
+            continue;
+        }
+        // 3) 크기 불일치
+        if (len != sizeof(LaserPoint)) {
+            std::cerr << "[THREAD]LIDAR_PROD] unexpected packet size: "
+                    << len << " (expected " << sizeof(LaserPoint) << ")\n";
+            continue;
+        }
+        lidar_queue.Produce(std::move(point));
+        
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }
-    raw_scan_queue.Finish();
+    lidar_queue.Finish();
     close(sockfd);
 }
 
 // 2) 계산만 담당: raw_scan_queue 에서 뽑아 nearest point 계산 → lidar_queue 로 소비
-void lidar_consumer(SafeQueue<std::vector<LaserPoint>>& in_q,
-                    SafeQueue<LaserPoint>& out_q) {
-    std::vector<LaserPoint> pts;
-    pthread_setname_np(pthread_self(), "[THREAD]LIDAR_COND");
-    while (in_q.ConsumeSync(pts)) {                       // 블록 대기
-        // 가장 가까운 점 계산 (기존 get_nearPoint 로직 분리)
-        LaserPoint nearPoint;
-        float minR = std::numeric_limits<float>::infinity();
-        for (auto &p : pts) {
-            if (p.range > 0 && p.range < minR &&
-               p.angle > -60.0f && p.angle < 60.0f) {
-                minR = p.range;
-                nearPoint = p;
-            }
-        }
-        std::ostringstream msg;
-        msg << std::fixed << std::setprecision(2);
-        msg << "[LiDAR Near Point] ang : " << nearPoint.angle
-            << ", range : " << nearPoint.range;
-        Logger::instance().info("lidar", msg.str());
+// void lidar_consumer(SafeQueue<std::vector<LaserPoint>>& in_q,
+//                     SafeQueue<LaserPoint>& out_q) {
+//     std::vector<LaserPoint> pts;
+//     pthread_setname_np(pthread_self(), "[THREAD]LIDAR_COND");
+//     while (in_q.ConsumeSync(pts)) {                       // 블록 대기
+//         // 가장 가까운 점 계산 (기존 get_nearPoint 로직 분리)
+//         LaserPoint nearPoint;
+//         float minR = std::numeric_limits<float>::infinity();
+//         for (auto &p : pts) {
+//             if (p.range > 0 && p.range < minR &&
+//                p.angle > -60.0f && p.angle < 60.0f) {
+//                 minR = p.range;
+//                 nearPoint = p;
+//             }
+//         }
+//         std::ostringstream msg;
+//         msg << std::fixed << std::setprecision(2);
+//         msg << "[LiDAR Near Point] ang : " << nearPoint.angle
+//             << ", range : " << nearPoint.range;
+//         Logger::instance().info("lidar", msg.str());
 
-        out_q.Produce(std::move(nearPoint));                  // 최종 결과 생산
-    }
-    out_q.Finish();
-}
+//         out_q.Produce(std::move(nearPoint));                  // 최종 결과 생산
+//     }
+//     out_q.Finish();
+// }

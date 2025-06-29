@@ -172,16 +172,17 @@ int main(){
     // 5) LiDAR 스캔 프로듀서 -> 2
     std::thread t_lidar_prod = start_thread_with_affinity(
         2, 
-        lidar_producer
+        lidar_producer,
+        std::ref(lidar_queue);
     );
 
     // 6) LiDAR near-point 컨슈머 -> 2
-    std::thread t_lidar_cons = start_thread_with_affinity(
-        2,
-        lidar_consumer,
-        std::ref(raw_scan_queue),
-        std::ref(lidar_queue)
-    );
+    // std::thread t_lidar_cons = start_thread_with_affinity(
+    //     2,
+    //     lidar_consumer,
+    //     std::ref(raw_scan_queue),
+    //     std::ref(lidar_queue)
+    // );
 
     // 7) 모터 스레드 -> 3
     std::thread t_motor = start_thread_with_affinity(

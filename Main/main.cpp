@@ -132,6 +132,7 @@ int main(){
     SafeQueue<int> cmd_queue;
     SafeQueue<std::string> log_queue;
     // 5) LiDAR 센서 큐
+    SafeQueue<std::vector<LaserPoint>> raw_scan_queue;
     SafeQueue<LaserPoint> lidar_queue;
     // 6) GPS 센서 -> 배달지 도착 및 복귀 장소 도착 구분 플래그 큐
     SafeQueue<bool> m_stop_queue;

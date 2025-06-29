@@ -25,7 +25,7 @@ OBJ_CPP  := $(CPP_SRCS:.cpp=.o)
 OBJS     := $(OBJ_CPP) $(OBJ_C)
 
 # 4. 최종 바이너리 이름
-TARGET   := yippee   # 원하는 실행 파일 이름으로 변경 가능
+TARGET   := lidar_server   # 원하는 실행 파일 이름으로 변경 가능
 
 # =================================
 # 기본 타겟: all

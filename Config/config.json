@@ -1,5 +1,4 @@
 {
-  
   "SERVER":{  
     "_comment": "실제 라즈베리파이 서버 주소", 
     "IP"      : "100.95.176.69",
@@ -20,26 +19,6 @@
     "AI_SERVER_IP"       : "100.68.185.3",
     "AI_SERVER_PORT"  : 9999
   },
-  "IMU":{
-    "_comment"       : "IMU 모듈 설정",
-    "INTERVAL_MS"    : 20,
-    "THRESH_ROLL"    : 2.0,
-    "THRESH_PITCH"   : 2.0,
-    "SERVO_LIMIT"    : 75
-  },
-  "MOTOR":{
-    "_comment"       : "MOTOR 모듈 설정"
-    
-  },
-  "GPS":{
-    "_comment"       : "GPS 모듈 설정"
-  },
-  "VISION":{
-    "_comment"       : "AI 모델 설정"
-  },
-  "MCOMM":{
-    "_comment"       : "MCOMM 모듈 설정"
-  },
   "LOG":{
     "_comment"       : "로그 레벨(0 : Debug, 1 : Info, 2 : Warn, 3 : Error 파일 위치 지정",
     "LOG_LEVEL"      : 0,
@@ -48,7 +27,6 @@
     "GPS_LOG_FILE"   : "log/gps_log.txt",
     "LIDAR_LOG_FILE" : "log/lidar_log.txt",
     "MOTOR_LOG_FILE" : "log/motor_log.txt",
-    "IMU_LOG_FILE"   : "log/imu_log.txt",
     "VISION_LOG_FILE": "log/vision_log.txt"
   },
   "DB":{

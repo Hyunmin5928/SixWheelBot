@@ -132,7 +132,6 @@ int main(){
     SafeQueue<int> cmd_queue;
     SafeQueue<std::string> log_queue;
     // 5) LiDAR 센서 큐
-    SafeQueue<std::vector<LaserPoint>> raw_scan_queue;
     SafeQueue<LaserPoint> lidar_queue;
     // 6) GPS 센서 -> 배달지 도착 및 복귀 장소 도착 구분 플래그 큐
     SafeQueue<bool> m_stop_queue;
@@ -173,16 +172,17 @@ int main(){
     // 5) LiDAR 스캔 프로듀서 -> 2
     std::thread t_lidar_prod = start_thread_with_affinity(
         2, 
-        lidar_producer
+        lidar_producer,
+        std::ref(lidar_queue);
     );
 
     // 6) LiDAR near-point 컨슈머 -> 2
-    std::thread t_lidar_cons = start_thread_with_affinity(
-        2,
-        lidar_consumer,
-        std::ref(raw_scan_queue),
-        std::ref(lidar_queue)
-    );
+    // std::thread t_lidar_cons = start_thread_with_affinity(
+    //     2,
+    //     lidar_consumer,
+    //     std::ref(raw_scan_queue),
+    //     std::ref(lidar_queue)
+    // );
 
     // 7) 모터 스레드 -> 3
     std::thread t_motor = start_thread_with_affinity(

@@ -5,6 +5,10 @@
 #include "../SafeQueue.hpp"
 #include "../logger.h"
 #include "Lidar.h"
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <cstring>
+#include <vector>
 // #include "YDLidar-SDK/src/CYdLidar.h"
 // #include "YDLidar-SDK/core/common/ydlidar_help.h"
 
@@ -15,7 +19,7 @@ extern int                  LOG_LEVEL;
 extern std::atomic<bool>    running;
 extern std::atomic<bool>    run_lidar;
 
-extern SafeQueue<std::vector<LaserPoint>> raw_scan_queue;
+// extern SafeQueue<std::vector<LaserPoint>> raw_scan_queue;
 
 // 시리얼 포트 객체 (전역)
 // static CSerialPort g_serial;
@@ -23,8 +27,8 @@ extern SafeQueue<std::vector<LaserPoint>> raw_scan_queue;
 using util::Logger;                             
 using util::LogLevel;
 
-void lidar_producer();
-void lidar_consumer(SafeQueue<std::vector<LaserPoint>>& in_q,
-                    SafeQueue<LaserPoint>& out_q);
+void lidar_producer(SafeQueue<LaserPoint>& lidar_queue);
+// void lidar_consumer(SafeQueue<std::vector<LaserPoint>>& in_q,
+                    // SafeQueue<LaserPoint>& out_q);
 
 // void lidar_thread(SafeQueue<LaserPoint>& lidar_q);

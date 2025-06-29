@@ -86,7 +86,6 @@ int Lidar::lidar_setup(){
     optval = YDLIDAR_TYPE_SERIAL;
     lidar.setlidaropt(LidarPropDeviceType, &optval, sizeof(int));
     /// sample rate
-    optval = isSingleChannel ? 3 : 4;
     optval = 5;
     lidar.setlidaropt(LidarPropSampleRate, &optval, sizeof(int));
     /// abnormal count

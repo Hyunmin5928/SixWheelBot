@@ -352,6 +352,8 @@ app.post('/api/order', async (req, res) => {
    }
  });
 
+/* ── 배송 요청 수락 ─────────────────────── */
+const TMAP_API_KEY = '6uHPB650j41F9NmAfTKjs5DxEZ0eBcTC77dm55iX';
 app.post('/api/order/:id/accept', async (req, res) => {
   try {
     const db = await dbPromise;
@@ -360,16 +362,153 @@ app.post('/api/order/:id/accept', async (req, res) => {
       [req.params.id]
     );
     if (changes === 0) return res.status(404).send('해당 주문이 없습니다.');
+    
+    //주문 정보 조회
+    const order = await db.get(`
+    SELECT REC_ADDR, REC_DETAIL FROM ORDER_REQ WHERE ORD_ID = ?
+    `, [req.params.id]);
+    const TMAP_API_KEY = '6uHPB650j41F9NmAfTKjs5DxEZ0eBcTC77dm55iX';
+    //주소-> 좌표 API 호출
 
-    // T map 경로 계산 생략… (위 예제 코드와 동일)
-    // sendControl 로 start 명령 전송
-    sendControl('start', { order_id: req.params.id });
+    // 좌표 -> 경로 API 호출
+    const address = order.REC_ADDR + ' ' + (order.REC_DETAIL || '');
+    const [city_do, gu_gun, dong, bunji, ...detail] = address.split(' ');
+    const detailAddress = detail.join(' ');  // 나머지는 상세주소로
+
+    // 경기도 분당구 성남대로43번길 1
+    // 경기도 성남시 분당구 구미동 158
+    // 경기 성남시 분당구 구미동 181
+    // city_do = "경기 성남시";
+    // gu_gun = "분당구";
+    // dong = "";
+    // bunji = "성남대로43번길";
+    // detailAddress = "1"
+
+    console.log('=== 파싱된 주소 정보 ===');
+    console.log('city_do      :', city_do);
+    console.log('gu_gun       :', gu_gun);
+    console.log('dong         :', dong);
+    console.log('bunji        :', bunji);
+    console.log('detailAddress:', detailAddress);
+
+ 
+    const geoRes = await axios.get('https://apis.openapi.sk.com/tmap/geo/geocoding', {
+    params: {
+      version: 1,
+      city_do: city_do,
+      gu_gun: gu_gun,
+      dong: dong,
+      bunji: bunji,
+      //detailAddress: detailAddress,
+      addressFlag: 'F00',       // 지번/도로명 자동
+      coordType: 'WGS84GEO',
+      appKey: TMAP_API_KEY
+    }
+  });
+
+  console.log('=== Geocoding 응답 전체 ===');
+  console.log(geoRes.data);
+
+
+
+    const coord = geoRes.data.coordinateInfo;
+    //const startX = 127.1090;
+    //const startY = 37.3397;
+    const endX = Number(coord.lon);
+    const endY = Number(coord.lat);
+   // const endX = 126.910656;
+    //const endY = 37.557907;
+    // X : 경도, Y : 위도 -> 시작 점 : 분당 메가 포스 몰(홈플러스 방향)
+    const startX = 127.10756589999941;
+    const startY = 37.340588499999804;
+ 
+
+    // 디버깅용 콘솔 출력
+    console.log('==== Geocoding 결과 ====');
+    console.log('coord:', coord);
+    console.log('endX(경도):', coord.lon);
+    console.log('endY(위도):', coord.lat);
+
+    // 2. T map API 호출 
+    
+    
+      const tmapRes = await axios.post(
+      'https://apis.openapi.sk.com/tmap/routes/pedestrian?version=1',
+      {
+        startX, startY, endX, endY,
+        startName: "출발지",
+        endName:"도착지",
+        reqCoordType: "WGS84GEO",
+        resCoordType: "WGS84GEO",
+        // ...필요한 옵션 추가
+      },
+      {
+        headers: {
+          appKey: TMAP_API_KEY,
+          "Content-Type": "application/json",
+        }
+      }
+    );
+      console.log('=== 경로 응답 전체 ===');
+      console.log(tmapRes.data);
+   
+
+
+    // 1. 결과에서 features 배열 뽑기
+    const features = tmapRes.data.features;
+
+    // 2. 좌표 추출
+    const coordMap = {}; // { 'lat,lon' : turnType }
+    features.forEach(feature => {
+      const { geometry, properties } = feature;
+      if (geometry.type === "LineString") {
+        geometry.coordinates.forEach(([lon, lat]) => {
+          const key = `${lat},${lon}`;
+          if (!(key in coordMap)) {
+            coordMap[key] = null; // 기본값
+          }
+        });
+      } else if (geometry.type === "Point") {
+        const [lon, lat] = geometry.coordinates;
+        const turnType = properties.turnType;
+        const key = `${lat},${lon}`;
+        coordMap[key] = turnType; // turnType 등록
+      }
+    });
+
+    // 3. (lat, lon, turnType) 배열 만들기
+    const routeCoords = Object.entries(coordMap).map(([key, turnType]) => {
+      const [lat, lon] = key.split(',').map(Number);
+      return [lat, lon, turnType];
+    });
+
+    // 디버깅용 터미널 출력
+    console.log('==== 경로 좌표 배열 (lat, lon, turnType) ====');
+    routeCoords.forEach((item, idx) => {
+      const [lat, lon, turnType] = item;
+      console.log(`${idx + 1}: lat=${lat}, lon=${lon}, turnType=${turnType === null ? '없음' : turnType}`);
+    });
+
+    const fs = require('fs');
+
+    // 파일로 저장 (예: route.txt)
+    fs.writeFileSync(
+      'route.txt',
+      routeCoords.map(([lat, lon, turnType]) =>
+        `${lat},${lon},${turnType === null ? '' : turnType}`
+      ).join('\n'),
+      { encoding: 'utf8' }
+    );
+
+
     res.json({ ok: true });
+    sendControl('start', { order_id: req.params.id });
   } catch (e) {
     console.error('order accept 오류', e);
     res.status(500).send('서버 오류');
   }
 });
+
 app.post('/api/order/:id/unlock', (_req, res) => {
   sendControl('unlock', { order_id: _req.params.id });
   res.json({ ok: true });

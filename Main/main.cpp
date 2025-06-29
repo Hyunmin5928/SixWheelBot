@@ -79,9 +79,9 @@ static constexpr const char cmd_stop1 [] = "stop\n";
 void handle_sigint(int) {
     run_lidar.store(false);
     run_gps.store(false);
-    running.store(false);
     run_motor.store(false);
     run_vision.store(false);
+    running.store(false);
 }
 
 void load_config(const std::string& path) {
@@ -113,7 +113,7 @@ void load_config(const std::string& path) {
 int main(){
     std::signal(SIGINT, handle_sigint);
 
-    load_config("../Config/config.json");
+    load_config("config/config.json");
 
     Logger::instance().addFile("comm",   CLI_LOG_FILE,   static_cast<LogLevel>(LOG_LEVEL));
     Logger::instance().addFile("gps",    GPS_LOG_FILE,   static_cast<LogLevel>(LOG_LEVEL));
@@ -126,16 +126,17 @@ int main(){
     // 2) 현재 위치 (필요시 로깅용)
     SafeQueue<std::pair<double,double>> gps_queue;
     // 3) 방향 코드만
-    SafeQueue<float> dir_queue;
-    // 4) (선택) 통신 명령용, 로그용 큐
+    SafeQueue<float> dir_queue_g;
+    SafeQueue<float> dir_queue_v;
+    // 4) 통신 명령용, 로그용 큐
     SafeQueue<int> cmd_queue;
     SafeQueue<std::string> log_queue;
-    //SafeQueue<int> dir_queue;
-    // SafeQueue<IMU::Command> imu_cmd_queue;
-
     // 5) LiDAR 센서 큐
+    SafeQueue<std::vector<LaserPoint>> raw_scan_queue;
     SafeQueue<LaserPoint> lidar_queue;
-    
+    // 6) GPS 센서 -> 배달지 도착 및 복귀 장소 도착 구분 플래그 큐
+    SafeQueue<bool> m_stop_queue;
+    m_stop_queue.Produce(true);
     // 1) 통신 스레드 -> 1
     std::thread t_comm =  start_thread_with_affinity(
         1,
@@ -161,11 +162,13 @@ int main(){
 
     // 4) 네비게이션 스레드 -> 1
     std::thread t_nav = start_thread_with_affinity(
-        1, 
+        0, 
         navigation_thread,
         std::ref(map_queue),
-        std::ref(dir_queue)
-
+        std::ref(dir_queue_g),
+        std::ref(m_stop_queue),
+        std::ref(cmd_queue)
+    );
 
     // 5) LiDAR 스캔 프로듀서 -> 2
     std::thread t_lidar_prod = start_thread_with_affinity(
@@ -173,29 +176,31 @@ int main(){
         lidar_producer
     );
 
-    // 6) LiDAR near-point 컨슈머 -> 3
+    // 6) LiDAR near-point 컨슈머 -> 2
     std::thread t_lidar_cons = start_thread_with_affinity(
-        3,
+        2,
         lidar_consumer,
         std::ref(raw_scan_queue),
         std::ref(lidar_queue)
     );
 
-    // 7) 모터 스레드 -> 0
+    // 7) 모터 스레드 -> 3
     std::thread t_motor = start_thread_with_affinity(
-        0,
+        3,
         motor_thread,
         "/dev/ttyUSB0",
         115200,
-        std::ref(dir_queue),
-        std::ref(lidar_queue)
+        std::ref(dir_queue_g),
+        std::ref(dir_queue_v),
+        std::ref(lidar_queue),
+        std::ref(m_stop_queue)
     );
 
     // 8) 비전 스레드 추가 -> 2
     std::thread t_vision = start_thread_with_affinity(
-        2,
+        1,
         vision_thread,
-        std::ref(dir_queue)           
+        std::ref(dir_queue_v)           
     );
 
     // 메인 루프

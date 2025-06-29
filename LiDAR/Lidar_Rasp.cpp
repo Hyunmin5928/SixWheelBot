@@ -22,4 +22,5 @@ int main(){
     }
     close(sockfd);
     lidar.turnOff();
+    return 0;
 }

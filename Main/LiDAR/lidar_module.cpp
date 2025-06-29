@@ -5,8 +5,6 @@
 // 1) 스캔만 담당: raw_scan_queue 에 vector<LaserPoint> 생산
 void lidar_producer() {
     pthread_setname_np(pthread_self(), "[THREAD]LIDAR_PROD");
-    Lidar lidar;
-    lidar.turnOn();
 
     int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
     if (sockfd < 0) {
@@ -47,7 +45,6 @@ void lidar_producer() {
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }
-    lidar.turnOff();
     raw_scan_queue.Finish();
     close(sockfd);
 }

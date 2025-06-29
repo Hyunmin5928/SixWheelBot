@@ -79,9 +79,9 @@ static constexpr const char cmd_stop1 [] = "stop\n";
 void handle_sigint(int) {
     run_lidar.store(false);
     run_gps.store(false);
-    running.store(false);
     run_motor.store(false);
     run_vision.store(false);
+    running.store(false);
 }
 
 void load_config(const std::string& path) {
@@ -130,9 +130,6 @@ int main(){
     // 4) (선택) 통신 명령용, 로그용 큐
     SafeQueue<int> cmd_queue;
     SafeQueue<std::string> log_queue;
-    //SafeQueue<int> dir_queue;
-    // SafeQueue<IMU::Command> imu_cmd_queue;
-
     // 5) LiDAR 센서 큐
     SafeQueue<LaserPoint> lidar_queue;
     

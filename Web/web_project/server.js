@@ -418,8 +418,9 @@ app.post('/api/order/:id/accept', async (req, res) => {
     const endY = Number(coord.lat);
    // const endX = 126.910656;
     //const endY = 37.557907;
-    const startX = 127.1090;
-    const startY = 37.3397;
+    // X : 경도, Y : 위도 -> 시작 점 : 분당 메가 포스 몰(홈플러스 방향)
+    const startX = 127.10756589999941;
+    const startY = 37.340588499999804;
  
 
     // 디버깅용 콘솔 출력

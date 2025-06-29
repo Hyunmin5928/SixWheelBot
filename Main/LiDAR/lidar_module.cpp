@@ -30,13 +30,13 @@ void lidar_producer(SafeQueue<LaserPoint>& lidar_queue) {
     setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 
     // constexpr int MAX_POINTS = 1000;
-    LaserPoint point;
+    //LaserPoint point;
+    char buffer[256];
     sockaddr_in sender_addr;
     socklen_t sender_len = sizeof(sender_addr);
-    
     while (running.load()) {
-        ssize_t len = recvfrom(sockfd, &point, sizeof(LaserPoint), 0,
-                               (sockaddr*)&sender_addr, &sender_len);
+        ssize_t len = recvfrom(sockfd, buffer, sizeof(buffer)-1, 0,
+                        (sockaddr*)&sender_addr, &sender_len);
         // 1) 오류(-1) 처리
         if (len == -1) {
             if (errno == EWOULDBLOCK || errno == EAGAIN) {
@@ -46,18 +46,17 @@ void lidar_producer(SafeQueue<LaserPoint>& lidar_queue) {
             perror("[THREAD]LIDAR_PROD recvfrom failed");
             continue;
         }
-        // 2) 길이 0 처리 (선택 사항)
-        if (len == 0) {
-            // 빈 패킷: 스킵
-            continue;
+        if (len > 0) {
+            buffer[len] = '\0'; // null-terminate
+            std::string received_str(buffer);
+
+            LaserPoint point;
+            std::istringstream iss(received_str);
+            iss >> point.angle >> point.range;
+            point.intensity=0.0f;
+
+            lidar_queue.Produce(std::move(point));
         }
-        // 3) 크기 불일치
-        if (len != sizeof(LaserPoint)) {
-            std::cerr << "[THREAD]LIDAR_PROD] unexpected packet size: "
-                    << len << " (expected " << sizeof(LaserPoint) << ")\n";
-            continue;
-        }
-        lidar_queue.Produce(std::move(point));
         
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }

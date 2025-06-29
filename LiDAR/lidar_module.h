@@ -5,10 +5,6 @@
 #include "../SafeQueue.hpp"
 #include "../logger.h"
 #include "Lidar.h"
-#include <arpa/inet.h>
-#include <unistd.h>
-#include <cstring>
-#include <vector>
 // #include "YDLidar-SDK/src/CYdLidar.h"
 // #include "YDLidar-SDK/core/common/ydlidar_help.h"
 

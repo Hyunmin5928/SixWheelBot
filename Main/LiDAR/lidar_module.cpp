@@ -55,7 +55,7 @@ void lidar_producer(SafeQueue<LaserPoint>& lidar_queue) {
             iss >> point.angle >> point.range;
             point.intensity=0.0f;
             std::string msg = "[Lidar] Get "+std::to_string(point.angle)+" "+std::to_string(point.range)+"\n";
-            Logger::instance().info("lidar", "[Lidar] get");
+            Logger::instance().info("lidar", msg.c_str());
             lidar_queue.Produce(std::move(point));
         }
         

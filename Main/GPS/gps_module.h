@@ -42,7 +42,8 @@ void navigation_thread(
 
 // GPS 읽기 전용 스레드 함수
 void gps_reader_thread(
-    SafeQueue<GpsPos>& gps_q
+    SafeQueue<GpsPos>& gps_q,
+    SafeQueue<bool>&                    m_stop_queue
 );
 
 // void gps_thread(

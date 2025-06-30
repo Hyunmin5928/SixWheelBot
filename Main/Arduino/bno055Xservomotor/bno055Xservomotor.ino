@@ -159,35 +159,25 @@ void driveBack() {
 }
 
 //  회전: 현재 yaw와 목표 yaw 비교하며 회전
-void rotateToAngle(float targetAngle, float distance) {
+void rotateToAngle(float targetAngle) {
   Serial.print(">> rotate to ");
   Serial.println(targetAngle);
   set_motor_on();
   while (true) {
     imu::Vector<3> e = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
     float currYaw = e.x();  // 0~360 범위
-    float err = targetAngle - currYaw;
+    float err = targetAngle - currYaw; 
     if (err > 180)  err -= 360;
     if (err < -180) err += 360;
     // 오차 계산 (−180~180)
-    float dist = distance;
-    float angle = targetAngle;
-
+    
     // 목표 도달 시 정지
     if (fabs(err) < ANGLE_TOLERANCE) {
       driveStop();
       Serial.println(">> reached");
       break;
     }
-
-    float w_dist = 1.0f - distance / max_dist;
-    if (w_dist < 0.3f) w_dist = 0.3f;
-    float w_ang = 1.0f - fabs(err) / 120.0f;
-    if (w_ang < 0.3f) w_ang = 0.3f;
-    float weight = w_dist * w_ang;
-
-    int pwm = DEFAULT_PWM * weight;
-    pwm = constrain(pwm, 60, 255);
+    
     // 회전 방향에 따라 모터 반대회전
     if (err > 0) {
       // 오른쪽 회전: 왼쪽 전진, 오른쪽 후진
@@ -199,8 +189,8 @@ void rotateToAngle(float targetAngle, float distance) {
       // 왼쪽 회전: 왼쪽 후진,     오른쪽 전진
       analogWrite(L_L_PWM_PIN, pwm);
       analogWrite(L_R_PWM_PIN, 0);
-      analogWrite(R_L_PWM_PIN, 0);
-      analogWrite(R_R_PWM_PIN, pwm);
+      analogWrite(R_L_PWM_PIN, pwm);
+      analogWrite(R_R_PWM_PIN, 0);
     }
     delay(20);  // 짧게 대기
   }
@@ -283,10 +273,20 @@ void loop() {
         }
         String log = "avoid sep : " + token[0] + ", " + token[1];
         Serial.println(log);
-        rotateToAngle(token[0].toFloat(), token[1].toFloat());
+        float angle = token[0].toFloat();
+        float dist = token[1].toFloat();
+
+        float w_dist = 1.0f - dist / max_dist;  // 거리가 멀수록 가중치는 작아짐 (틀어지는 각도 감소)
+        if (w_dist < 0.3f) w_dist = 0.3f;       // 너무 작아지지 않도록 조정
+        float w_ang = 1.0f - fabs(angle) / 120.0f;    // 각도가 0에서 멀수록 가중치는 작아짐 (틀어지는 각도 감소)
+        if (w_ang < 0.3f) w_ang = 0.3f; // 가중치가 너무 작아지지 않도록 조정
+        float weight = (w_dist + w_ang)/2.0f;
+        targetAngle *= weight;
+
+        rotateToAngle(targetAngle);
         driveStraight();
         delay(1500);
-        rotateToAngle(-token[0].toFloat(), token[1].toFloat());
+        rotateToAngle(-targetAngle);
         Serial.println("cmd_done");
       }
     }

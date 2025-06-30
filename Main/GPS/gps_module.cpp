@@ -164,7 +164,8 @@ void navigation_thread(
 }
 
 void gps_reader_thread(
-    SafeQueue<GpsPos>& gps_q
+    SafeQueue<GpsPos>& gps_q,
+    SafeQueue<bool>& m_stop_queue
 ) {
     pthread_setname_np(pthread_self(), "[THREAD]GPS_READ");
     GPS gpsSensor;
@@ -193,6 +194,7 @@ void gps_reader_thread(
         }
         else {
             Logger::instance().error("gps", "[gps_reader_thread] Can't read GPS data");
+            m_stop_queue.Produce(false);
         }
 
         // 너무 빡빡하게 읽지 않도록 잠깐 대기 (예: 200ms)

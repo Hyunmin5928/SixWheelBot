@@ -10,7 +10,6 @@
 #include <string>
 #include <pthread.h>
 #include <sched.h>
-#include <termios.h>
 
 #include <nlohmann/json.hpp>
 
@@ -21,41 +20,6 @@
 #include "LiDAR/lidar_module.h"
 #include "logger.h"
 #include "Vision/vision_module.h"
-
-//-----------------------------------------------------------------------------
-// 전역 터미널 원복용 구조체
-static struct termios orig_termios;
-
-// 프로그램 종료 시 터미널 설정 복원
-void restore_terminal() {
-    tcsetattr(STDIN_FILENO, TCSANOW, &orig_termios);
-}
-
-//-----------------------------------------------------------------------------
-// 시그널용 플래그
-volatile sig_atomic_t running    = 1;
-volatile sig_atomic_t run_lidar  = 1;
-volatile sig_atomic_t run_gps    = 1;
-volatile sig_atomic_t run_motor  = 1;
-volatile sig_atomic_t run_vision = 1;
-
-//-----------------------------------------------------------------------------
-// SIGINT 핸들러: 플래그 끄고 터미널 복원, 소켓 닫기
-int sock_fd = -1;
-void handle_sigint(int) {
-    run_lidar   = 0;
-    run_gps     = 0;
-    run_motor   = 0;
-    run_vision  = 0;
-    running     = 0;
-    // 직렬포트나 소켓이 블로킹 중이면 close()로 깨워주기
-    if (sock_fd != -1) {
-        close(sock_fd);
-        sock_fd = -1;
-    }
-    restore_terminal();
-    // 이후에는 exit() 대신 루프가 깨지고 main에서 return
-}
 
 // main.cpp 맨 위, includes 아래에 추가
 template<typename F, typename... Args>
@@ -99,8 +63,25 @@ int         RETRY_LIMIT;
 double      ACK_TIMEOUT;
 int         sock_fd = -1;
 
+std::atomic<bool> running{true};
+std::atomic<bool> run_lidar{false};
+std::atomic<bool> run_gps{false};
+std::atomic<bool> run_motor{false};
+std::atomic<bool> run_vision{false};
+
 // 기존 SafeQueue<LaserPoint> lidar_queue 외에…
 SafeQueue<std::vector<LaserPoint>> raw_scan_queue;
+
+static constexpr const char cmd_stop1 [] = "stop\n";
+
+// SIGINT 핸들러: Ctrl+C 시 running 플래그만 false 로 전환
+void handle_sigint(int) {
+    run_lidar.store(false);
+    run_gps.store(false);
+    run_motor.store(false);
+    run_vision.store(false);
+    running.store(false);
+}
 
 void load_config(const std::string& path) {
     std::ifstream ifs(path);
@@ -129,12 +110,6 @@ void load_config(const std::string& path) {
 
 
 int main(){
-    // 1) 현재 터미널 상태 저장
-    tcgetattr(STDIN_FILENO, &orig_termios);
-    // 2) 프로그램이 종료될 때 무조건 터미널 복원
-    atexit(restore_terminal);
-
-    // 3) SIGINT 핸들러 등록
     std::signal(SIGINT, handle_sigint);
 
     load_config("../Config/config.json");
@@ -220,7 +195,7 @@ int main(){
     );
 
     // 메인 루프
-    while (running) {
+    while (running.load()) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 

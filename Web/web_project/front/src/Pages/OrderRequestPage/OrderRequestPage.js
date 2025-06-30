@@ -130,7 +130,7 @@ export default function OrderRequestPage() {
           <input
             value={item}
             onChange={(e) => setItem(e.target.value)}
-            placeholder="물품 종류를 입력하세요. ex) 폭탄"
+            placeholder="물품 종류를 입력하세요. ex) 의류"
           />
         </label>
 

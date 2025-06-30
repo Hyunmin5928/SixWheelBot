@@ -8,7 +8,9 @@
 #include <string>
 #include "YDLidar-SDK/src/CYdLidar.h"
 #include "YDLidar-SDK/core/common/ydlidar_help.h"
-
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <cstring>
 
 class Lidar{
     private:

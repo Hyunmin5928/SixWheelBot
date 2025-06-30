@@ -373,3 +373,5 @@ build/
 Web/web_project/*.db
 app
 server.pid
+delivery
+lidar_server

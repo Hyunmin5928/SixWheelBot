@@ -13,7 +13,7 @@ CXXFLAGS := -std=c++17 -Wall -pthread \
             -I$(SDK_INC_COMMON) \
             -I.                     
 
-LDFLAGS  := -pthread 
+LDFLAGS  := $(SDK_LIB) -pthread 
 
 # 2. 소스 파일 리스트
 CPP_SRCS := Lidar.cpp \

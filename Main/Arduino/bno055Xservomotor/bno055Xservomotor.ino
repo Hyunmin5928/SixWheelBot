@@ -30,6 +30,8 @@ static const uint16_t IMU_INTERVAL_MS      = 20;
 static const float      THRESHOLD_ROLL_DEG  = 2.0;
 static const float      THRESHOLD_PITCH_DEG = 2.0;
 
+float max_dist = 800.0f;
+
 // BNO055 I²C 주소
 Adafruit_BNO055 bno(55, 0x29);
 
@@ -157,36 +159,48 @@ void driveBack() {
 }
 
 //  회전: 현재 yaw와 목표 yaw 비교하며 회전
-void rotateToAngle(float targetAngle) {
+void rotateToAngle(float targetAngle, float distance) {
   Serial.print(">> rotate to ");
   Serial.println(targetAngle);
   set_motor_on();
   while (true) {
     imu::Vector<3> e = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
     float currYaw = e.x();  // 0~360 범위
-    // 오차 계산 (−180~180)
     float err = targetAngle - currYaw;
     if (err > 180)  err -= 360;
     if (err < -180) err += 360;
+    // 오차 계산 (−180~180)
+    float dist = distance;
+    float angle = targetAngle;
+
     // 목표 도달 시 정지
     if (fabs(err) < ANGLE_TOLERANCE) {
       driveStop();
       Serial.println(">> reached");
       break;
     }
+
+    float w_dist = 1.0f - distance / max_dist;
+    if (w_dist < 0.3f) w_dist = 0.3f;
+    float w_ang = 1.0f - fabs(err) / 120.0f;
+    if (w_ang < 0.3f) w_ang = 0.3f;
+    float weight = w_dist * w_ang;
+
+    int pwm = DEFAULT_PWM * weight;
+    pwm = constrain(pwm, 60, 255);
     // 회전 방향에 따라 모터 반대회전
     if (err > 0) {
       // 오른쪽 회전: 왼쪽 전진, 오른쪽 후진
-      analogWrite(L_L_PWM_PIN, DEFAULT_PWM);
-      analogWrite(L_R_PWM_PIN, 0);
+      analogWrite(L_L_PWM_PIN, 0);
+      analogWrite(L_R_PWM_PIN, pwm);
       analogWrite(R_L_PWM_PIN, 0);
-      analogWrite(R_R_PWM_PIN, DEFAULT_PWM);
+      analogWrite(R_R_PWM_PIN, pwm);
     } else {
       // 왼쪽 회전: 왼쪽 후진,     오른쪽 전진
-      analogWrite(L_L_PWM_PIN, 0);
-      analogWrite(L_R_PWM_PIN, DEFAULT_PWM);
-      analogWrite(R_L_PWM_PIN, DEFAULT_PWM);
-      analogWrite(R_R_PWM_PIN, 0);
+      analogWrite(L_L_PWM_PIN, pwm);
+      analogWrite(L_R_PWM_PIN, 0);
+      analogWrite(R_L_PWM_PIN, 0);
+      analogWrite(R_R_PWM_PIN, pwm);
     }
     delay(20);  // 짧게 대기
   }
@@ -269,10 +283,10 @@ void loop() {
         }
         String log = "avoid sep : " + token[0] + ", " + token[1];
         Serial.println(log);
-        rotateToAngle(token[0].toFloat());
+        rotateToAngle(token[0].toFloat(), token[1].toFloat());
         driveStraight();
         delay(1500);
-        rotateToAngle(-token[0].toFloat());
+        rotateToAngle(-token[0].toFloat(), token[1].toFloat());
         Serial.println("cmd_done");
       }
     }

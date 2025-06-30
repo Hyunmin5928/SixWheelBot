@@ -295,42 +295,5 @@ void loop(){
     
   }
 
-  // // IMU 제어
-  // unsigned long now = millis();
-  // if (now - lastIMU >= IMU_INTERVAL_MS) {
-  //   lastIMU = now;
-  //   imu::Vector<3> e = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
-  //   float currYaw   = e.x() - offYaw;    // offYaw 는 필요 시 캘리브레이션
-  //   float currPitch = e.y() - offPitch;
-
-  //   // 서보 평형 유지
-  //   float uPitch = pidControl(currPitch, prevErrPitch, iAccPitch);
-  //   updateServo(servoPitch, uPitch);
-
-  //   // 회전 모드일 때만 yaw 제어
-  //   if (!isnan(targetAngle)) {
-  //     float err = targetAngle - currYaw;
-  //     if (err > 180)  err -= 360;
-  //     if (err < -180) err += 360;
-
-  //     if (fabs(err) < ANGLE_TOLERANCE) {
-  //       driveStop();
-  //       targetAngle = NAN;  // 회전 완료
-  //     } else if (err > 0) {
-  //       // 오른쪽 회전
-  //       analogWrite(L_L_PWM_PIN, DEFAULT_PWM);
-  //       analogWrite(L_R_PWM_PIN, 0);
-  //       analogWrite(R_L_PWM_PIN, 0);
-  //       analogWrite(R_R_PWM_PIN, DEFAULT_PWM);
-  //     } else {
-  //       // 왼쪽 회전
-  //       analogWrite(L_L_PWM_PIN, 0);
-  //       analogWrite(L_R_PWM_PIN, DEFAULT_PWM);
-  //       analogWrite(R_L_PWM_PIN, DEFAULT_PWM);
-  //       analogWrite(R_R_PWM_PIN, 0);
-  //     }
-  //   }
-  // }
-
   delay(10); // loop 주기
 }

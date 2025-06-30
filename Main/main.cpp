@@ -18,7 +18,6 @@
 #include "GPS/gps_module.h"
 #include "Motor/motor_module.h"
 #include "LiDAR/lidar_module.h"
-#include "LiDAR/Lidar.h"
 #include "logger.h"
 #include "Vision/vision_module.h"
 
@@ -113,7 +112,7 @@ void load_config(const std::string& path) {
 int main(){
     std::signal(SIGINT, handle_sigint);
 
-    load_config("config/config.json");
+    load_config("../Config/config.json");
 
     Logger::instance().addFile("comm",   CLI_LOG_FILE,   static_cast<LogLevel>(LOG_LEVEL));
     Logger::instance().addFile("gps",    GPS_LOG_FILE,   static_cast<LogLevel>(LOG_LEVEL));
@@ -173,18 +172,10 @@ int main(){
     std::thread t_lidar_prod = start_thread_with_affinity(
         2, 
         lidar_producer,
-        std::ref(lidar_queue);
+        std::ref(lidar_queue)
     );
 
-    // 6) LiDAR near-point 컨슈머 -> 2
-    // std::thread t_lidar_cons = start_thread_with_affinity(
-    //     2,
-    //     lidar_consumer,
-    //     std::ref(raw_scan_queue),
-    //     std::ref(lidar_queue)
-    // );
-
-    // 7) 모터 스레드 -> 3
+    // 6) 모터 스레드 -> 3
     std::thread t_motor = start_thread_with_affinity(
         3,
         motor_thread,
@@ -196,7 +187,7 @@ int main(){
         std::ref(m_stop_queue)
     );
 
-    // 8) 비전 스레드 추가 -> 2
+    // 7) 비전 스레드 추가 -> 2
     std::thread t_vision = start_thread_with_affinity(
         1,
         vision_thread,
@@ -214,7 +205,6 @@ int main(){
     t_gps_sender.join();
     t_nav.join();
     t_lidar_prod.join();
-    t_lidar_cons.join();
     t_motor.join();
     t_vision.join();  
 

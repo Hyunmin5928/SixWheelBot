@@ -60,33 +60,6 @@ void lidar_producer(SafeQueue<LaserPoint>& lidar_queue) {
         
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }
-    lidar_queue.Finish();
     close(sockfd);
+    lidar_queue.Finish();
 }
-
-// 2) 계산만 담당: raw_scan_queue 에서 뽑아 nearest point 계산 → lidar_queue 로 소비
-// void lidar_consumer(SafeQueue<std::vector<LaserPoint>>& in_q,
-//                     SafeQueue<LaserPoint>& out_q) {
-//     std::vector<LaserPoint> pts;
-//     pthread_setname_np(pthread_self(), "[THREAD]LIDAR_COND");
-//     while (in_q.ConsumeSync(pts)) {                       // 블록 대기
-//         // 가장 가까운 점 계산 (기존 get_nearPoint 로직 분리)
-//         LaserPoint nearPoint;
-//         float minR = std::numeric_limits<float>::infinity();
-//         for (auto &p : pts) {
-//             if (p.range > 0 && p.range < minR &&
-//                p.angle > -60.0f && p.angle < 60.0f) {
-//                 minR = p.range;
-//                 nearPoint = p;
-//             }
-//         }
-//         std::ostringstream msg;
-//         msg << std::fixed << std::setprecision(2);
-//         msg << "[LiDAR Near Point] ang : " << nearPoint.angle
-//             << ", range : " << nearPoint.range;
-//         Logger::instance().info("lidar", msg.str());
-
-//         out_q.Produce(std::move(nearPoint));                  // 최종 결과 생산
-//     }
-//     out_q.Finish();
-// }

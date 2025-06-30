@@ -4,16 +4,8 @@ CC       := gcc
 
 PKG_OCV_CFLAGS := $(shell pkg-config --cflags opencv4)
 PKG_OCV_LIBS   := $(shell pkg-config --libs   opencv4)
-SDK_ROOT      := LiDAR/YDLidar-SDK
-SDK_INC_SRC   := $(SDK_ROOT)/src             # CYdLidar.h
-SDK_INC_COMMON:= $(SDK_ROOT)/core/common     # ydlidar_help.h 등
-SDK_LIB       := $(SDK_ROOT)/build/libydlidar_sdk.a
-
 
 CXXFLAGS := -std=c++17 -Wall -pthread \
-            -I$(SDK_ROOT)       \
-            -I$(SDK_INC_SRC)    \
-            -I$(SDK_INC_COMMON) \
             -I.                  \
             -I./Communication    \
             -I./GPS              \
@@ -23,7 +15,7 @@ CXXFLAGS := -std=c++17 -Wall -pthread \
             -I./Motor/lib       \
             $(PKG_OCV_CFLAGS)
 
-LDFLAGS  := $(SDK_LIB) $(PKG_OCV_LIBS) -pthread -lwiringPi
+LDFLAGS  := $(PKG_OCV_LIBS) -pthread -lwiringPi
 #LIBS := $(SDK_LIB) $(PKG_OCV_LIBS) -lpthread -lwiringPi
 
 # 2. 소스 파일 리스트
@@ -31,7 +23,6 @@ CPP_SRCS := main.cpp \
             Communication/comm_module.cpp \
             GPS/gps_module.cpp \
             GPS/lib/GPS_parse.cpp \
-            LiDAR/Lidar.cpp \
             LiDAR/lidar_module.cpp \
             Motor/lib/SerialPort.cpp \
             Motor/motor_module.cpp  \

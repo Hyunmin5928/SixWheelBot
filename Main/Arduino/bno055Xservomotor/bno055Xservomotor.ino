@@ -229,6 +229,15 @@ void updateServo(Servo &sv, float u) {
 
 void loop(){
   if (Serial.available()) {
+    unsigned long now = millis();
+    if (now - lastIMU >= IMU_INTERVAL_MS) {
+      lastIMU = now;
+      imu::Vector<3> e = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
+      float currYaw   = e.x() - offYaw;    // offYaw 는 필요 시 캘리브레이션
+      float currPitch = e.y() - offPitch;
+    }
+    float uPitch = pidControl(currPitch, prevErrPitch, iAccPitch);
+    updateServo(servoPitch, uPitch);
     String cmd = Serial.readStringUntil('\n');
     cmd.trim();
     Serial.print("cmd receive : ");

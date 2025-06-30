@@ -33,7 +33,11 @@ int main(){
             << ", range : " << nearPoint.range;
         std::cout << msg.str() << std::endl;
 
-        sendto(sockfd, &nearPoint, sizeof(LaserPoint),0, (sockaddr*)&main_addr, sizeof(main_addr));
+        //sendto 문제 가능성 있음 (쓰레기값이라 조건문 통과 못할 가능성 있음)
+        //sendto(sockfd, &nearPoint, sizeof(LaserPoint),0, (sockaddr*)&main_addr, sizeof(main_addr));
+        //기존 struct형으로 보내던 것 >> string으로 변형하여 보내보도록 함
+        std::string sendstr = std::to_string(nearPoint.angle)+" "+std::to_string(nearPoint.range)+"\n";
+        sendto(sockfd, sendstr.c_str(), sizeof(sendstr),0, (sockaddr*)&main_addr, sizeof(main_addr));
         usleep(10000);
     }
     close(sockfd);

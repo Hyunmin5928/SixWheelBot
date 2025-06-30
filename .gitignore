@@ -375,3 +375,4 @@ app
 server.pid
 delivery
 lidar_server
+route.txt

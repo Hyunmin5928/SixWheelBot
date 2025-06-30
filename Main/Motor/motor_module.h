@@ -10,7 +10,6 @@
 #include <cmath>
 #include "../SafeQueue.hpp"
 #include "../logger.h"
-#include "../LiDAR/YDLidar-SDK/core/common/ydlidar_def.h"
 #include "lib/SerialPort.h"
 
 extern std::string          COMMAND_LOG_FILE;

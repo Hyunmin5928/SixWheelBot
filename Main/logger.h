@@ -4,6 +4,15 @@
 #include <unordered_map>
 #include <fstream>
 
+typedef struct {
+  /// lidar angle. unit(rad)
+  float angle;
+  /// lidar range. unit(m)
+  float range;
+  /// lidar intensity
+  float intensity;
+} LaserPoint;
+
 namespace util {
 
 enum class LogLevel { Debug, Info, Warn, Error };

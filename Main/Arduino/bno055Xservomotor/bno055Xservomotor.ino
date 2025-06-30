@@ -157,40 +157,40 @@ void driveBack() {
 }
 
 //  회전: 현재 yaw와 목표 yaw 비교하며 회전
- void rotateToAngle(float targetAngle) {
-   Serial.print(">> rotate to ");
-   Serial.println(targetAngle);
-   set_motor_on();
-   while (true) {
-     imu::Vector<3> e = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
-     float currYaw = e.x();  // 0~360 범위
-     // 오차 계산 (−180~180)
-     float err = targetAngle - currYaw;
-     if (err > 180)  err -= 360;
-     if (err < -180) err += 360;
-     // 목표 도달 시 정지
-     if (fabs(err) < ANGLE_TOLERANCE) {
-       driveStop();
-       Serial.println(">> reached");
-       break;
-     }
-     // 회전 방향에 따라 모터 반대회전
-     if (err > 0) {
-       // 오른쪽 회전: 왼쪽 전진, 오른쪽 후진
-       analogWrite(L_L_PWM_PIN, DEFAULT_PWM);
-       analogWrite(L_R_PWM_PIN, 0);
-       analogWrite(R_L_PWM_PIN, 0);
-       analogWrite(R_R_PWM_PIN, DEFAULT_PWM);
-     } else {
-       // 왼쪽 회전: 왼쪽 후진, 오른쪽 전진
-       analogWrite(L_L_PWM_PIN, 0);
-       analogWrite(L_R_PWM_PIN, DEFAULT_PWM);
-       analogWrite(R_L_PWM_PIN, DEFAULT_PWM);
-       analogWrite(R_R_PWM_PIN, 0);
-     }
-     delay(20);  // 짧게 대기
-   }
- }
+void rotateToAngle(float targetAngle) {
+  Serial.print(">> rotate to ");
+  Serial.println(targetAngle);
+  set_motor_on();
+  while (true) {
+    imu::Vector<3> e = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
+    float currYaw = e.x();  // 0~360 범위
+    // 오차 계산 (−180~180)
+    float err = targetAngle - currYaw;
+    if (err > 180)  err -= 360;
+    if (err < -180) err += 360;
+    // 목표 도달 시 정지
+    if (fabs(err) < ANGLE_TOLERANCE) {
+      driveStop();
+      Serial.println(">> reached");
+      break;
+    }
+    // 회전 방향에 따라 모터 반대회전
+    if (err > 0) {
+      // 오른쪽 회전: 왼쪽 전진, 오른쪽 후진
+      analogWrite(L_L_PWM_PIN, DEFAULT_PWM);
+      analogWrite(L_R_PWM_PIN, 0);
+      analogWrite(R_L_PWM_PIN, 0);
+      analogWrite(R_R_PWM_PIN, DEFAULT_PWM);
+    } else {
+      // 왼쪽 회전: 왼쪽 후진,     오른쪽 전진
+      analogWrite(L_L_PWM_PIN, 0);
+      analogWrite(L_R_PWM_PIN, DEFAULT_PWM);
+      analogWrite(R_L_PWM_PIN, DEFAULT_PWM);
+      analogWrite(R_R_PWM_PIN, 0);
+    }
+    delay(20);  // 짧게 대기
+  }
+}
 
 void calibrateZero() {
   const int N = 50;
@@ -227,17 +227,18 @@ void updateServo(Servo &sv, float u) {
   sv.write(angle);
 }
 
-void loop(){
-  if (Serial.available()) {
-    unsigned long now = millis();
-    if (now - lastIMU >= IMU_INTERVAL_MS) {
-      lastIMU = now;
-      imu::Vector<3> e = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
-      float currYaw   = e.x() - offYaw;    // offYaw 는 필요 시 캘리브레이션
-      float currPitch = e.y() - offPitch;
-    }
+void loop() {
+  // IMU 기반 Pitch 서보 제어 (Serial.available() 밖)
+  unsigned long now = millis();
+  if (now - lastIMU >= IMU_INTERVAL_MS) {
+    lastIMU = now;
+    imu::Vector<3> e = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
+    float currPitch = e.z() - offPitch;  // Pitch 읽기: e.z()
     float uPitch = pidControl(currPitch, prevErrPitch, iAccPitch);
     updateServo(servoPitch, uPitch);
+  }
+
+  if (Serial.available()) {
     String cmd = Serial.readStringUntil('\n');
     cmd.trim();
     Serial.print("cmd receive : ");
@@ -245,94 +246,60 @@ void loop(){
     if      (cmd == "straight") { driveStraight();  targetAngle = NAN; }
     else if (cmd == "stop")     { driveStop();      targetAngle = NAN; }
     else if (cmd == "back")     { driveBack();      targetAngle = NAN; }
-    // else if (cmd == "start")    { imuEnabled = true; }
-    // else if (cmd == "stopIMU")  { imuEnabled = false; }
     else {
-      // avoid 또는 angle string으로 구별
-      // rotate <float> or avoid <float>형태 
-      // cmd에서 rotate인지 avoid인지 구별 우선
-      String sep = Serial.readStringUntil(' '); // rotate 또는 avoid만 추출
-      String info = cmd.substring(sep.length() + 1); //명령인자 뒤의 숫자들만 추출(개행문자 제거)
-      info.trim(); // 앞에 있는 공백 문자 제거
-      String log = "cmd seperate : ";
-      log+=sep;
-      log+=", ";
-      log+=info;
-      Serial.println(log);
-      if(sep == "rotate")
-      {
-        //  rotate 뒤에 있는 숫자 읽기
-        targetAngle=info.toFloat();
+      String sep = cmd.substring(0, cmd.indexOf(' '));
+      String info = cmd.substring(sep.length() + 1);
+      info.trim();
+      if (sep == "rotate") {
+        targetAngle = info.toFloat();
         rotateToAngle(targetAngle);
         Serial.println("cmd_done");
       }
-      else if (sep=="avoid")
-      {
+      else if (sep == "avoid") {
         //token[0] : 장애물과의 각도
         //token[1] : 장애물과의 거리
-        String token[2]; 
-        int tokenCount=0;
-        //  avoid 뒤에 있는 숫자 읽기
-        //  1) 라이다에서 감지된 장애물 각도 + 거리 가져오기
-        while(tokenCount<3)
-        {
+        String token[2];
+        int tokenCount = 0;
+        while (tokenCount < 2) {
           int spaceIndex = info.indexOf(' ');
           token[tokenCount] = info.substring(0, spaceIndex);
-          info=info.substring(spaceIndex+1);
+          info = info.substring(spaceIndex + 1);
           info.trim();
           tokenCount++;
         }
-        log="avoid sep : ";
-        log+= token[0];
-        log+=", ";
-        log+=token[1];
+        String log = "avoid sep : " + token[0] + ", " + token[1];
         Serial.println(log);
-        //  2) 장애물 반대쪽 방향으로 각도만큼 rotate하기
         rotateToAngle(token[0].toFloat());
-        Serial.println("회피 회전");
-        //  3) 1초 straight하기
         driveStraight();
-        Serial.println("앞으로 이동");
         delay(1500);
-        //  4) 장애물 피하기 위해 튼 각도 *-1.0f만큼 rotate하기
-        rotateToAngle(token[0].toFloat()*(-1.0f));
-        Serial.println("회피 이전 각도로 회복");
-        //  5) 종료 >> gps dir 따르기
+        rotateToAngle(-token[0].toFloat());
         Serial.println("cmd_done");
       }
     }
-    
   }
 
-  // // IMU 제어
+  // 원본 IMU 제어 블록 (주석 유지)
   // unsigned long now = millis();
   // if (now - lastIMU >= IMU_INTERVAL_MS) {
   //   lastIMU = now;
   //   imu::Vector<3> e = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
-  //   float currYaw   = e.x() - offYaw;    // offYaw 는 필요 시 캘리브레이션
+  //   float currYaw   = e.x() - offYaw;
   //   float currPitch = e.y() - offPitch;
-
-  //   // 서보 평형 유지
   //   float uPitch = pidControl(currPitch, prevErrPitch, iAccPitch);
   //   updateServo(servoPitch, uPitch);
-
-  //   // 회전 모드일 때만 yaw 제어
   //   if (!isnan(targetAngle)) {
   //     float err = targetAngle - currYaw;
   //     if (err > 180)  err -= 360;
   //     if (err < -180) err += 360;
-
   //     if (fabs(err) < ANGLE_TOLERANCE) {
   //       driveStop();
-  //       targetAngle = NAN;  // 회전 완료
+  //       targetAngle = NAN;
   //     } else if (err > 0) {
-  //       // 오른쪽 회전
   //       analogWrite(L_L_PWM_PIN, DEFAULT_PWM);
   //       analogWrite(L_R_PWM_PIN, 0);
   //       analogWrite(R_L_PWM_PIN, 0);
   //       analogWrite(R_R_PWM_PIN, DEFAULT_PWM);
   //     } else {
-  //       // 왼쪽 회전
   //       analogWrite(L_L_PWM_PIN, 0);
   //       analogWrite(L_R_PWM_PIN, DEFAULT_PWM);
   //       analogWrite(R_L_PWM_PIN, DEFAULT_PWM);

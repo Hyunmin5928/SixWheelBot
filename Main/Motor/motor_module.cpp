@@ -119,6 +119,10 @@ void motor_thread(
                     g_serial.Write(cmd.c_str(), cmd.size());
                     //장애물 코드가 너무 자주 도는 것 방지
                     std::this_thread::sleep_for(std::chrono::milliseconds(50));
+                }else{
+                    cmd="straight\n";
+                    g_serial.Write(cmd.c_str(), cmd.size());
+                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
                 }
             }
             // GPS 큐 들어왔을 경우

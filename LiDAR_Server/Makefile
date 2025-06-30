@@ -13,10 +13,11 @@ CXXFLAGS := -std=c++17 -Wall -pthread \
             -I$(SDK_INC_COMMON) \
             -I.                     
 
-LDFLAGS  := -pthread -lwiringPi
+LDFLAGS  := -pthread 
 
 # 2. 소스 파일 리스트
-CPP_SRCS := Lidar.cpp 
+CPP_SRCS := Lidar.cpp \
+            Lidar_Rasp.cpp
 # C_SRCS   := logger.c
 
 # 3. 오브젝트 파일 리스트

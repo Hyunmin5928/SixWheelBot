@@ -101,9 +101,12 @@ void motor_thread(
                 float angle = pnt.angle;
                 // 거리가 0(감지불가 임계값 이하)일 경우 무시, 거리와 각도가 회피 기준값 이내로 들어오면 회피 동작
                 // std::cout<<"값 받음 :"<<dist<<" "<<angle<<"\n";
-                if (dist > 10.0f
-                && dist <= OBSTACLE_DISTANCE_THRESHOLD
-                && std::fabs(angle) <= OBSTACLE_ANGLE_LIMIT)
+                // 실제로 어떤 값이 할당되었는지 확인해보기 위해 로그 찍어놓음
+                std::ostringstream oss;
+                    oss << "[MOTOR] point_queue : dist="  << std::to_string(dist)
+                    << "cm, angle=" << std::to_string(angle);
+                    Logger::instance().warn("motor", oss.str());
+                if (dist > 0.0f && dist <= OBSTACLE_DISTANCE_THRESHOLD)
                 {
                     cmd_active = true;
                     std::ostringstream oss;
@@ -116,6 +119,10 @@ void motor_thread(
                     g_serial.Write(cmd.c_str(), cmd.size());
                     //장애물 코드가 너무 자주 도는 것 방지
                     std::this_thread::sleep_for(std::chrono::milliseconds(50));
+                }else{
+                    cmd="straight\n";
+                    g_serial.Write(cmd.c_str(), cmd.size());
+                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
                 }
             }
             // GPS 큐 들어왔을 경우
@@ -161,6 +168,10 @@ void motor_thread(
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
         
+    dir_queue_g.Finish();
+    dir_queue_v.Finish();
+    point_queue.Finish();
+}
         /*
         if(g_serial.ReadLine(linebuf, sizeof(linebuf))){
             if(linebuf == "cmd_done\n"){
@@ -234,7 +245,3 @@ void motor_thread(
     }
     */
     
-    dir_queue_g.Finish();
-    dir_queue_v.Finish();
-    point_queue.Finish();
-}

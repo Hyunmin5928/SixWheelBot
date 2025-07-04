@@ -158,41 +158,63 @@ void driveBack() {
   Serial.println(">> back");
 }
 
+float normalizeAngle(float angle){
+  angle = fmod(angle + 180.0, 360.0);
+  if(angle <0) angle += 360.0;
+  return angle - 180.0;
+}
+
 //  회전: 현재 yaw와 목표 yaw 비교하며 회전
 void rotateToAngle(float targetAngle) {
   Serial.print(">> rotate to ");
   Serial.println(targetAngle);
   set_motor_on();
-  while (true) {
+  float targetYaw = bno.getVector(Adafruit_BNO055::VECTOR_EULER).x() + targetAngle;
+  if(targetYaw >= 360.0f) targetYaw -=360.0f;
+  if(targetYaw < 0.0f) targetYaw +=360.0f;
+  bool reached = false;
+  int count =0;
+
+  // 회전 방향에 따라 모터 반대회전
+  if (targetAngle > 0) {
+      // 오른쪽 회전: 왼쪽 전진, 오른쪽 후진
+      analogWrite(L_L_PWM_PIN, 0);
+      analogWrite(L_R_PWM_PIN, DEFAULT_PWM);
+      analogWrite(R_L_PWM_PIN, 0);
+      analogWrite(R_R_PWM_PIN, DEFAULT_PWM);
+  } else {
+      // 왼쪽 회전: 왼쪽 후진,     오른쪽 전진
+      analogWrite(L_L_PWM_PIN, DEFAULT_PWM);
+      analogWrite(L_R_PWM_PIN, 0);
+      analogWrite(R_L_PWM_PIN, DEFAULT_PWM);
+      analogWrite(R_R_PWM_PIN, 0);
+  }
+
+  while (!reached) {
     imu::Vector<3> e = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
     float currYaw = e.x();  // 0~360 범위
-    float err = targetAngle - currYaw; 
-    if (err > 180)  err -= 360;
-    if (err < -180) err += 360;
+    float err = normalizeAngle(targetYaw - currYaw);
     // 오차 계산 (−180~180)
     
     // 목표 도달 시 정지
     if (fabs(err) < ANGLE_TOLERANCE) {
+      reached = true;
       driveStop();
       Serial.println(">> reached");
       break;
     }
-    
-    // 회전 방향에 따라 모터 반대회전
-    if (err > 0) {
-      // 오른쪽 회전: 왼쪽 전진, 오른쪽 후진
-      analogWrite(L_L_PWM_PIN, 0);
-      analogWrite(L_R_PWM_PIN, pwm);
-      analogWrite(R_L_PWM_PIN, 0);
-      analogWrite(R_R_PWM_PIN, pwm);
-    } else {
-      // 왼쪽 회전: 왼쪽 후진,     오른쪽 전진
-      analogWrite(L_L_PWM_PIN, pwm);
-      analogWrite(L_R_PWM_PIN, 0);
-      analogWrite(R_L_PWM_PIN, pwm);
-      analogWrite(R_R_PWM_PIN, 0);
+
+    if( count %15 ==0){
+      Serial.print("cur : ");
+      Serial.print(currYaw);
+      Serial.print(" err : ");
+      Serial.println(err);
     }
-    delay(20);  // 짧게 대기
+    
+    count ++;
+    
+    
+    delay(20);
   }
 }
 

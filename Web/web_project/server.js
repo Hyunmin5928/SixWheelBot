@@ -419,9 +419,11 @@ app.post('/api/order/:id/accept', async (req, res) => {
    // const endX = 126.910656;
     //const endY = 37.557907;
     // X : 경도, Y : 위도 -> 시작 점 : 분당 메가 포스 몰(홈플러스 방향)
-    const startX = 127.10756589999941;
-    const startY = 37.340588499999804;
- 
+    // const startX = 127.10756589999941;
+    // const startY = 37.340588499999804;
+    const startX = 127.10922819999993;
+    const startY = 37.33892730000014 ;
+
 
     // 디버깅용 콘솔 출력
     console.log('==== Geocoding 결과 ====');

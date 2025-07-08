@@ -30,6 +30,8 @@ static const uint16_t IMU_INTERVAL_MS      = 20;
 static const float      THRESHOLD_ROLL_DEG  = 2.0;
 static const float      THRESHOLD_PITCH_DEG = 2.0;
 
+float max_dist = 800.0f;
+
 // BNO055 I²C 주소
 Adafruit_BNO055 bno(55, 0x29);
 
@@ -156,39 +158,63 @@ void driveBack() {
   Serial.println(">> back");
 }
 
+float normalizeAngle(float angle){
+  angle = fmod(angle + 180.0, 360.0);
+  if(angle <0) angle += 360.0;
+  return angle - 180.0;
+}
+
 //  회전: 현재 yaw와 목표 yaw 비교하며 회전
 void rotateToAngle(float targetAngle) {
   Serial.print(">> rotate to ");
   Serial.println(targetAngle);
   set_motor_on();
-  while (true) {
+  float targetYaw = bno.getVector(Adafruit_BNO055::VECTOR_EULER).x() + targetAngle;
+  if(targetYaw >= 360.0f) targetYaw -=360.0f;
+  if(targetYaw < 0.0f) targetYaw +=360.0f;
+  bool reached = false;
+  int count =0;
+
+  // 회전 방향에 따라 모터 반대회전
+  if (targetAngle > 0) {
+      // 오른쪽 회전: 왼쪽 전진, 오른쪽 후진
+      analogWrite(L_L_PWM_PIN, 0);
+      analogWrite(L_R_PWM_PIN, DEFAULT_PWM);
+      analogWrite(R_L_PWM_PIN, 0);
+      analogWrite(R_R_PWM_PIN, DEFAULT_PWM);
+  } else {
+      // 왼쪽 회전: 왼쪽 후진,     오른쪽 전진
+      analogWrite(L_L_PWM_PIN, DEFAULT_PWM);
+      analogWrite(L_R_PWM_PIN, 0);
+      analogWrite(R_L_PWM_PIN, DEFAULT_PWM);
+      analogWrite(R_R_PWM_PIN, 0);
+  }
+
+  while (!reached) {
     imu::Vector<3> e = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
     float currYaw = e.x();  // 0~360 범위
+    float err = normalizeAngle(targetYaw - currYaw);
     // 오차 계산 (−180~180)
-    float err = targetAngle - currYaw;
-    if (err > 180)  err -= 360;
-    if (err < -180) err += 360;
+    
     // 목표 도달 시 정지
     if (fabs(err) < ANGLE_TOLERANCE) {
+      reached = true;
       driveStop();
       Serial.println(">> reached");
       break;
     }
-    // 회전 방향에 따라 모터 반대회전
-    if (err > 0) {
-      // 오른쪽 회전: 왼쪽 전진, 오른쪽 후진
-      analogWrite(L_L_PWM_PIN, DEFAULT_PWM);
-      analogWrite(L_R_PWM_PIN, 0);
-      analogWrite(R_L_PWM_PIN, 0);
-      analogWrite(R_R_PWM_PIN, DEFAULT_PWM);
-    } else {
-      // 왼쪽 회전: 왼쪽 후진,     오른쪽 전진
-      analogWrite(L_L_PWM_PIN, 0);
-      analogWrite(L_R_PWM_PIN, DEFAULT_PWM);
-      analogWrite(R_L_PWM_PIN, DEFAULT_PWM);
-      analogWrite(R_R_PWM_PIN, 0);
+
+    if( count %15 ==0){
+      Serial.print("cur : ");
+      Serial.print(currYaw);
+      Serial.print(" err : ");
+      Serial.println(err);
     }
-    delay(20);  // 짧게 대기
+    
+    count ++;
+    
+    
+    delay(20);
   }
 }
 
@@ -269,10 +295,20 @@ void loop() {
         }
         String log = "avoid sep : " + token[0] + ", " + token[1];
         Serial.println(log);
-        rotateToAngle(token[0].toFloat());
+        float angle = token[0].toFloat();
+        float dist = token[1].toFloat();
+
+        float w_dist = 1.0f - dist / max_dist;  // 거리가 멀수록 가중치는 작아짐 (틀어지는 각도 감소)
+        if (w_dist < 0.3f) w_dist = 0.3f;       // 너무 작아지지 않도록 조정
+        float w_ang = 1.0f - fabs(angle) / 120.0f;    // 각도가 0에서 멀수록 가중치는 작아짐 (틀어지는 각도 감소)
+        if (w_ang < 0.3f) w_ang = 0.3f; // 가중치가 너무 작아지지 않도록 조정
+        float weight = (w_dist + w_ang)/2.0f;
+        targetAngle *= weight;
+
+        rotateToAngle(targetAngle);
         driveStraight();
         delay(1500);
-        rotateToAngle(-token[0].toFloat());
+        rotateToAngle(-targetAngle);
         Serial.println("cmd_done");
       }
     }

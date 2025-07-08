@@ -140,7 +140,7 @@ export default function RegisterPage() {
           <label className={styles.field}>
             <span>전화번호</span>
             <input name="phone" value={form.phone} onChange={onChange}
-                   placeholder="전화번호를 입력하세요." />
+                   placeholder="전화번호를 입력하세요. ex)01012345678" />
           </label>
 
           <label className={styles.field}>

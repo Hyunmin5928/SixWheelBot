@@ -148,7 +148,8 @@ int main(){
     std::thread t_gps_reader =  start_thread_with_affinity(
         0,
         gps_reader_thread,
-        std::ref(gps_queue)
+        std::ref(gps_queue),
+        std::ref(m_stop_queue)
     );
 
     // 3) GPS 송신 스레드 -> 0 

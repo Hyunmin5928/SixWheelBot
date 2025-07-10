@@ -5,7 +5,7 @@ int main(){
     sockaddr_in main_addr;
     memset(&main_addr, 0, sizeof(main_addr));
     main_addr.sin_port = htons(5005); // main pi 에서 받을 포트
-    inet_pton(AF_INET, "192.168.61.232", &main_addr.sin_addr);
+    inet_pton(AF_INET, "10.67.230.232", &main_addr.sin_addr); //데이터 못받았던 게 이쪽 문제였던 것으로 예상
     // 라이다 라즈베리파이가 메인 라즈베리파이로 
     // 데이터를 계속 보내도록 해야함
 

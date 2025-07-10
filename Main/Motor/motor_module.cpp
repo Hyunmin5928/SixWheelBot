@@ -63,7 +63,7 @@ void motor_thread(
     while(running.load()){    
         // Logger::instance().info("motor", "[MOTOR] RUN loop");
 
-        if(m_stop_queue.ConsumeSync(stop) && !cmd_active){
+        if(m_stop_queue.Consume(stop) && !cmd_active){
             if (stop){
                 Logger::instance().info("motor", "[MOTOR] send stop");
                 cmd="stop\n";
@@ -93,7 +93,7 @@ void motor_thread(
         if(run_motor.load() && !cmd_active){
             Logger::instance().info("motor", "[MOTOR] RUN_MOTOR loop");
             // 라이다 큐 들어왔을 경우
-            got_l_queue = point_queue.ConsumeSync(pnt);
+            got_l_queue = point_queue.Consume(pnt);
             if(got_l_queue){
                 Logger::instance().info("motor", "[MOTOR] DIR queue received");
                 //장애물 위치(각도)와 거리 파악
@@ -126,7 +126,7 @@ void motor_thread(
                 }
             }
             // GPS 큐 들어왔을 경우
-            got_g_queue = dir_queue_g.ConsumeSync(dir_g);
+            got_g_queue = dir_queue_g.Consume(dir_g);
             // GPS 큐는 항상 존재하므로, GPS 이외의 상황에서의 기동 상태가 아닐 경우 동작하도록 해야함
             if(got_g_queue && !cmd_active){
                 if(dir_g==0.0f){
@@ -151,7 +151,7 @@ void motor_thread(
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
             }
             // Vision 큐 들어왔을 경우
-            got_v_queue = dir_queue_v.ConsumeSync(dir_v);
+            got_v_queue = dir_queue_v.Consume(dir_v);
     
             if(got_v_queue && !cmd_active){
                 cmd_active = true;
@@ -179,7 +179,7 @@ void motor_thread(
             }
         } //serial.readline( ) == "행동종료문구" >> cmd_active=false;
         
-        if (point_queue.ConsumeSync(pnt) && !cmd_active) {
+        if (point_queue.Consume(pnt) && !cmd_active) {
             //장애물 위치(각도)와 거리 파악
             cmd_active = true;
             float dist  = pnt.range;
@@ -208,8 +208,8 @@ void motor_thread(
             }
         }
         // 2순위 네비게이션 방향 처리
-        else if (dir_queue_g.ConsumeSync(dir_g) && 
-                !point_queue.ConsumeSync(pnt) && 
+        else if (dir_queue_g.Consume(dir_g) && 
+                !point_queue.Consume(pnt) && 
                 !cmd_active){
             
             cmd_active = true;
@@ -230,8 +230,8 @@ void motor_thread(
         }
 
         // 3순위 비전 방향 처리
-        else if(dir_queue_v.ConsumeSync(dir_v) &&
-                !point_queue.ConsumeSync(pnt) &&
+        else if(dir_queue_v.Consume(dir_v) &&
+                !point_queue.Consume(pnt) &&
                 !cmd_active){
             cmd_active = true;
             std::string msg = "[MOTOR] vision send rotate ";

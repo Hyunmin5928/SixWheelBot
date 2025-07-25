@@ -22,6 +22,9 @@ static const int R_L_PWM_PIN = 6;  // forward
 static const int R_R_PWM_PIN = 11;
 
 static const uint8_t PIN_SERVO_PITCH  = 10;
+static const uint8_t PIN_SERVO_LOCK   = 12;
+static const int     LOCKED_ANGLE     = 0;
+static const int     UNLOCKED_ANGLE   = 90; 
 
 // IMU 샘플링 주기 (ms 단위, 20ms → 50Hz)
 static const uint16_t IMU_INTERVAL_MS      = 20;
@@ -46,6 +49,7 @@ float kp = 2.0, ki = 0.5, kd = 0.1;
 ==============================================================================*/
 
 Servo servoRoll, servoPitch;
+Servo servoLock;
 
 // 영점 캘리브레이션 오프셋
 float offRoll  = 0, offPitch = 0, offYaw = 0;
@@ -90,11 +94,15 @@ void setup() {
   servoPitch.write(90);
   delay(500);
 
-  // // 3) 영점 캘리브레이션
+  // 3) 잠금 서보 초기화 
+  servoLock.attach(PIN_SERVO_LOCK, 500, 2500);
+  servoLock.write(UNLOCKED_ANGLE);
+
+  // 4) 영점 캘리브레이션
   calibrateZero();
   // Serial.println("=== 캘리브레이션 완료 ===");
 
-  // 4) 모터 드라이버 핀 출력 설정
+  // 5) 모터 드라이버 핀 출력 설정
   pinMode(L_L_EN_PIN,  OUTPUT);
   pinMode(L_R_EN_PIN,  OUTPUT);
   pinMode(L_L_PWM_PIN, OUTPUT);
@@ -137,6 +145,7 @@ void driveStraight() {
   analogWrite(L_R_PWM_PIN, DEFAULT_PWM);
   analogWrite(R_L_PWM_PIN, DEFAULT_PWM);
   analogWrite(R_R_PWM_PIN, 0);
+  servoLock.write(LOCKED_ANGLE);
   Serial.println(">> straight");
 }
 
@@ -144,6 +153,7 @@ void driveStraight() {
 void driveStop() {
   set_pwm_zero();
   set_motor_off();
+  servoLock.write(UNLOCKED_ANGLE);
   Serial.println(">> stop");
 }
 
